@@ -46,6 +46,9 @@ Open this folder, let Gradle sync, then Build > Build APK(s), or connect the pho
   total and a reminder the day before renewal.
 - Reimbursements pending and money owed to you from split payments.
 
+## Language
+English or ಕನ್ನಡ (Kannada). Chosen on first launch; change any time in Settings > Language.
+
 ## Home
 Income vs expenses by month (amounts in lakh on each bar), a category donut, and your top
 5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
@@ -56,6 +59,23 @@ Settings > Family: add your name, then tap "Sync with family nearby" on both pho
 they're close together. Check the 4-digit code matches on both, and the two ledgers swap
 over Bluetooth or direct Wi-Fi (no internet needed). Home then has a "Just me / Family"
 switch. Sync again whenever you're together to refresh.
+
+## Transfers and card bill payments
+Paying a card bill or moving money between your own accounts sends two SMS: one debit, one
+credit. The app pairs them (same amount, within 2 days, different accounts) and files both
+as Card payments or Self transfer, which aren't counted as spending or income. "Payment
+received" messages from your card issuer are read as money arriving on the card, not a spend.
+Categories you set yourself are never changed by this.
+
+## Merchant rules
+One set of rules gives each merchant its name and category. Importing a FinArt backup adds its
+rules to this set; correcting an entry adds or updates a rule. Settings > View and edit rules
+to search, change or delete. "Undo my rule changes" goes back to the imported rules.
+
+## Rescanning from scratch
+Settings > Automatic SMS reading > tick "Start fresh", then pick a range. You choose what
+to clear (SMS entries, learned names and categories, bills/balances, and optionally manual
+and FinArt entries) before the SMS are read again.
 
 ## Other currencies
 Pick the currency when adding an entry. The app fetches that day's rate to convert to ₹

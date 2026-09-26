@@ -57,7 +57,8 @@ class MainActivity : ComponentActivity() {
     private val familyPerms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
         val job = pendingFamily; pendingFamily = null
         if (res.values.all { it } && job != null) family.start(job.first, job.second)
-        else toastJs("Family sync needs the Nearby devices permission" + (if (Build.VERSION.SDK_INT <= 32) " and Location" else "") + ".")
+        else toastJs(Lang.t(this, "Family sync needs the Nearby devices permission" + (if (Build.VERSION.SDK_INT <= 32) " and Location" else "") + ".",
+            "ಕುಟುಂಬ ಸಿಂಕ್‌ಗೆ ಹತ್ತಿರದ ಸಾಧನಗಳ ಅನುಮತಿ" + (if (Build.VERSION.SDK_INT <= 32) " ಮತ್ತು ಸ್ಥಳದ ಅನುಮತಿ" else "") + " ಬೇಕು."))
     }
 
     private fun familyPermissions(): Array<String> {
@@ -149,9 +150,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var waitingForLanguage = false
+
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
+        // On first launch the page asks for a language first; SMS permission comes after that.
+        web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
+            if (needs == "true") waitingForLanguage = true else startupSms()
+        }
+    }
+
+    private fun startupSms() {
         when {
             hasSms() -> firstImportOrScan()
             !prefs.getBoolean("asked", false) -> askPermissions()
@@ -309,6 +319,16 @@ class MainActivity : ComponentActivity() {
             }
             if (need.isEmpty()) family.start(name, json)
             else { pendingFamily = name to json; familyPerms.launch(need.toTypedArray()) }
+        }
+
+        /** The language the person picked, kept for notifications and dialogs. */
+        @JavascriptInterface
+        fun setLanguage(lang: String) { prefs.edit().putString("lang", if (lang == "kn") "kn" else "en").apply() }
+
+        /** First-launch language picked: carry on with SMS permission. */
+        @JavascriptInterface
+        fun languageChosen() = runOnUiThread {
+            if (waitingForLanguage) { waitingForLanguage = false; startupSms() }
         }
 
         /** Hands the page the ledger received from the other phone, once. */

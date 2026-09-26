@@ -76,11 +76,14 @@ class FamilySync(
         override fun onConnectionInitiated(id: String, info: ConnectionInfo) {
             peerName = info.endpointName.substringBefore('#')
             act.runOnUiThread {
+                val code = info.authenticationDigits
                 AlertDialog.Builder(act)
-                    .setTitle("Sync with $peerName?")
-                    .setMessage("Check that both phones show the code ${info.authenticationDigits}. Your entries will be shared with $peerName, and theirs with you.")
-                    .setPositiveButton("Codes match, sync") { _, _ -> client.acceptConnection(id, payloads) }
-                    .setNegativeButton("Cancel") { _, _ -> client.rejectConnection(id); status("Sync cancelled.") }
+                    .setTitle(Lang.t(act, "Sync with $peerName?", "$peerName ಅವರೊಂದಿಗೆ ಸಿಂಕ್ ಮಾಡಬೇಕೇ?"))
+                    .setMessage(Lang.t(act,
+                        "Check that both phones show the code $code. Your entries will be shared with $peerName, and theirs with you.",
+                        "ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ $code ಸಂಖ್ಯೆ ಕಾಣಿಸುತ್ತಿದೆಯೇ ನೋಡಿ. ನಿಮ್ಮ ನಮೂದುಗಳು $peerName ಅವರಿಗೆ, ಅವರದು ನಿಮಗೆ ಹಂಚಿಕೆಯಾಗುತ್ತವೆ."))
+                    .setPositiveButton(Lang.t(act, "Codes match, sync", "ಸಂಖ್ಯೆ ಹೊಂದುತ್ತದೆ, ಸಿಂಕ್ ಮಾಡಿ")) { _, _ -> client.acceptConnection(id, payloads) }
+                    .setNegativeButton(Lang.t(act, "Cancel", "ರದ್ದುಮಾಡಿ")) { _, _ -> client.rejectConnection(id); status("Sync cancelled.") }
                     .setCancelable(false)
                     .show()
             }

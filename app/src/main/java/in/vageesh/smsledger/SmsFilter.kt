@@ -29,7 +29,7 @@ object SmsFilter {
     fun accept(address: String?, body: String?) = isBankSender(address) && looksLikeTransaction(body)
 
     /** Short text for the notification, e.g. "₹486.00 spent". */
-    fun summary(body: String): String {
+    fun summary(body: String, kn: Boolean = false): String {
         val amt = amount.find(body)?.value
             ?.replace(Regex("(?i)rs\\.?|inr|₹"), "")?.trim()
         val lower = body.lowercase()
@@ -37,7 +37,7 @@ object SmsFilter {
             .map { lower.indexOf(it) }.filter { it >= 0 }.minOrNull() ?: Int.MAX_VALUE
         val ci = listOf("credited", "received", "refund")
             .map { lower.indexOf(it) }.filter { it >= 0 }.minOrNull() ?: Int.MAX_VALUE
-        val kind = if (ci < di) "received" else "spent"
-        return if (amt != null) "₹$amt $kind" else "Bank transaction"
+        val kind = if (ci < di) (if (kn) "ಬಂದಿದೆ" else "received") else (if (kn) "ಖರ್ಚಾಗಿದೆ" else "spent")
+        return if (amt != null) "₹$amt $kind" else if (kn) "ಬ್ಯಾಂಕ್ ವಹಿವಾಟು" else "Bank transaction"
     }
 }

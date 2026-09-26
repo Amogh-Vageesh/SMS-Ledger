@@ -17,12 +17,13 @@ class SmsReceiver : BroadcastReceiver() {
         // Long SMS arrive split into parts; join them per sender.
         parts.groupBy { it.originatingAddress }.forEach { (sender, msgs) ->
             val body = msgs.joinToString("") { it.messageBody ?: "" }
-            if (SmsFilter.accept(sender, body)) notify(context, SmsFilter.summary(body), body)
+            if (SmsFilter.accept(sender, body)) notify(context, SmsFilter.summary(body, Lang.kn(context)), body)
         }
     }
 
     private fun notify(context: Context, title: String, body: String) =
-        Notifier.show(context, Notifier.CH_TXNS, NOTIFY_ID, "$title · tap to log", body)
+        Notifier.show(context, Notifier.CH_TXNS, NOTIFY_ID,
+            "$title · " + Lang.t(context, "tap to log", "ಸೇರಿಸಲು ಒತ್ತಿ"), body)
 
     companion object {
         const val NOTIFY_ID = 1001
