@@ -218,6 +218,21 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .psplit .nm{width:70px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .psplit .mid{flex:1;color:var(--muted)}
 .psplit .sv{font-weight:700;color:var(--good)}
+.hbars{display:flex;flex-direction:column;gap:14px;margin:6px 0 4px}
+.hbars div{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.hbars .hl{color:var(--muted)}
+.hbars .ht{height:18px;border-radius:6px;background:var(--raise);overflow:hidden;display:block}
+.hbars .ht i{display:block;height:100%;border-radius:6px}
+.hbars b{font-size:1.05rem;min-width:44px;text-align:right}
+.lchart{width:100%;height:auto;display:block;margin-top:6px}
+.agroup{border:1px solid var(--rule);border-radius:14px;margin:0 0 10px;background:var(--panel)}
+.agroup summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:600;min-height:44px}
+.agroup summary::-webkit-details-marker{display:none}
+.agroup summary span:first-child::before{content:"";display:inline-block;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:10px;transition:transform .15s}
+.agroup[open] summary span:first-child::before{transform:rotate(45deg)}
+.agroup summary small{color:var(--muted);font-weight:400;margin-left:4px}
+.agroup .due{padding-left:14px;padding-right:14px}
+.mbtn.nopick::after{display:none}
 .fxrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fxnote{font-size:.8rem;color:var(--muted);margin:-4px 0 12px}
 .due{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--rule);align-items:center}
@@ -242,14 +257,15 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 <section id="v-home">
   <div class="home-top">
     <div><div class="hi" id="homeHi">Your money at a glance</div><h1>Home</h1></div>
-    <div class="seg" id="homeRange" role="group" aria-label="Period">
-      <button data-r="3">3M</button><button data-r="6">6M</button><button data-r="12">12M</button>
-    </div>
+    <div class="hi" id="homeMonth" style="text-align:right"></div>
   </div>
   <div id="homeBody"></div>
 </section>
 
 <section id="v-overview" class="hidden">
+  <div class="seg wide" id="ovMode" role="group" aria-label="View" style="margin-top:4px">
+    <button data-m="month">Month</button><button data-m="year">Year</button><button data-m="all">All years</button>
+  </div>
   <div class="month">
     <button class="iconbtn" id="prevM" aria-label="Previous month"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1><button class="mbtn" id="monthName" aria-label="Choose month"></button></h1>
@@ -532,7 +548,11 @@ const KN = {
   "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
   "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
   "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Month":"ತಿಂಗಳು","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
-  "Import SMS":"SMS ಆಮದು","View and edit rules":"ನಿಯಮಗಳನ್ನು ನೋಡಿ ಮತ್ತು ತಿದ್ದಿ","Undo my rule changes":"ನನ್ನ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ","Your rule changes were undone.":"ನಿಮ್ಮ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಲಾಗಿದೆ.",
+  "Import SMS":"SMS ಆಮದು","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
+  "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
+  "See trends by month and year":"ತಿಂಗಳು ಮತ್ತು ವರ್ಷವಾರು ಪ್ರವೃತ್ತಿ ನೋಡಿ","Recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ","Edit recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ತಿದ್ದಿ",
+  "Recurring payment updated.":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ನವೀಕರಿಸಲಾಗಿದೆ.","Edit":"ತಿದ್ದಿ","Other accounts":"ಇತರ ಖಾತೆಗಳು","Investment":"ಹೂಡಿಕೆ","Loan outstanding":"ಬಾಕಿ ಸಾಲ",
+  "Month":"ತಿಂಗಳು","Spending is the same as last month":"ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಷ್ಟೇ ಇದೆ","View and edit rules":"ನಿಯಮಗಳನ್ನು ನೋಡಿ ಮತ್ತು ತಿದ್ದಿ","Undo my rule changes":"ನನ್ನ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ","Your rule changes were undone.":"ನಿಮ್ಮ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಲಾಗಿದೆ.",
   "When a merchant matches, its new entries get this name and category.":"ವ್ಯಾಪಾರಿ ಹೊಂದಿದಾಗ ಅದರ ಹೊಸ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಬರುತ್ತದೆ.",
   "Budgets, your own categories, imported merchant rules, language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, ಆಮದು ಮಾಡಿದ ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು, ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
   "Merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು","Search merchant":"ವ್ಯಾಪಾರಿ ಹುಡುಕಿ","Done":"ಮುಗಿಯಿತು","Yours":"ನಿಮ್ಮದು","(name only)":"(ಹೆಸರು ಮಾತ್ರ)","Rule saved.":"ನಿಯಮ ಉಳಿಸಲಾಗಿದೆ.","FinArt rules removed.":"FinArt ನಿಯಮಗಳನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ.","No rules match.":"ಯಾವ ನಿಯಮವೂ ಹೊಂದುತ್ತಿಲ್ಲ.",
@@ -597,6 +617,12 @@ const KN_RX = [
   [/^People, including you$/, ()=>"ಜನರು, ನಿಮ್ಮನ್ನೂ ಸೇರಿ"],
   [/^Merchant rules: ([\d,]+)\. They set the name and category for each merchant, and grow as you correct entries\.$/, m=>`ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು: ${m[1]}. ಇವು ಪ್ರತಿ ವ್ಯಾಪಾರಿಯ ಹೆಸರು ಮತ್ತು ವರ್ಗ ನಿರ್ಧರಿಸುತ್ತವೆ; ನೀವು ನಮೂದು ತಿದ್ದಿದಂತೆ ಹೆಚ್ಚುತ್ತವೆ.`],
   [/^Money out is after (.+) of refunds and cashback\.$/, m=>`ಹೋದ ಹಣ ${m[1]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು.`],
+  [/^Spent in (\d{4})$/, m=>`${m[1]} ರ ಖರ್ಚು`],
+  [/^Amounts in ₹ lakh, by month$/, ()=>"ಮೊತ್ತ ₹ ಲಕ್ಷಗಳಲ್ಲಿ, ತಿಂಗಳುವಾರು"],[/^Amounts in ₹ lakh, by year$/, ()=>"ಮೊತ್ತ ₹ ಲಕ್ಷಗಳಲ್ಲಿ, ವರ್ಷವಾರು"],
+  [/^Spending is (\d+)% higher than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಹೆಚ್ಚು`],[/^Spending is (\d+)% lower than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಕಡಿಮೆ`],
+  [/^Nothing recorded for (.+) yet\.$/, m=>`${m[1]} ಕ್ಕೆ ಇನ್ನೂ ಏನೂ ದಾಖಲಾಗಿಲ್ಲ.`],[/^New bank SMS appear here as they arrive\.$/, ()=>"ಹೊಸ ಬ್ಯಾಂಕ್ SMS ಬಂದಂತೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ."],
+  [/^Also apply the name and category to (\d+) other payments? of (.+) in other months$/, m=>`ಬೇರೆ ತಿಂಗಳುಗಳ ${m[2]} ನ ಇನ್ನೂ ${m[1]} ಪಾವತಿಗಳಿಗೂ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
+  [/^Changes apply to all (\d+) (?:entry|entries) from this merchant, and to new ones\.$/, m=>`ಈ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲಾ ${m[1]} ನಮೂದುಗಳಿಗೆ ಮತ್ತು ಹೊಸವುಗಳಿಗೆ ಬದಲಾವಣೆ ಅನ್ವಯಿಸುತ್ತದೆ.`],
   [/^Undo ([\d,]+) changes you made to merchant names and categories$/, m=>`ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳಿಗೆ ನೀವು ಮಾಡಿದ ${m[1]} ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ`],
   [/^Showing 80 of ([\d,]+)\. Search to narrow down\.$/, m=>`${m[1]} ರಲ್ಲಿ 80 ತೋರಿಸಲಾಗಿದೆ. ಕಡಿಮೆ ಮಾಡಲು ಹುಡುಕಿ.`],
   [/^Remove ([\d,]+) entries read from SMS \(they're read again\)$/, m=>`SMS ನಿಂದ ಓದಿದ ${m[1]} ನಮೂದುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ (ಮತ್ತೆ ಓದಲಾಗುತ್ತದೆ)`],
@@ -897,6 +923,17 @@ function detectMode(low){
 
 const CARD_PAY = /(credit ?card|card ?(bill|dues?))\s*(bill\s*)?(payment|pymt|payt|repayment)|payment (of|for) .{0,40}(credit ?card|card)|(payment|amount|rs\.?|inr|₹).{0,40}(received|credited).{0,40}(credit ?card|card (a\/c|account|ending|x+|\*+|no))|towards (your )?(credit )?card|cc (bill )?payment|bbps.{0,30}card|payment received.{0,30}card/i;
 const CARD_ACK = /(card payment settled|payment .{0,30}settled .{0,30}card|thank you for (your |the )?payment|we have received (your |a )?payment|payment (of )?(rs\.?|inr|₹)?\s*[\d,.]+\s*(has been |is |was )?(received|credited|posted|realised|realized|successfully credited)|received (a |your )?payment|payment received|credited to your (credit )?card|payment .{0,40}(received|credited|posted).{0,40}card|card .{0,30}payment .{0,20}(received|credited|posted))/i;
+// Paying a credit card bill is never spending or income: the purchases on the card were already
+// counted when you made them. Catches both sides: the bank/app debit that pays the bill, and the
+// card issuer's "payment received / credited to your card" message.
+const CARD_BILL_DEBIT = /(credit ?card (bill|payment|dues?|repayment)|card ?bill|cc ?(bill|payment)|\bcred\b|cred club|cheq |billdesk.{0,25}card|bbps.{0,25}card|payment towards (your )?(credit )?card|to (hdfc|icici|sbi|axis|kotak|amex|rbl|idfc|yes|indusind|au|hsbc|citi|federal|onecard|scapia)[a-z ]{0,20}credit ?card|sbi ?card|sbicard|creditcard|card (a\/c|acct|account) payment)/i;
+function isCardBillMove(low, merchant, isCredit){
+  const text = low + " " + String(merchant || "").toLowerCase();
+  if(/refund|revers|cashback|chargeback/.test(text)) return false;
+  if(isCredit) return /\bcard\b|credit ?card|cc a\/c/.test(text) && !/(debit|atm|prepaid|forex|gift) card/.test(text);
+  if(/\bspent\b|used at|purchase|\bpos\b|txn at|transaction at|at [a-z]/.test(low) && !CARD_BILL_DEBIT.test(String(merchant||"").toLowerCase())) return false;
+  return CARD_BILL_DEBIT.test(text);
+}
 // Money moved into something you own (a wallet, FASTag, UPI Lite) or confirmations of money already
 // counted (SIP units allotted, PF/NPS contributions). None of these is new spending or new income.
 const OWN_MOVE = /(add(ed)? money|money added|added to (your )?(\w+ )?wallet|wallet (top ?up|recharge|load)|top ?up of|upi lite|fastag (recharge|top ?up)|recharge(d)? (of )?(your )?fastag|fastag.{0,40}(recharged|credited|added))/i;
@@ -934,6 +971,7 @@ function migrateRules(){
 }
 function categorize(merchant, low, isCredit, mode, vpa){
   // what the message says about the money beats what the merchant is usually filed as
+  if(isCardBillMove(low, merchant, isCredit)) return "Card payments";
   if(OWN_MOVE.test(low)) return "Self transfer";
   if(INVEST_CONFIRM.test(low)) return "Self transfer";
   const mk = mkey(merchant);
@@ -1168,6 +1206,9 @@ function billRow(b, actions){
     ${actions ? `<button class="mini" data-paid="${b.id}">Mark paid</button>` : ""}</span></div>`;
 }
 
+const ACCT_GROUPS = [["bank","Bank accounts",["bank"]],["card","Credit cards",["card"]],["other","Other accounts",["wallet","fastag","invest","loan"]]];
+const KIND_LABEL = { bank: "Balance", wallet: "Wallet balance", fastag: "FASTag balance", invest: "Investment", loan: "Loan outstanding" };
+const acctOpen = {};
 const KIND_ORDER = [["bank","Bank accounts"],["card","Credit cards"],["wallet","Wallets and prepaid"],["fastag","FASTag"],["invest","Investments, PF and pension"],["loan","Loans"]];
 function allSubs(){
   const det = detectSubs(), keys = new Set(det.map(x=>x.key));
@@ -1191,81 +1232,126 @@ function lakh(n){ if(n < 500) return "0"; const v = n / 100000; return String(pa
 function shortInr(n){ return n >= 100000 ? "₹" + lakh(n) + "L" : n >= 1000 ? "₹" + Math.round(n/1000) + "k" : money(n); }
 function familyMembers(){ return Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m })); }
 function renderHome(){
-  document.querySelectorAll("#homeRange button").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.r === homeRange)));
   const members = familyMembers();
   const fam = homeFamily && members.length > 0;
+  const k = currentPK();
   document.getElementById("homeHi").textContent = fam ? "Your family's money at a glance" : "Your money at a glance";
-  const keys = periodsBack(homeRange), keySet = new Set(keys);
+  document.getElementById("homeMonth").textContent = monthLabel(k);
+  const [py, pm] = k.split("-").map(Number); const prevK = pm === 1 ? (py-1) + "-12" : py + "-" + String(pm-1).padStart(2,"0");
   const meName = (state.family && state.family.me) || "You";
   const people = [{ id: "me", name: meName, color: "var(--brass)", txns: state.txns }]
     .concat(fam ? members.map((m,i)=>({ id: m.id, name: m.name || "Member", color: i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length], txns: m.txns || [] })) : []);
-  const per = {}; keys.forEach(k=>per[k] = { inc: 0, exp: 0 });
-  const byCat = {}, bySrc = {}, byPerson = {}; let refunds = 0;
+  const tot = { inc: 0, exp: 0, prevExp: 0, refunds: 0 }, byCat = {}, bySrc = {}, byPerson = {};
   people.forEach(p=>{
     byPerson[p.id] = { inc: 0, exp: 0 };
     p.txns.forEach(t=>{
       if(!counts(t)) return;
-      const k = pk(t.date); if(!keySet.has(k)) return;
-      if(t.type === "debit"){ const v = spendAmt(t); per[k].exp += v; byPerson[p.id].exp += v; byCat[t.category] = (byCat[t.category]||0) + v; }
-      else if(t.category === "Refunds"){ const v = inAmt(t); per[k].exp -= v; byPerson[p.id].exp -= v; refunds += v; }
-      else { const v = inAmt(t); per[k].inc += v; byPerson[p.id].inc += v; const sk = p.id + "|" + t.merchant; bySrc[sk] = bySrc[sk] || { name: t.merchant, v: 0, who: p }; bySrc[sk].v += v; }
+      const tk = pk(t.date);
+      if(tk === prevK && t.type === "debit") tot.prevExp += spendAmt(t);
+      if(tk === prevK && t.type === "credit" && t.category === "Refunds") tot.prevExp -= inAmt(t);
+      if(tk !== k) return;
+      if(t.type === "debit"){ const v = spendAmt(t); tot.exp += v; byPerson[p.id].exp += v; byCat[t.category] = (byCat[t.category]||0) + v; }
+      else if(t.category === "Refunds"){ const v = inAmt(t); tot.exp -= v; tot.refunds += v; byPerson[p.id].exp -= v; }
+      else { const v = inAmt(t); tot.inc += v; byPerson[p.id].inc += v; const sk = p.id + "|" + t.merchant; bySrc[sk] = bySrc[sk] || { name: t.merchant, v: 0, who: p }; bySrc[sk].v += v; }
     });
   });
-  const inc = keys.reduce((a,k)=>a+per[k].inc,0), exp = keys.reduce((a,k)=>a+per[k].exp,0), saved = inc - exp;
+  const inc = tot.inc, exp = tot.exp, saved = inc - exp;
   const body = document.getElementById("homeBody");
-  if(!state.txns.length && !fam){
-    body.innerHTML = `<div class="card"><div class="empty"><p>Your charts appear here once there are entries.<br>Import your bank SMS or add an entry to begin.</p><button class="btn primary" data-go="add">Add entries</button></div></div>`;
-    return;
-  }
   let html = "";
   if(members.length) html += `<div class="seg wide" id="homeScope" role="group" aria-label="Whose money"><button data-f="0" aria-pressed="${!fam}">Just me</button><button data-f="1" aria-pressed="${fam}">Family</button></div>`;
   if(fam){
     html += `<div class="card"><div class="members">${people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("")}</div>
       <p class="hint">${members.map(m=>`${esc(m.name)}'s ledger synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}`).join(" · ")}. Sync again from Settings when you're together.</p></div>`;
   }
-  // savings card
+  if(!inc && !exp && !Object.keys(byCat).length){
+    body.innerHTML = html + `<div class="card"><div class="empty"><p>Nothing recorded for ${esc(monthLabel(k))} yet.<br>New bank SMS appear here as they arrive.</p><button class="btn primary" data-go="add">Add entries</button></div></div>`;
+    return;
+  }
   const rate = inc > 0 ? Math.round(saved / inc * 100) : 0;
-  html += `<div class="card"><div class="hint" style="margin:0">${fam ? "Family saved" : "Saved"} in the last ${homeRange} months</div>
+  html += `<div class="card"><div class="hint" style="margin:0">${fam ? "Family saved" : "Saved"} this month</div>
     <div class="saved-big num">${saved < 0 ? "−" : ""}<span class="rupee">₹</span>${inr.format(Math.round(Math.abs(saved)))}${inc > 0 ? `<span class="pill">${rate}% of income</span>` : ""}</div>
     <div class="split-bar" aria-hidden="true"><span style="flex:${Math.max(exp,1)};background:var(--brass)"></span><span style="flex:${Math.max(saved,0)};background:var(--good)"></span></div>
     <div class="inout num"><span>Money in<b>${money(inc)}</b></span><span class="o">Money out<b>${money(exp)}</b></span></div>
-    ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}
+    ${tot.refunds > 0 ? `<p class="hint">Money out is after ${money(tot.refunds)} of refunds and cashback.</p>` : ""}
     ${fam ? `<div class="psplit num">${people.map(p=>{ const b = byPerson[p.id]; const sv = b.inc - b.exp; return `<div><span class="dot" style="background:${p.color};border-radius:50%"></span><span class="nm">${esc(p.name)}</span><span class="mid">in ${shortInr(b.inc)} · out ${shortInr(b.exp)}</span><span class="sv" style="${sv<0?"color:var(--over)":""}">${sv<0?"−":"+"}${shortInr(Math.abs(sv))}</span></div>`; }).join("")}</div>` : ""}
   </div>`;
-  // income vs expenses
-  const sel = homeSel == null || !keySet.has(homeSel) ? keys[keys.length-1] : homeSel;
-  const max = Math.max(1, ...keys.map(k=>Math.max(per[k].inc, per[k].exp)));
-  const barW = homeRange === 12 ? 9 : homeRange === 6 ? 16 : 24, H = 150;
-  const sp = per[sel], net = sp.inc - sp.exp;
-  const mLabel = k => { const [y,m] = k.split("-").map(Number); return mShort(m-1); };
-  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
-    <div class="selstrip num"><div><small>${esc(monthLabel(sel))}</small><span style="color:var(--inc);font-weight:600">${money(sp.inc)}</span> in · <span style="color:var(--brass);font-weight:600">${money(sp.exp)}</span> out</div><b style="color:${net<0?"var(--over)":"var(--good)"}">${net<0?"−":"+"}${money(Math.abs(net))}</b></div>
-    <div class="chart-note">Amounts in ₹ lakh</div>
-    <div class="bars" id="homeBars">${keys.map(k=>{ const d = per[k], on = k === sel, lbl = homeRange < 12 || on;
-      return `<button data-k="${k}" aria-pressed="${on}" aria-label="${esc(monthLabel(k))}: ${money(d.inc)} in, ${money(d.exp)} out">
-        <span class="col">${lbl ? `<span style="color:var(--inc)">${lakh(d.inc)}</span>` : ""}<i style="width:${barW}px;height:${Math.round(d.inc/max*H)}px;background:var(--inc)"></i></span>
-        <span class="col">${lbl ? `<span style="color:var(--brass)">${lakh(d.exp)}</span>` : ""}<i style="width:${barW}px;height:${Math.round(d.exp/max*H)}px;background:var(--brass)"></i></span></button>`; }).join("")}</div>
-    <div class="bars-x">${keys.map(k=>`<span class="${k===sel?"on":""}">${mLabel(k)}</span>`).join("")}</div>
-    <p class="hint">Tap a month to compare${fam ? "" : `, or <button class="btn link" data-open="${sel}" style="padding:0;font-size:inherit">open ${esc(monthLabel(sel))}</button>`}. Card bill payments and transfers between your own accounts aren't counted.</p></div>`;
-  // donut
+  // income vs expenses, this month
+  const mx = Math.max(inc, exp, 1);
+  const diff = tot.prevExp > 0 ? Math.round((exp - tot.prevExp) / tot.prevExp * 100) : null;
+  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><span class="chart-note">Amounts in ₹ lakh</span></div>
+    <div class="hbars num">
+      <div><span class="hl">Money in</span><span class="ht"><i style="width:${Math.max(1, inc/mx*100)}%;background:var(--inc)"></i></span><b style="color:var(--inc)">${lakh(inc)}</b></div>
+      <div><span class="hl">Money out</span><span class="ht"><i style="width:${Math.max(1, exp/mx*100)}%;background:var(--brass)"></i></span><b style="color:var(--brass)">${lakh(exp)}</b></div>
+    </div>
+    ${diff != null ? `<p class="hint">${diff === 0 ? "Spending is the same as last month" : diff > 0 ? `Spending is ${diff}% higher than last month` : `Spending is ${-diff}% lower than last month`} (${money(tot.prevExp)}).</p>` : ""}
+    <p class="hint"><button class="btn link" data-trends style="padding:0;font-size:inherit">See trends by month and year</button>. Card bill payments and transfers between your own accounts aren't counted.</p></div>`;
   const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   if(cats.length){
+    const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
     const shown = cats.slice(0,6), rest = cats.slice(6).reduce((a,c)=>a+c[1],0);
     const segs = shown.map(([c,v])=>[c, v, CAT_COLOR[c]||"#8a8272"]); if(rest > 0) segs.push(["Everything else", rest, "#8a8272"]);
-    const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
     let acc = 0; const stops = segs.map(([,v,col])=>{ const a = acc; acc += v/gross*360; return `${col} ${(a+0.6).toFixed(1)}deg ${acc.toFixed(1)}deg`; });
-    html += `<div class="card"><div class="card-h"><h2>Where it went</h2><span class="hint" style="margin:0">${homeRange} months</span></div>
+    html += `<div class="card"><div class="card-h"><h2>Where it went</h2><span class="hint" style="margin:0">${esc(monthLabel(k))}</span></div>
       <div class="donut-row"><div class="donut" style="background:conic-gradient(${stops.join(",")})" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(gross)}</b></div></div>
       <div class="dleg">${segs.map(([c,v,col])=>`<div><span class="dot" style="background:${col}"></span><span class="n">${esc(c)}</span><span class="p num">${Math.round(v/gross*100)}%</span></div>`).join("")}</div></div></div>`;
   }
-  // top lists
   const srcs = Object.values(bySrc).sort((a,b)=>b.v-a.v).slice(0,5);
   if(srcs.length) html += `<div class="toplist"><h2>Top income sources${fam ? "" : `<button data-see="__credit">See all</button>`}</h2>${srcs.map(s=>`<div class="trow"><div class="l1 num"><span>${esc(s.name)}${fam ? `<span class="owner" style="background:${s.who.color}">${esc(s.who.name)}</span>` : ""}</span><b style="color:var(--inc)">${money(s.v)}</b></div>
-      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(s.v/srcs[0].v*100))}%;background:var(--inc)"></i></span><small class="num">${Math.round(s.v/inc*100)}%</small></div></div>`).join("")}</div>`;
-  const topC = cats.slice(0,5);
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(s.v/srcs[0].v*100))}%;background:var(--inc)"></i></span><small class="num">${inc ? Math.round(s.v/inc*100) : 0}%</small></div></div>`).join("")}</div>`;
+  const topC = cats.slice(0,5), gross2 = cats.reduce((a,c)=>a+c[1],0) || 1;
   if(topC.length) html += `<div class="toplist"><h2>Top expense categories${fam ? "" : `<button data-see="__debit">See all</button>`}</h2>${topC.map(([c,v])=>`<button class="trow" ${fam ? "disabled" : `data-cat="${esc(c)}"`}><div class="l1 num"><span><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span>${esc(c)}</span><b>${money(v)}</b></div>
-      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(v/topC[0][1]*100))}%;background:${CAT_COLOR[c]||"#8a8272"}"></i></span><small class="num">${Math.round(v/exp*100)}%</small></div></button>`).join("")}</div>`;
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(v/topC[0][1]*100))}%;background:${CAT_COLOR[c]||"#8a8272"}"></i></span><small class="num">${Math.round(v/gross2*100)}%</small></div></button>`).join("")}</div>`;
   body.innerHTML = html;
+}
+
+// Other payments with the same amount (to the rupee) in different months: the same monthly deduction
+// can arrive under slightly different names each month.
+function sameAmountOthers(t){
+  if(!t || !t.amount || t.type !== "debit") return [];
+  const m = (t.date||"").slice(0,7);
+  const tk = mkey(t.merchant);
+  return state.txns.filter(x=>x !== t && x.id !== t.id && x.type === "debit" && Math.abs(x.amount - t.amount) < 1 && x.date.slice(0,7) !== m &&
+    Math.abs(daysBetween(x.date, t.date)) <= 750 &&
+    // the same deduction: same account, a similar name, or both automatic debits
+    ((x.account && t.account && x.account === t.account) || (tk.length >= 4 && mkey(x.merchant).slice(0,4) === tk.slice(0,4)) || (x.mode === "Auto-debit" && t.mode === "Auto-debit")) &&
+    (mkey(x.merchant) !== tk || x.category !== t.category));
+}
+function isRecurringKey(k){
+  if(!k) return false;
+  if(state.subsManual.some(m=>m.key === k)) return true;
+  if(state.subsHidden.includes(k)) return false;
+  return detectSubs().some(x=>x.key === k);
+}
+function setRecurring(t, on){
+  const k = mkey(t.merchant);
+  if(on){
+    state.subsHidden = state.subsHidden.filter(x=>x !== k);
+    if(!state.subsManual.some(m=>m.key === k) && !detectSubs().some(x=>x.key === k))
+      state.subsManual.push({ id: uidGen(), key: k, name: t.merchant, amount: t.amount, freq: "month", category: t.category });
+  } else {
+    state.subsManual = state.subsManual.filter(m=>m.key !== k);
+    if(!state.subsHidden.includes(k)) state.subsHidden.push(k);
+  }
+}
+function openRecurringSheet(key){
+  const x = allSubs().find(s=>s.key === key); if(!x) return;
+  const entries = state.txns.filter(t=>t.type === "debit" && mkey(t.merchant) === key);
+  sheet("Edit recurring payment", `
+    <label class="field"><span>Name</span><input id="rc-name" value="${esc(x.name)}"></label>
+    <div class="two"><label class="field"><span>Category</span><select id="rc-cat">${CATS.map(([c])=>`<option${c===x.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Repeats every</span><select id="rc-freq">${[["month","Month"],["quarter","Quarter"],["year","Year"]].map(([v,l])=>`<option value="${v}"${v===x.freq?" selected":""}>${l}</option>`).join("")}</select></label></div>
+    <p class="help">Changes apply to all ${entries.length} ${entries.length===1?"entry":"entries"} from this merchant, and to new ones.</p>`,
+  sc=>{
+    const name = sc.querySelector("#rc-name").value.trim() || x.name, cat = sc.querySelector("#rc-cat").value, freq = sc.querySelector("#rc-freq").value;
+    const months = new Set(), nk = mkey(name);
+    entries.forEach(t=>{ t.merchant = name; t.category = cat; t.userCat = true; months.add(t.date.slice(0,7)); });
+    if(nk !== key) state.names[key] = name;
+    state.rules[key] = cat; state.rules[nk] = cat; prefixCache = null;
+    const man = state.subsManual.find(m=>m.key === key);
+    if(man){ Object.assign(man, { key: nk, name, category: cat, freq }); }
+    else if(freq !== x.freq || nk !== key){ state.subsHidden.push(key); state.subsManual.push({ id: uidGen(), key: nk, name, amount: x.amount, freq, category: cat }); }
+    persist([...months], true); toast("Recurring payment updated.");
+  });
 }
 
 /* ---------- Subscriptions ---------- */
@@ -1318,18 +1404,20 @@ function renderAccounts(){
   const visible = all.filter(a=>!a.hidden);
   html += `<h2 class="section-h">Balances</h2>`;
   if(visible.length){
-    KIND_ORDER.forEach(([kind, label])=>{
-      const group = visible.filter(a=>(a.kind||"bank") === kind).sort((a,b)=>(b.asOf||"").localeCompare(a.asOf||""));
+    ACCT_GROUPS.forEach(([gid, label, kinds])=>{
+      const group = visible.filter(a=>kinds.includes(a.kind||"bank")).sort((a,b)=>kinds.indexOf(a.kind||"bank") - kinds.indexOf(b.kind||"bank") || (b.asOf||"").localeCompare(a.asOf||""));
       if(!group.length) return;
-      const known = group.map(a=>kind === "card" ? a.availLimit : a.balance).filter(v=>v != null);
-      html += `<div class="total-line num"><span>${label}</span><span>${known.length ? "<b>" + money(known.reduce((x,y)=>x+y,0)) + "</b>" + (kind==="card" ? " available" : "") : ""}</span></div>`;
+      const known = group.map(a=>(a.kind === "card" ? a.availLimit : a.balance)).filter(v=>v != null && (a => true)());
+      const tot = group.reduce((sum,a)=>{ const v = a.kind === "card" ? a.availLimit : a.balance; return v != null && a.kind !== "loan" ? sum + v : sum; }, 0);
+      html += `<details class="agroup" data-g="${gid}" ${acctOpen[gid] === false ? "" : "open"}><summary><span>${label} <small>${group.length}</small></span><span class="num">${known.length ? "<b>" + money(tot) + "</b>" + (gid==="card" ? " available" : "") : ""}</span></summary>`;
       html += group.map(a=>{
+        const kind = a.kind || "bank";
         const v = kind === "card" ? a.availLimit : a.balance;
         const age = a.asOf ? daysBetween(a.asOf, today) : null;
         return `<button class="due" data-acct="${esc(a.key)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0">
           <span class="n">${esc(a.label || ((a.bank || "Account") + (a.account ? " ··" + a.account : "")))}</span><span class="num" style="font-weight:600">${v != null ? money(v,true) : "–"}</span>
-          <span class="w" style="grid-column:1/3"><span>${kind==="card" ? "Available limit" : a.typeLabel || "Balance"}</span>${a.asOf && a.asOf > "2000" ? `<span>as of ${esc(niceDate(a.asOf))}</span>` : ""}${age != null && age > 30 && a.asOf > "2000" ? `<span class="late">Not updated for ${age} days</span>` : ""}</span></button>`;
-      }).join("");
+          <span class="w" style="grid-column:1/3"><span>${kind==="card" ? "Available limit" : a.typeLabel || KIND_LABEL[kind] || "Balance"}</span>${a.asOf && a.asOf > "2000" ? `<span>as of ${esc(niceDate(a.asOf))}</span>` : ""}${age != null && age > 30 && a.asOf > "2000" ? `<span class="late">Not updated for ${age} days</span>` : ""}</span></button>`;
+      }).join("") + `</details>`;
     });
   } else html += `<p class="help">Balances appear once an SMS mentions one, such as "Avl Bal" or "Available limit".</p>`;
   const hid = all.length - visible.length;
@@ -1341,7 +1429,7 @@ function renderAccounts(){
     const perMonth = subs.reduce((a,x)=>a+x.perMonth,0);
     html += `<div class="total-line num"><span>${subs.length} active</span><span><b>${money(perMonth)}</b> a month · <b>${money(perMonth*12)}</b> a year</span></div>`;
     html += subs.map(x=>`<div class="due"><span class="n">${esc(x.name)}</span><span class="num" style="font-weight:600">${money(x.amount,true,x.currency)}<span style="color:var(--muted);font-weight:400">/${x.freq}</span></span>
-      <span class="w" style="grid-column:1/3"><span class="chip"><span class="dot" style="background:${CAT_COLOR[x.category]||"#777"}"></span>${esc(x.tag || x.category)}</span>${x.next ? `<span class="${daysBetween(today,x.next)<=3?"soon":""}">Next around ${esc(niceDate(x.next))}</span>` : `<span>Added by you</span>`}<button class="mini" data-hide="${esc(x.key)}">${x.manual ? "Remove" : "Not recurring"}</button></span></div>`).join("");
+      <span class="w" style="grid-column:1/3"><span class="chip"><span class="dot" style="background:${CAT_COLOR[x.category]||"#777"}"></span>${esc(x.tag || x.category)}</span>${x.next ? `<span class="${daysBetween(today,x.next)<=3?"soon":""}">Next around ${esc(niceDate(x.next))}</span>` : `<span>Added by you</span>`}<button class="mini" data-recedit="${esc(x.key)}">Edit</button><button class="mini" data-hide="${esc(x.key)}">${x.manual ? "Remove" : "Not recurring"}</button></span></div>`).join("");
   } else html += `<p class="help">Repeating payments like Netflix, SIPs, rent or EMIs show up here after two or three months of SMS.</p>`;
   html += `<div class="row"><button class="btn" id="addSub">Add a subscription</button></div>`;
   if(state.subsHidden.length) html += `<div class="row"><button class="btn link" id="unhideSubs">Show ${state.subsHidden.length} hidden</button></div>`;
@@ -1440,7 +1528,8 @@ function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.toggleAttribute("aria-current", b.dataset.v === view) || (b.dataset.v === view && b.setAttribute("aria-current","page")));
   document.querySelectorAll(".tabs button").forEach(b=>{ if(b.dataset.v === view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   const isNow = cursor >= currentPK();
-  ["nextM","nextM2"].forEach(id=>document.getElementById(id).disabled = isNow);
+  document.getElementById("nextM2").disabled = isNow;
+  if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
   if(view === "home") renderHome();
   if(view === "overview") renderOverview();
   if(view === "list") renderList();
@@ -1451,6 +1540,11 @@ function render(){
 }
 
 function renderOverview(){
+  document.querySelectorAll("#ovMode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m === ovMode)));
+  document.getElementById("monthName").classList.toggle("nopick", ovMode !== "month");
+  if(ovMode !== "month") return renderPeriodSummary();
+  document.querySelector(".spent-label").textContent = tr("Spent this month");
+  document.getElementById("prevM").disabled = false;
   document.getElementById("monthName").textContent = monthLabel(cursor);
   const tx = monthTx(cursor);
   const out = tx.filter(t=>t.type==="debit" && counts(t)), inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category !== "Refunds");
@@ -1514,6 +1608,70 @@ function renderOverview(){
       `<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]}"></span><span>${esc(k)}</span><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${o.n} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
   }
   body.innerHTML = html;
+}
+
+let ovMode = "month", ovYear = new Date().getFullYear();
+function yearsWithData(){ const ys = new Set(state.txns.map(t=>+pk(t.date).slice(0,4))); ys.add(+currentPK().slice(0,4)); return [...ys].sort((a,b)=>a-b); }
+// Line chart: two series over the given labels, amounts in lakh on the y axis
+function lineChart(labels, a, b, aLabel, bLabel){
+  const W = 340, H = 190, L = 34, R = 10, T = 14, B = 26;
+  const max = Math.max(1, ...a, ...b), n = labels.length;
+  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  const path = arr => arr.map((v,i)=>`${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const ticks = [0, max/2, max];
+  const every = Math.ceil(n / 7);
+  return `<svg viewBox="0 0 ${W} ${H}" class="lchart" role="img" aria-label="${esc(aLabel)} and ${esc(bLabel)} over time">
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${lakh(v)}</text>`).join("")}
+    <path d="${path(a)}" fill="none" stroke="var(--inc)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="${path(b)}" fill="none" stroke="var(--brass)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${a.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--inc)"><title>${esc(labels[i])}: ${money(v)} in</title></circle>`).join("")}
+    ${b.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--brass)"><title>${esc(labels[i])}: ${money(v)} out</title></circle>`).join("")}
+    ${labels.map((l,i)=>(i % every === 0 || i === n-1) ? `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(l)}</text>` : "").join("")}
+  </svg>`;
+}
+function renderPeriodSummary(){
+  // Year or All years view
+  const years = yearsWithData();
+  const yr = ovMode === "year" ? ovYear : null;
+  document.getElementById("monthName").textContent = yr ? String(yr) : (years[0] === years[years.length-1] ? String(years[0]) : years[0] + " – " + years[years.length-1]);
+  document.getElementById("prevM").disabled = !yr || yr <= years[0];
+  document.getElementById("nextM").disabled = !yr || yr >= years[years.length-1];
+  const tx = state.txns.filter(t=>!yr || +pk(t.date).slice(0,4) === yr);
+  const buckets = yr ? Array.from({length:12},(_,i)=>yr + "-" + String(i+1).padStart(2,"0")).filter(k=>k <= currentPK()) : years.map(String);
+  const per = {}; buckets.forEach(k=>per[k] = { inc: 0, exp: 0 });
+  const byCat = {}, byM = {}; let inc = 0, exp = 0, refunds = 0;
+  tx.forEach(t=>{
+    if(!counts(t)) return;
+    const bk = yr ? pk(t.date) : pk(t.date).slice(0,4); if(!per[bk]) return;
+    if(t.type === "debit"){ const v = spendAmt(t); per[bk].exp += v; exp += v; byCat[t.category] = (byCat[t.category]||0) + v; const m = t.merchant; byM[m] = byM[m] || { v: 0, n: 0, c: t.category }; byM[m].v += v; byM[m].n++; }
+    else if(t.category === "Refunds"){ const v = inAmt(t); per[bk].exp -= v; exp -= v; refunds += v; }
+    else { const v = inAmt(t); per[bk].inc += v; inc += v; }
+  });
+  document.querySelector(".spent-label").textContent = yr ? `Spent in ${yr}` : "Spent in all years";
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(exp));
+  document.getElementById("income").textContent = money(inc);
+  const net = inc - exp;
+  document.getElementById("net").textContent = (net < 0 ? "−" : "+") + money(Math.abs(net));
+  document.getElementById("count").textContent = inr.format(tx.length);
+  const fxEl = document.getElementById("fxLine"); if(fxEl) fxEl.innerHTML = "";
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
+  document.getElementById("band").innerHTML = cats.map(([c,v])=>`<span style="flex:${v};background:${CAT_COLOR[c]||"#777"}" title="${esc(c)}"></span>`).join("");
+  const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
+  let html = `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
+    <div class="chart-note">Amounts in ₹ lakh${yr ? ", by month" : ", by year"}</div>
+    ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
+    ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}</div>`;
+  html += `<div class="card"><h2 style="margin-bottom:8px">${yr ? "Month by month" : "Year by year"}</h2>${buckets.slice().reverse().map(k=>{ const d = per[k], nt = d.inc - d.exp;
+    return `<button class="due" ${yr ? `data-open="${k}"` : `data-year="${k}"`} style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(yr ? monthLabel(k) : k)}</span><span class="num" style="font-weight:700;color:${nt<0?"var(--over)":"var(--good)"}">${nt<0?"−":"+"}${money(Math.abs(nt))}</span>
+      <span class="w num" style="grid-column:1/3"><span style="color:var(--inc)">in ${money(d.inc)}</span><span>out ${money(Math.max(0,d.exp))}</span></span></button>`; }).join("")}</div>`;
+  if(cats.length){
+    html += `<h2 class="section-h">Where it went</h2><ul class="cats">` + cats.map(([c,v])=>`<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button><div class="meta num"><span>${Math.round(v/gross*100)}% of spend</span></div></li>`).join("") + `</ul>`;
+  }
+  const top = Object.entries(byM).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
+  if(top.length) html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>`<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]||"#777"}"></span><span>${esc(k)}</span><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${inr.format(o.n)} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
+  document.getElementById("overviewBody").innerHTML = html;
 }
 
 let listCat = "";
@@ -1629,6 +1787,8 @@ function openSheet(t, isNew){
     <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
     <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
     ${t.reimb?`<label class="check"><input type="checkbox" id="e-reimbDone" ${t.reimbDone?"checked":""}>Reimbursement received</label>`:""}
+    ${isNew ? "" : `<label class="check"><input type="checkbox" id="e-recur" ${isRecurringKey(mkey(t.merchant)) ? "checked" : ""}>Recurring payment</label>`}
+    ${sameAmountOthers(t).length ? `<label class="check"><input type="checkbox" id="e-same">Also apply the name and category to ${sameAmountOthers(t).length} other ${sameAmountOthers(t).length===1?"payment":"payments"} of ${money(t.amount,true)} in other months</label>` : ""}
     <label class="check" id="e-splitRow"><input type="checkbox" id="e-split" ${t.share!=null?"checked":""}>Split this with others</label>
     <div class="split-box ${t.share!=null?"":"hidden"}" id="e-splitBox">
       <div class="two">
@@ -1722,6 +1882,20 @@ function openSheet(t, isNew){
         state.txns.forEach(x=>{ if(mkey(x.merchant) === k && x.category !== upd.category){ x.category = upd.category; months.add(x.date.slice(0,7)); } });
       }
     }
+    if(!isNew){
+      const same = scrim.querySelector("#e-same");
+      if(same && same.checked){
+        sameAmountOthers(t).forEach(x=>{
+          const ok = mkey(x.merchant);
+          if(ok && ok !== mkey(upd.merchant)){ state.names[ok] = upd.merchant; }
+          state.rules[ok] = upd.category; state.rules[mkey(upd.merchant)] = upd.category;
+          x.merchant = upd.merchant; x.category = upd.category; x.userCat = true; months.add(x.date.slice(0,7));
+        });
+        prefixCache = null; settings = true;
+      }
+      const rc = scrim.querySelector("#e-recur");
+      if(rc){ setRecurring(upd, rc.checked); settings = true; }
+    }
     persist([...months], settings); close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
   };
   const del = scrim.querySelector("#e-del");
@@ -1800,7 +1974,9 @@ function openMonthPicker(){
   });
   const cur = scrim.querySelector(".cur"); if(cur && cur.scrollIntoView) cur.scrollIntoView({block:"center"});
 }
-["monthName","monthName2"].forEach(id=>document.getElementById(id).onclick = openMonthPicker);
+document.getElementById("monthName").onclick = ()=>{ if(ovMode === "month") openMonthPicker(); };
+document.getElementById("monthName2").onclick = openMonthPicker;
+document.getElementById("ovMode").addEventListener("click", e=>{ const b = e.target.closest("[data-m]"); if(!b) return; ovMode = b.dataset.m; if(ovMode === "year") ovYear = +(cursor || currentPK()).slice(0,4); render(); });
 
 /* ---------- Events ---------- */
 document.querySelector(".tabs nav").addEventListener("click", e=>{
@@ -1808,6 +1984,8 @@ document.querySelector(".tabs nav").addEventListener("click", e=>{
   view = b.dataset.v; window.scrollTo(0,0); render();
 });
 function shift(n){
+  if(view === "overview" && ovMode === "year"){ const ys = yearsWithData(); const ny = ovYear + n; if(ny >= ys[0] && ny <= ys[ys.length-1]){ ovYear = ny; render(); } return; }
+  if(view === "overview" && ovMode === "all") return;
   const [y,m] = cursor.split("-").map(Number);
   const d = new Date(y, m-1+n, 1); const k = monthKey(d);
   if(k > currentPK()) return;
@@ -1816,17 +1994,20 @@ function shift(n){
 ["prevM","prevM2"].forEach(id=>document.getElementById(id).onclick = ()=>shift(-1));
 ["nextM","nextM2"].forEach(id=>document.getElementById(id).onclick = ()=>shift(1));
 
-document.getElementById("homeRange").addEventListener("click", e=>{ const b = e.target.closest("[data-r]"); if(b){ homeRange = +b.dataset.r; homeSel = null; render(); } });
+
 document.getElementById("homeBody").addEventListener("click", e=>{
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
   const f = e.target.closest("[data-f]"); if(f){ homeFamily = f.dataset.f === "1"; render(); return; }
   const k = e.target.closest("[data-k]"); if(k){ homeSel = k.dataset.k; render(); return; }
   const o = e.target.closest("[data-open]"); if(o){ cursor = o.dataset.open; view = "overview"; window.scrollTo(0,0); render(); return; }
+  if(e.target.closest("[data-trends]")){ ovMode = "year"; ovYear = +currentPK().slice(0,4); view = "overview"; window.scrollTo(0,0); render(); return; }
   const see = e.target.closest("[data-see]"); if(see){ listCat = see.dataset.see; cursor = currentPK(); view = "list"; window.scrollTo(0,0); render(); return; }
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; window.scrollTo(0,0); render(); }
 });
 document.getElementById("overviewBody").addEventListener("click", e=>{
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; window.scrollTo(0,0); render(); return; }
+  const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
+  const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; render(); }
 });
 document.getElementById("q").addEventListener("input", renderList);
@@ -1837,6 +2018,7 @@ document.getElementById("list").addEventListener("click", e=>{
 });
 
 let lastSkipped = [], pendingBills = [], pendingBals = [];
+document.getElementById("accountsBody").addEventListener("toggle", e=>{ const d = e.target.closest && e.target.closest("details.agroup"); if(d) acctOpen[d.dataset.g] = d.open; }, true);
 document.getElementById("accountsBody").addEventListener("click", e=>{
   const p = e.target.closest("[data-paid]");
   if(p){ const b = state.bills.find(x=>x.id === p.dataset.paid); if(b){ b.paid = true; b.paidOn = todayISO(); persist([], true); render(); toast("Marked paid."); } return; }
@@ -1849,6 +2031,7 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   }
   const st = e.target.closest("[data-settle]");
   if(st){ const t = state.txns.find(x=>x.id === st.dataset.settle); if(t){ t.settled = true; persist([t.date.slice(0,7)]); render(); toast("Marked settled."); } return; }
+  const re = e.target.closest("[data-recedit]"); if(re){ openRecurringSheet(re.dataset.recedit); return; }
   if(e.target.id === "unhideSubs"){ state.subsHidden = []; persist([], true); render(); return; }
   const rb = e.target.closest("[data-reimb]");
   if(rb){ const t = state.txns.find(x=>x.id === rb.dataset.reimb); if(t){ t.reimbDone = true; persist([t.date.slice(0,7)]); render(); toast("Marked as received."); } return; }
@@ -2440,6 +2623,14 @@ if(state.lang && window.Android && window.Android.setLanguage) try{ window.Andro
 cursor = currentPK();
 render();
 if(!state.lang) openLanguagePicker();
+if(!state.cardV2){
+  const months = new Set();
+  state.txns.forEach(t=>{
+    if(t.userCat || t.source === "finart" || !t.raw || t.category === "Card payments") return;
+    if(isCardBillMove(t.raw.toLowerCase(), t.merchant, t.type === "credit")){ t.autoCat = t.category; t.category = "Card payments"; months.add(t.date.slice(0,7)); }
+  });
+  state.cardV2 = true; persist([...months], false);
+}
 if(!state.linkedV1){ const lk = linkTransfers(); state.linkedV1 = true; persist(lk.months, false); if(lk.n) render(); }
 connectDb();
 })();
