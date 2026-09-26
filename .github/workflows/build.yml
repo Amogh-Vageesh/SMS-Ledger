@@ -1,47 +1,18 @@
-
-Claude Opus 5.5 works best with the latest desktop app.
-Claude Opus 5.5 works best with the latest desktop app. Update
-
-build.yml
-build.yml
-YML
-
-
-
-
-
-Ideas for you
-
-Send me a daily briefing
-Cowork
-
-Organize my inbox
-Cowork
-
-Customize Cowork for me
-Cowork
-Build
-· YML
 name: Build APK
-on:
-  push:
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+        with: { distribution: temurin, java-version: '17' }
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
-      - run: gradle assembleRelease --no-daemon
+        with: { gradle-version: '8.10.2' }
+      - name: Build
+        run: gradle assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: sms-ledger-apk
           path: app/build/outputs/apk/release/*.apk
- 
