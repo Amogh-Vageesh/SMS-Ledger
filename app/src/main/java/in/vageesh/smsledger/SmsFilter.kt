@@ -10,7 +10,8 @@ object SmsFilter {
     private val bankSender = Regex("^([A-Z]{2}-)?[A-Z0-9]{5,9}(-[A-Z])?$", RegexOption.IGNORE_CASE)
     private val amount = Regex("(rs\\.?|inr|₹)\\s*[\\d,]+(\\.\\d{1,2})?", RegexOption.IGNORE_CASE)
     private val action = Regex(
-        "debited|credited|spent|sent|paid|withdrawn|received|refund|deducted|purchase",
+        "debited|credited|spent|sent|paid|withdrawn|received|refund|deducted|purchase|" +
+            "due|payable|statement|balance|avl\\.? ?bal|available limit",
         RegexOption.IGNORE_CASE
     )
 

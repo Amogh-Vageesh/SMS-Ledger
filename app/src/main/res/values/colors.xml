@@ -3,4 +3,7 @@
     <color name="ink">#17140F</color>
     <color name="panel">#201C16</color>
     <color name="brass">#D9A441</color>
+    <color name="paper">#F4EFE4</color>
+    <color name="paper_panel">#FBF8F1</color>
+    <color name="brass_dark">#9A6A0C</color>
 </resources>

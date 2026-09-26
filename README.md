@@ -4,7 +4,13 @@ Reads bank transaction SMS automatically and builds your monthly expense ledger.
 Everything stays on the phone: no server, no account, no analytics.
 
 ## How it works
-- First launch asks for SMS access, then imports bank SMS from the last 90 days.
+- First launch asks for SMS access, then lets you choose how far back to read:
+  3 months, 1 year, 5 years or all SMS on the phone. Settings has the same choices to import again later
+  (entries already in the ledger are skipped, so re-importing is safe).
+- Large imports are fed to the ledger in batches with a progress counter; 5 years of
+  bank SMS usually takes under a minute.
+- The ledger is stored in a private app file, so years of entries fit comfortably.
+- Tap the month name to jump to any month; each year shows its total spend.
 - When a bank SMS arrives you get a notification ("₹486.00 spent · tap to log").
   Anything received while the app was closed is picked up the next time you open it.
 - Only messages from bank-style senders (e.g. AD-HDFCBK) that mention an amount and
@@ -29,6 +35,43 @@ Open this folder, let Gradle sync, then Build > Build APK(s), or connect the pho
 4. Xiaomi/Redmi, Oppo, Vivo, Realme and OnePlus phones often block background receivers.
    Set Battery to "No restrictions" and enable Autostart for live notifications.
    Import-on-open works regardless.
+
+## Accounts tab
+- Bills due: card statements and utility bill SMS with due dates. You get reminders 3 days
+  before, the day before and on the due date. Bills are marked paid automatically when a
+  matching card payment or biller payment shows up.
+- Balances: bank balances and card limits from the latest SMS, grouped by type. Tap one to
+  edit it or hide it, or add accounts by hand (PF, NPS, wallets and so on).
+- Subscriptions and recurring payments, detected from your history, with a monthly and yearly
+  total and a reminder the day before renewal.
+- Reimbursements pending and money owed to you from split payments.
+
+## Home
+Income vs expenses by month (amounts in lakh on each bar), a category donut, and your top
+5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
+its numbers. Dark or light follows your phone's setting.
+
+## Family
+Settings > Family: add your name, then tap "Sync with family nearby" on both phones while
+they're close together. Check the 4-digit code matches on both, and the two ledgers swap
+over Bluetooth or direct Wi-Fi (no internet needed). Home then has a "Just me / Family"
+switch. Sync again whenever you're together to refresh.
+
+## Other currencies
+Pick the currency when adding an entry. The app fetches that day's rate to convert to ₹
+(ECB reference rates; AED, SAR, QAR, OMR and BHD via their US-dollar peg). You can type
+your own rate, for example to match your card statement. Entries without a rate are left
+out of totals until converted (Settings > Currencies > Convert them now).
+
+## Moving from FinArt
+Settings > Import FinArt backup reads FinArt's backup CSV: entries (expenses, income,
+transfers, card payments, cash), bills, accounts and balances, subscriptions, custom
+categories, budgets, and merchant rules. Entries already in the ledger from SMS are skipped,
+and importing the same file twice adds nothing.
+
+## How far back can it actually go?
+Only as far as the SMS still on the phone. If you switched phones without restoring SMS,
+or your messages app auto-deletes old messages, older entries won't be there to read.
 
 ## Backups
 Settings > Download backup saves a JSON file. Restore it on a new phone, or in the

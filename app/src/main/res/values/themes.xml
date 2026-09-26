@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/ink</item>
-        <item name="android:statusBarColor">@color/ink</item>
-        <item name="android:navigationBarColor">@color/panel</item>
-        <item name="android:colorAccent">@color/brass</item>
+    <!-- Light theme; values-night/themes.xml holds the dark one. The phone's setting picks. -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+        <item name="android:navigationBarColor">@color/paper_panel</item>
+        <item name="android:colorAccent">@color/brass_dark</item>
     </style>
 </resources>
