@@ -366,6 +366,11 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     <p>Entries in other currencies are converted to ₹ at the rate on the day of the transaction. Entries with no rate yet aren't in your totals: <b id="fxPending">0</b>.</p>
     <div class="row" style="margin:0 0 12px"><button class="btn" id="fxConvert">Convert them now</button></div>
   </div>
+  <h1 class="section-h">Data not from SMS</h1>
+  <div class="set-block" id="importedBlock">
+    <p id="importedNote">Checking for entries, bills and accounts that came from an earlier import rather than your phone's SMS…</p>
+    <div class="row" style="margin:0 0 12px"><button class="btn danger" id="removeImported" style="display:none">Remove them</button></div>
+  </div>
   <h1 class="section-h">Your data</h1>
   <p class="status" id="syncStatus">Stored on this device.</p>
   <div class="set-block">
@@ -375,11 +380,6 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
       <button class="btn" id="expJson">Download backup</button>
       <label class="btn" for="impFile">Restore backup</label>
       <input type="file" id="impFile" accept=".json,application/json" class="hidden">
-    </div>
-    <p>Moving from FinArt? Import its backup CSV (FinArt → Settings → Backup) to bring in your entries, bills, accounts, subscriptions, categories and merchant rules.</p>
-    <div class="row" style="margin:6px 0 12px">
-      <label class="btn" for="faFile">Import FinArt backup</label>
-      <input type="file" id="faFile" accept=".csv,text/csv,text/plain" class="hidden">
     </div>
   </div>
   <div class="set-block">
@@ -473,7 +473,7 @@ const KN = {
   "Your money at a glance":"ನಿಮ್ಮ ಹಣದ ಒಂದು ನೋಟ","Your family's money at a glance":"ನಿಮ್ಮ ಕುಟುಂಬದ ಹಣದ ಒಂದು ನೋಟ","Period":"ಅವಧಿ",
   "Just me":"ನಾನು ಮಾತ್ರ","Family":"ಕುಟುಂಬ","Whose money":"ಯಾರ ಹಣ",
   "Money in":"ಬಂದ ಹಣ","Money out":"ಹೋದ ಹಣ","In":"ಬಂದದ್ದು","Out":"ಹೋದದ್ದು","in":"ಬಂದದ್ದು","out":"ಹೋದದ್ದು","in ·":"ಬಂದದ್ದು ·",
-  "Income vs expenses":"ಆದಾಯ ಮತ್ತು ಖರ್ಚು","Amounts in ₹ lakh":"ಮೊತ್ತ ₹ ಲಕ್ಷಗಳಲ್ಲಿ","Where it went":"ಹಣ ಎಲ್ಲಿಗೆ ಹೋಯಿತು","Spent":"ಖರ್ಚು",
+  "Income vs expenses":"ಆದಾಯ ಮತ್ತು ಖರ್ಚು","Where it went":"ಹಣ ಎಲ್ಲಿಗೆ ಹೋಯಿತು","Spent":"ಖರ್ಚು",
   "Spending by category":"ವರ್ಗವಾರು ಖರ್ಚು","Everything else":"ಉಳಿದೆಲ್ಲವೂ","Top income sources":"ಪ್ರಮುಖ ಆದಾಯ ಮೂಲಗಳು","Top expense categories":"ಪ್ರಮುಖ ಖರ್ಚಿನ ವರ್ಗಗಳು",
   "See all":"ಎಲ್ಲವನ್ನೂ ನೋಡಿ","Tap a month to compare":"ಹೋಲಿಸಲು ತಿಂಗಳನ್ನು ಒತ್ತಿ","Tap a month to compare, or":"ಹೋಲಿಸಲು ತಿಂಗಳನ್ನು ಒತ್ತಿ, ಅಥವಾ",
   ". Card bill payments and transfers between your own accounts aren't counted.":". ಕಾರ್ಡ್ ಬಿಲ್ ಪಾವತಿಗಳು ಮತ್ತು ನಿಮ್ಮದೇ ಖಾತೆಗಳ ನಡುವಿನ ವರ್ಗಾವಣೆಗಳನ್ನು ಲೆಕ್ಕಕ್ಕೆ ತೆಗೆದುಕೊಂಡಿಲ್ಲ.",
@@ -548,7 +548,9 @@ const KN = {
   "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
   "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
   "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Month":"ತಿಂಗಳು","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
-  "Import SMS":"SMS ಆಮದು","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
+  "Import SMS":"SMS ಆಮದು","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
+  "Everything in the app now comes from your phone's SMS.":"ಈಗ ಆ್ಯಪ್‌ನಲ್ಲಿರುವುದೆಲ್ಲಾ ನಿಮ್ಮ ಫೋನ್‌ನ SMS ನಿಂದ ಬಂದದ್ದು.",
+  "Removed. Only SMS-confirmed data remains.":"ತೆಗೆದುಹಾಕಲಾಗಿದೆ. SMS ದೃಢಪಡಿಸಿದ ಮಾಹಿತಿ ಮಾತ್ರ ಉಳಿದಿದೆ.","This can't be undone.":"ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.","Promotional message":"ಜಾಹೀರಾತು ಸಂದೇಶ","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
   "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
   "See trends by month and year":"ತಿಂಗಳು ಮತ್ತು ವರ್ಷವಾರು ಪ್ರವೃತ್ತಿ ನೋಡಿ","Recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ","Edit recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ತಿದ್ದಿ",
   "Recurring payment updated.":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ನವೀಕರಿಸಲಾಗಿದೆ.","Edit":"ತಿದ್ದಿ","Other accounts":"ಇತರ ಖಾತೆಗಳು","Investment":"ಹೂಡಿಕೆ","Loan outstanding":"ಬಾಕಿ ಸಾಲ",
@@ -618,11 +620,22 @@ const KN_RX = [
   [/^Merchant rules: ([\d,]+)\. They set the name and category for each merchant, and grow as you correct entries\.$/, m=>`ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು: ${m[1]}. ಇವು ಪ್ರತಿ ವ್ಯಾಪಾರಿಯ ಹೆಸರು ಮತ್ತು ವರ್ಗ ನಿರ್ಧರಿಸುತ್ತವೆ; ನೀವು ನಮೂದು ತಿದ್ದಿದಂತೆ ಹೆಚ್ಚುತ್ತವೆ.`],
   [/^Money out is after (.+) of refunds and cashback\.$/, m=>`ಹೋದ ಹಣ ${m[1]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು.`],
   [/^Spent in (\d{4})$/, m=>`${m[1]} ರ ಖರ್ಚು`],
-  [/^Amounts in ₹ lakh, by month$/, ()=>"ಮೊತ್ತ ₹ ಲಕ್ಷಗಳಲ್ಲಿ, ತಿಂಗಳುವಾರು"],[/^Amounts in ₹ lakh, by year$/, ()=>"ಮೊತ್ತ ₹ ಲಕ್ಷಗಳಲ್ಲಿ, ವರ್ಷವಾರು"],
+  [/^Amounts in ₹ (hundred|thousand|lakh)(, by (month|year))?$/, m=>{
+    const unit = {hundred:"ನೂರುಗಳಲ್ಲಿ", thousand:"ಸಾವಿರಗಳಲ್ಲಿ", lakh:"ಲಕ್ಷಗಳಲ್ಲಿ"}[m[1]];
+    const suf = m[3] === "month" ? ", ತಿಂಗಳುವಾರು" : m[3] === "year" ? ", ವರ್ಷವಾರು" : "";
+    return `ಮೊತ್ತ ₹ ${unit}${suf}`;
+  }],
   [/^Spending is (\d+)% higher than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಹೆಚ್ಚು`],[/^Spending is (\d+)% lower than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಕಡಿಮೆ`],
   [/^Nothing recorded for (.+) yet\.$/, m=>`${m[1]} ಕ್ಕೆ ಇನ್ನೂ ಏನೂ ದಾಖಲಾಗಿಲ್ಲ.`],[/^New bank SMS appear here as they arrive\.$/, ()=>"ಹೊಸ ಬ್ಯಾಂಕ್ SMS ಬಂದಂತೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ."],
   [/^Also apply the name and category to (\d+) other payments? of (.+) in other months$/, m=>`ಬೇರೆ ತಿಂಗಳುಗಳ ${m[2]} ನ ಇನ್ನೂ ${m[1]} ಪಾವತಿಗಳಿಗೂ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
   [/^Changes apply to all (\d+) (?:entry|entries) from this merchant, and to new ones\.$/, m=>`ಈ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲಾ ${m[1]} ನಮೂದುಗಳಿಗೆ ಮತ್ತು ಹೊಸವುಗಳಿಗೆ ಬದಲಾವಣೆ ಅನ್ವಯಿಸುತ್ತದೆ.`],
+  [/^Also remove ([\d,]+) entries not read from SMS \(added by hand, or from an earlier import\)$/, m=>`SMS ನಿಂದ ಓದದ ${m[1]} ನಮೂದುಗಳನ್ನೂ ತೆಗೆದುಹಾಕಿ (ಕೈಯಾರೆ ಸೇರಿಸಿದ್ದು ಅಥವಾ ಹಿಂದೆ ಆಮದು ಮಾಡಿದ್ದು)`],
+  [/^Found (.+) entries, (.+) bills, (.+) accounts, (.+) subscriptions and (.+) merchant rules that no SMS on this phone confirms\. Removing them keeps only what's read from your own SMS\.$/,
+    m=>`ಈ ಫೋನ್‌ನ ಯಾವ SMS ಕೂಡ ದೃಢಪಡಿಸದ ${m[1]} ನಮೂದುಗಳು, ${m[2]} ಬಿಲ್‌ಗಳು, ${m[3]} ಖಾತೆಗಳು, ${m[4]} ಚಂದಾದಾರಿಕೆಗಳು ಮತ್ತು ${m[5]} ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು ಸಿಕ್ಕಿವೆ. ತೆಗೆದುಹಾಕಿದರೆ ನಿಮ್ಮ SMS ನಿಂದ ಓದಿದ್ದು ಮಾತ್ರ ಉಳಿಯುತ್ತದೆ.`],
+  [/^Remove (.+) entries, (.+) bills, (.+) accounts and (.+) subscriptions not confirmed by SMS\? This can't be undone\.$/,
+    m=>`SMS ದೃಢಪಡಿಸದ ${m[1]} ನಮೂದುಗಳು, ${m[2]} ಬಿಲ್‌ಗಳು, ${m[3]} ಖಾತೆಗಳು ಮತ್ತು ${m[4]} ಚಂದಾದಾರಿಕೆಗಳನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.`],
+  [/^Excludes card bill payments and transfers between your own accounts(, and is after (.+) of refunds and cashback)?\.$/,
+    m=>`ಕಾರ್ಡ್ ಬಿಲ್ ಪಾವತಿಗಳು ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ಖಾತೆಗಳ ನಡುವಿನ ವರ್ಗಾವಣೆಗಳನ್ನು ಹೊರತುಪಡಿಸಿ` + (m[2] ? `, ಮತ್ತು ${m[2]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು` : "") + "."],
   [/^Undo ([\d,]+) changes you made to merchant names and categories$/, m=>`ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳಿಗೆ ನೀವು ಮಾಡಿದ ${m[1]} ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ`],
   [/^Showing 80 of ([\d,]+)\. Search to narrow down\.$/, m=>`${m[1]} ರಲ್ಲಿ 80 ತೋರಿಸಲಾಗಿದೆ. ಕಡಿಮೆ ಮಾಡಲು ಹುಡುಕಿ.`],
   [/^Remove ([\d,]+) entries read from SMS \(they're read again\)$/, m=>`SMS ನಿಂದ ಓದಿದ ${m[1]} ನಮೂದುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ (ಮತ್ತೆ ಓದಲಾಗುತ್ತದೆ)`],
@@ -837,10 +850,23 @@ function splitMessages(text){
   return out;
 }
 
+// Whole words only, so "presents" doesn't count as "sent" and "prepaid" doesn't count as "paid".
 function firstIndex(low, words){
   let best = -1;
-  words.forEach(w=>{ const i = low.indexOf(w); if(i>=0 && (best<0 || i<best)) best = i; });
+  words.forEach(w=>{
+    const re = new RegExp("(^|[^a-z])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + (/[a-z]$/.test(w) ? "(?![a-z])" : ""), "i");
+    const m = low.match(re); if(m){ const i = m.index + m[1].length; if(best < 0 || i < best) best = i; }
+  });
   return best;
+}
+// Marketing messages that mention a price but aren't a transaction.
+const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon)/i;
+function looksLikePromo(t){
+  if(!PROMO.test(t)) return false;
+  // a real alert names your account or card, or carries a reference number
+  const hasAcct = /(a\/?c|acct|account|card)\s*(no\.?\s*)?(ending\s*(with|in)?\s*)?[:\s]*[x*]+\s?\d{3,6}|\b[x*]{2,}\d{3,6}\b/i.test(t);
+  const hasRef = /(upi ref|ref(erence)?\s*no|utr|rrn|txn id|refno)/i.test(t);
+  return !(hasAcct || hasRef);
 }
 
 function parseDate(t){
@@ -1040,6 +1066,7 @@ function parseOne(msg, fallbackDate){
   const t = msg.replace(/\s+/g," ").trim();
   const low = t.toLowerCase();
   if(SKIP.test(t)) return { skip: "Not a completed transaction (OTP, offer or failed payment)" };
+  if(looksLikePromo(t)) return { skip: "Promotional message" };
   if(AUTOPAY_DUE.test(t)){
     const bill = parseBill(t, fallbackDate);
     if(bill){
@@ -1229,6 +1256,19 @@ function periodsBack(n){
   return out;
 }
 function lakh(n){ if(n < 500) return "0"; const v = n / 100000; return String(parseFloat(v >= 10 ? v.toFixed(1) : v.toFixed(2))); }
+// Whole thousands, for the income vs expenses graphs (e.g. 486000 -> "486").
+// Picks whichever unit (hundred / thousand / lakh) keeps the numbers on a graph short and readable.
+function chartScale(max){
+  if(max < 1000) return { div: 100, unit: "hundred" };
+  if(max < 100000) return { div: 1000, unit: "thousand" };
+  return { div: 100000, unit: "lakh" };
+}
+function chartNum(n, div){
+  if(div >= 100000) return lakh(n);
+  const v = n / div;
+  if(v === 0) return "0";
+  return String(parseFloat(v >= 10 ? v.toFixed(0) : v.toFixed(1)));
+}
 function shortInr(n){ return n >= 100000 ? "₹" + lakh(n) + "L" : n >= 1000 ? "₹" + Math.round(n/1000) + "k" : money(n); }
 function familyMembers(){ return Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m })); }
 function renderHome(){
@@ -1272,16 +1312,17 @@ function renderHome(){
     <div class="saved-big num">${saved < 0 ? "−" : ""}<span class="rupee">₹</span>${inr.format(Math.round(Math.abs(saved)))}${inc > 0 ? `<span class="pill">${rate}% of income</span>` : ""}</div>
     <div class="split-bar" aria-hidden="true"><span style="flex:${Math.max(exp,1)};background:var(--brass)"></span><span style="flex:${Math.max(saved,0)};background:var(--good)"></span></div>
     <div class="inout num"><span>Money in<b>${money(inc)}</b></span><span class="o">Money out<b>${money(exp)}</b></span></div>
-    ${tot.refunds > 0 ? `<p class="hint">Money out is after ${money(tot.refunds)} of refunds and cashback.</p>` : ""}
+    <p class="hint">Excludes card bill payments and transfers between your own accounts${tot.refunds > 0 ? `, and is after ${money(tot.refunds)} of refunds and cashback` : ""}.</p>
     ${fam ? `<div class="psplit num">${people.map(p=>{ const b = byPerson[p.id]; const sv = b.inc - b.exp; return `<div><span class="dot" style="background:${p.color};border-radius:50%"></span><span class="nm">${esc(p.name)}</span><span class="mid">in ${shortInr(b.inc)} · out ${shortInr(b.exp)}</span><span class="sv" style="${sv<0?"color:var(--over)":""}">${sv<0?"−":"+"}${shortInr(Math.abs(sv))}</span></div>`; }).join("")}</div>` : ""}
   </div>`;
   // income vs expenses, this month
   const mx = Math.max(inc, exp, 1);
   const diff = tot.prevExp > 0 ? Math.round((exp - tot.prevExp) / tot.prevExp * 100) : null;
-  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><span class="chart-note">Amounts in ₹ lakh</span></div>
+  const homeScale = chartScale(mx);
+  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><span class="chart-note">Amounts in ₹ ${homeScale.unit}</span></div>
     <div class="hbars num">
-      <div><span class="hl">Money in</span><span class="ht"><i style="width:${Math.max(1, inc/mx*100)}%;background:var(--inc)"></i></span><b style="color:var(--inc)">${lakh(inc)}</b></div>
-      <div><span class="hl">Money out</span><span class="ht"><i style="width:${Math.max(1, exp/mx*100)}%;background:var(--brass)"></i></span><b style="color:var(--brass)">${lakh(exp)}</b></div>
+      <div><span class="hl">Money in</span><span class="ht"><i style="width:${Math.max(1, inc/mx*100)}%;background:var(--inc)"></i></span><b style="color:var(--inc)">${chartNum(inc, homeScale.div)}</b></div>
+      <div><span class="hl">Money out</span><span class="ht"><i style="width:${Math.max(1, exp/mx*100)}%;background:var(--brass)"></i></span><b style="color:var(--brass)">${chartNum(exp, homeScale.div)}</b></div>
     </div>
     ${diff != null ? `<p class="hint">${diff === 0 ? "Spending is the same as last month" : diff > 0 ? `Spending is ${diff}% higher than last month` : `Spending is ${-diff}% lower than last month`} (${money(tot.prevExp)}).</p>` : ""}
     <p class="hint"><button class="btn link" data-trends style="padding:0;font-size:inherit">See trends by month and year</button>. Card bill payments and transfers between your own accounts aren't counted.</p></div>`;
@@ -1560,6 +1601,9 @@ function renderOverview(){
   let fxEl = document.getElementById("fxLine");
   if(!fxEl){ fxEl = document.createElement("div"); fxEl.id = "fxLine"; fxEl.className = "sub num"; document.querySelector(".strip").appendChild(fxEl); }
   fxEl.innerHTML = Object.keys(fx).length ? `<span>Also spent ${Object.entries(fx).map(([c,v])=>`<b>${money(v,false,c)}</b>`).join(", ")} (no exchange rate yet, so not in the ₹ total)</span>` : "";
+  let exclEl = document.getElementById("exclLine");
+  if(!exclEl){ exclEl = document.createElement("p"); exclEl.id = "exclLine"; exclEl.className = "hint"; exclEl.style.margin = "10px 0 0"; document.querySelector(".strip").appendChild(exclEl); }
+  exclEl.textContent = "Excludes card bill payments and transfers between your own accounts" + (refundTotal > 0 ? ", and is after " + money(refundTotal) + " of refunds and cashback" : "") + ".";
 
   const byCat = {};
   out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
@@ -1612,17 +1656,18 @@ function renderOverview(){
 
 let ovMode = "month", ovYear = new Date().getFullYear();
 function yearsWithData(){ const ys = new Set(state.txns.map(t=>+pk(t.date).slice(0,4))); ys.add(+currentPK().slice(0,4)); return [...ys].sort((a,b)=>a-b); }
-// Line chart: two series over the given labels, amounts in lakh on the y axis
+// Line chart: two series over the given labels, unit (hundred/thousand/lakh) picked from the data.
 function lineChart(labels, a, b, aLabel, bLabel){
   const W = 340, H = 190, L = 34, R = 10, T = 14, B = 26;
   const max = Math.max(1, ...a, ...b), n = labels.length;
+  const scl = chartScale(max);
   const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1);
   const y = v => T + (H - T - B) * (1 - v / max);
   const path = arr => arr.map((v,i)=>`${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks = [0, max/2, max];
   const every = Math.ceil(n / 7);
   return `<svg viewBox="0 0 ${W} ${H}" class="lchart" role="img" aria-label="${esc(aLabel)} and ${esc(bLabel)} over time">
-    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${lakh(v)}</text>`).join("")}
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${chartNum(v, scl.div)}</text>`).join("")}
     <path d="${path(a)}" fill="none" stroke="var(--inc)" stroke-width="2.5" stroke-linejoin="round"/>
     <path d="${path(b)}" fill="none" stroke="var(--brass)" stroke-width="2.5" stroke-linejoin="round"/>
     ${a.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--inc)"><title>${esc(labels[i])}: ${money(v)} in</title></circle>`).join("")}
@@ -1659,8 +1704,10 @@ function renderPeriodSummary(){
   const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
   document.getElementById("band").innerHTML = cats.map(([c,v])=>`<span style="flex:${v};background:${CAT_COLOR[c]||"#777"}" title="${esc(c)}"></span>`).join("");
   const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
+  const lcVals = [...buckets.map(k=>per[k].inc), ...buckets.map(k=>Math.max(0, per[k].exp))];
+  const lcScale = chartScale(Math.max(1, ...lcVals));
   let html = `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
-    <div class="chart-note">Amounts in ₹ lakh${yr ? ", by month" : ", by year"}</div>
+    <div class="chart-note">Amounts in ₹ ${lcScale.unit}${yr ? ", by month" : ", by year"}</div>
     ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
     ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}</div>`;
   html += `<div class="card"><h2 style="margin-bottom:8px">${yr ? "Month by month" : "Year by year"}</h2>${buckets.slice().reverse().map(k=>{ const d = per[k], nt = d.inc - d.exp;
@@ -1752,6 +1799,7 @@ function renderSettings(){
     `<label class="budget"><span class="dot" style="background:${col}"></span><span>${esc(c)}</span><input inputmode="numeric" data-b="${esc(c)}" placeholder="₹ —" value="${state.budgets[c]||""}" aria-label="${esc(c)} budget"></label>`).join("");
   document.getElementById("ruleCount").textContent = inr.format(new Set([...Object.keys(state.rules), ...Object.keys(state.names)]).size);
   document.getElementById("monthStart").value = String(state.monthStart || 1);
+  refreshImportedBlock();
   document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
   document.getElementById("fxPending").textContent = state.txns.filter(t=>isForeign(t) && !t.fxRate).length;
   const fam = state.family || {};
@@ -2209,22 +2257,17 @@ window.familyArrived = function(){
     toast(`Got ${inr.format(d.txns.length)} entries from ${d.name}. See them in Home → Family.`);
   }catch(e){ toast("The data from the other phone couldn't be read."); }
 };
+document.getElementById("removeImported").onclick = ()=>{
+  const s = importedSummary();
+  if(!confirm(`Remove ${inr.format(s.txns.length)} entries, ${inr.format(s.bills.length)} bills, ${inr.format(s.accountKeys.length)} accounts and ${inr.format(s.subs.length)} subscriptions not confirmed by SMS? This can't be undone.`)) return;
+  removeImportedData(); render(); toast("Removed. Only SMS-confirmed data remains.");
+};
 document.getElementById("addCat").onclick = ()=>{
   const inp = document.getElementById("newCat"), name = inp.value.trim();
   if(!name){ toast("Type a category name first."); return; }
   if(CAT_COLOR[name]){ toast("That category already exists."); return; }
   addCustomCat(name); inp.value = ""; persist([], true); render(); toast("Category added.");
 };
-document.getElementById("faFile").addEventListener("change", async e=>{
-  const f = e.target.files[0]; if(!f) return;
-  try{
-    toast("Reading FinArt backup…");
-    const r = importFinArt(await f.text());
-    render();
-    toast(`Imported ${inr.format(r.txns)} entries, ${r.bills} bills, ${r.accounts} accounts, ${r.subs} subscriptions and ${inr.format(r.rules)} merchant rules.`);
-  }catch(err){ toast(err && err.message ? err.message : "That file doesn't look like a FinArt backup."); }
-  e.target.value = "";
-});
 document.getElementById("expCsv").onclick = ()=>save("sms-ledger-" + todayISO() + ".csv", toCSV());
 document.getElementById("expJson").onclick = ()=>save("sms-ledger-backup-" + todayISO() + ".json", JSON.stringify({ app:"sms-ledger", version:1, ...state }, null, 1));
 document.getElementById("impFile").addEventListener("change", async e=>{
@@ -2305,166 +2348,6 @@ document.getElementById("wipe").onclick = ()=>{
   const months = [...new Set(state.txns.map(t=>t.date.slice(0,7)))];
   state.txns = []; persist(months); render(); toast("All entries deleted.");
 };
-
-/* ---------- FinArt backup import ---------- */
-function parseDelimited(text, delim){
-  const rows = []; let row = [], cell = "", q = false;
-  for(let i = 0; i < text.length; i++){
-    const c = text[i];
-    if(q){
-      if(c === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; }
-      else cell += c;
-    } else if(c === '"') q = true;
-    else if(c === delim){ row.push(cell); cell = ""; }
-    else if(c === "\n" || c === "\r"){ if(c === "\r" && text[i+1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
-    else cell += c;
-  }
-  if(cell || row.length){ row.push(cell); rows.push(row); }
-  return rows;
-}
-const FA_CATS = { misc:"Other", travel:"Travel", dining:"Food & dining", food:"Food & dining", shopping:"Shopping", bills:"Bills & utilities",
-  groceries:"Groceries", fuel:"Fuel", investment:"Investments", investments:"Investments", health:"Health", leisure:"Entertainment",
-  entertainment:"Entertainment", education:"Education", emi:"EMI & loans", rent:"Rent", "house rent":"Rent", transfer:"Self transfer", income:"Income",
-  cash:"Cash", "cash in hand":"Cash", multiple:"Other" };
-function faCat(name){
-  const n = String(name||"").trim(); if(!n) return "Other";
-  const m = FA_CATS[n.toLowerCase()]; if(m) return m;
-  const hit = CATS.find(([c])=>c.toLowerCase() === n.toLowerCase()); if(hit) return hit[0];
-  return addCustomCat(n.length <= 4 && n === n.toUpperCase() ? n : n.charAt(0).toUpperCase() + n.slice(1).toLowerCase());
-}
-function faBank(n){
-  n = String(n||"").trim(); if(!n) return "";
-  const b = BANKS.find(([,re])=>re.test(n)); if(b) return b[0];
-  return n.length <= 4 ? n : n.toLowerCase().replace(/\b[a-z]/g, c=>c.toUpperCase());
-}
-function faDate(ms, txt){
-  const n = +ms; if(n > 946684800000) return iso(new Date(n));
-  return txt ? parseDate(txt) : null;
-}
-const FA_KIND = { "credit card":"card", "prepaid card":"wallet", "bank account":"bank", "wallet":"wallet", "fastag":"fastag", "pf":"invest", "pension":"invest", "sip":"invest", "loan":"loan" };
-const FA_TYPELABEL = { pf:"Provident fund", pension:"Pension (NPS)", sip:"SIP", fastag:"FASTag balance", wallet:"Wallet balance", "prepaid card":"Prepaid balance", loan:"Loan" };
-function importFinArt(text){
-  const rows = parseDelimited(text, ";");
-  const hi = rows.findIndex(r=>r.includes("mapping_code") && r.includes("merchant_details"));
-  if(hi < 0) throw new Error("That file doesn't look like a FinArt backup.");
-  const H = rows[hi], col = {}; H.forEach((h,i)=>col[h] = i);
-  const g = (r, k) => (r[col[k]] ?? "").trim();
-  const res = { txns: 0, bills: 0, accounts: 0, subs: 0, rules: 0 };
-  const byCode = {};
-  rows.slice(hi+1).forEach(r=>{ if(r.length >= H.length - 2){ const c = g(r,"mapping_code"); (byCode[c] = byCode[c] || []).push(r); } });
-
-  prefixCache = null;
-  // merchant rules and display names first, so imported entries use them
-  (byCode["5"]||[]).forEach(r=>{
-    const raw = g(r,"note"), k = mkey(raw); if(!k) return;
-    const override = g(r,"date").toUpperCase();
-    const cat = /TRANSFER/.test(override) ? "Self transfer" : override === "INCOME" ? "Income" : g(r,"category") ? faCat(g(r,"category")) : "";
-    const base = state.ruleBase = state.ruleBase || { rules: {}, names: {}, labels: {} };
-    if(cat){
-      // keep a rule you changed yourself; otherwise take the imported one
-      if(!state.rules[k] || state.rules[k] === base.rules[k]){ if(state.rules[k] !== cat) res.rules++; state.rules[k] = cat; }
-      base.rules[k] = cat; base.labels[k] = raw;
-    }
-    const std = g(r,"standard_name");
-    if(std){ const nice = std.length > 3 && std === std.toUpperCase() ? std.toLowerCase().replace(/\b[a-z]/g, c=>c.toUpperCase()) : std;
-      if(!state.names[k] || state.names[k] === base.names[k]) state.names[k] = nice;
-      base.names[k] = nice; }
-  });
-  // categories and budgets
-  (byCode["6"]||[]).concat(byCode["10"]||[]).forEach(r=>{
-    const name = g(r,"note"); if(!name || /^-?\d+$/.test(name)) return;
-    const c = faCat(name);
-    const budget = parseFloat(g(r,"currency")) || (g(r,"mapping_code") === "10" ? parseFloat(g(r,"amount")) : 0);
-    if(budget > 0 && !state.budgets[c]) state.budgets[c] = budget;
-  });
-
-  // entries: 0 = expenses/refunds, 1 = income/transfers/card payments, 2 = cash and other
-  const have = new Set(state.txns.map(t=>[t.amount.toFixed(2), t.date, t.type].join("|")));
-  const refs = new Set(state.txns.map(t=>t.ref).filter(Boolean));
-  const add = [];
-  ["0","1","2"].forEach(code=>(byCode[code]||[]).forEach(r=>{
-    const amount = parseFloat(g(r,"amount")); if(!(amount > 0)) return;
-    const date = faDate(g(r,"time_in_millis"), g(r,"date")); if(!date) return;
-    const ref = "fa" + code + ":" + (g(r,"id") || g(r,"sms_id") || (g(r,"time_in_millis") + ":" + amount + ":" + g(r,"note")));
-    if(refs.has(ref)) return;
-    const typ = g(r,"type").toUpperCase(), fcat = g(r,"category").toUpperCase();
-    let type = "debit", category;
-    if(code === "0"){
-      if(typ === "REFUND" || typ === "CASHBACK"){ type = "credit"; category = "Refunds"; }
-      else category = faCat(g(r,"category"));
-    } else if(code === "1"){
-      if(typ === "INCOME" || fcat === "INCOME"){ type = "credit"; category = "Income"; }
-      else if(typ === "PAYMENT RECEIPT"){ type = "credit"; category = "Card payments"; }
-      else if(typ === "CREDIT CARD PAYMENT"){ category = "Card payments"; }
-      else if(typ === "WALLET TRANSFER IN"){ type = "credit"; category = "Self transfer"; }
-      else category = "Self transfer";
-    } else {
-      if(typ === "ATMWDL"){ category = "Cash"; }
-      else { type = "credit"; category = "Income"; }
-    }
-    const key = [amount.toFixed(2), date, type].join("|");
-    if(have.has(key)) return;              // already in the ledger from SMS
-    refs.add(ref);
-    const note = g(r,"note");
-    const t = { id: uidGen(), date, amount, type, merchant: nameFor(mkey(note)) || note || (type === "credit" ? "Money received" : "Payment"),
-      category: (code === "0" && type === "debit" && ruleFor(mkey(note)) && !["Income","Refunds"].includes(ruleFor(mkey(note)))) ? ruleFor(mkey(note)) : category,
-      account: g(r,"account"), bank: faBank(g(r,"bank_name")), mode: typ === "ATMWDL" ? "ATM" : "", ref,
-      raw: g(r,"merchant_details").slice(0, 400), note: "", source: "finart", added: +g(r,"time_in_millis") || Date.now() };
-    const cur = g(r,"currency").toUpperCase(); if(cur && cur !== "INR") t.currency = cur;
-    if(g(r,"is_reim") === "1") t.reimb = true;
-    add.push(t);
-  }));
-  state.txns.push(...add); res.txns = add.length;
-
-  // bills
-  (byCode["3"]||[]).forEach(r=>{
-    const amount = parseFloat(g(r,"amount")); if(!(amount > 0)) return;
-    const dueDate = faDate(g(r,"bill_due_time_in_millis"));
-    const seen = faDate(g(r,"bill_generate_time_in_millis")) || faDate(g(r,"time_in_millis")) || dueDate || todayISO();
-    const bank = faBank(g(r,"bank_name")), account = g(r,"account"), at = g(r,"account_type");
-    const label = at ? at.charAt(0) + at.slice(1).toLowerCase() : "";
-    const name = g(r,"note") && g(r,"type").toUpperCase() !== "BANK BILL" ? g(r,"note") : [bank, /card/i.test(at) ? "card" : "", account ? "··" + account : ""].filter(Boolean).join(" ") || "Bill";
-    const key = mkey(bank + account) || mkey(name);
-    if(state.bills.some(b=>b.key === key && b.dueDate === dueDate)) return;
-    const paidAmt = parseFloat(g(r,"amount_paid")) || 0, paidTime = faDate(g(r,"bill_paid_time_in_millis"));
-    const paid = paidAmt >= amount * 0.95 || !!paidTime || (dueDate && daysBetween(dueDate, todayISO()) > 30);
-    state.bills.push({ id: uidGen(), key, name, kind: /credit card/i.test(at) ? "card" : "bill", label, amount, amountPaid: paidAmt, minDue: null,
-      dueDate, account, bank, biller: /card/i.test(at) ? "" : mkey(g(r,"note")), seen, paid, paidOn: paid ? (paidTime || dueDate || seen) : undefined, source: "finart" });
-    res.bills++;
-  });
-
-  // accounts and balances
-  (byCode["4"]||[]).forEach(r=>{
-    const at = g(r,"account_type").toLowerCase(), kind = FA_KIND[at] || "bank";
-    const bank = faBank(g(r,"bank_name")), account = g(r,"account");
-    const key = mkey(bank) + (account || at.replace(/\W/g,""));
-    const bal = parseFloat(g(r,"walletbalance")), asOf = faDate(g(r,"bill_paid_time_in_millis")) || "2000-01-01";
-    const cur = state.accounts[key];
-    if(cur && cur.asOf >= asOf) return;
-    const a = { ...(cur||{}), bank, account, kind, asOf, typeLabel: FA_TYPELABEL[at] || (cur && cur.typeLabel) };
-    if(!isNaN(bal) && bal !== -999){ if(kind === "card") a.availLimit = bal; else a.balance = bal; }
-    if(g(r,"ti")) a.label = `${bank} ··${account || "?"} (add-on of ${g(r,"ti")})`;
-    state.accounts[key] = a; res.accounts++;
-  });
-
-  // subscriptions
-  (byCode["8"]||[]).forEach(r=>{
-    const name = g(r,"note").replace(/\s*-\s*Bill Payment$/i,""), amount = parseFloat(g(r,"amount"));
-    if(!name || !(amount > 0)) return;
-    const key = mkey(nameFor(mkey(name)) || name);
-    if(state.subsManual.some(m=>m.key === key)) return;
-    const cur = g(r,"currency").toUpperCase();
-    const tag = g(r,"category"); 
-    state.subsManual.push({ id: uidGen(), key, name: nameFor(mkey(name)) || name, amount, freq: "month", category: "Entertainment",
-      tag: tag ? tag.charAt(0) + tag.slice(1).toLowerCase() : "", currency: cur && cur !== "INR" ? cur : undefined, source: "finart" });
-    res.subs++;
-  });
-
-  autoMarkPaid();
-  persist([...new Set(add.map(t=>t.date.slice(0,7)))], true);
-  if(add.length) cursor = currentPK();
-  return res;
-}
 
 /* ---------- Android app bridge ---------- */
 function smsDate(ms){ const d = new Date(+ms); return isNaN(d) ? "" : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -2547,7 +2430,48 @@ document.getElementById("smsRescan").addEventListener("click", e=>{
   const go = ()=>{ window.Android.importRange(days); toast(days === 0 ? "Reading every bank SMS on this phone…" : "Reading your SMS…"); };
   if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
 });
-function fromSms(t){ return t.source === "sms" || (!t.source && !!t.raw); }
+function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
+// An account is treated as SMS-confirmed once any SMS-read transaction names the same bank and account.
+function smsConfirmedAccounts(){
+  const seen = new Set();
+  state.txns.forEach(t=>{ if(fromSms(t) && t.account) seen.add(mkey(t.bank) + t.account); });
+  return seen;
+}
+function importedSummary(){
+  const confirmed = smsConfirmedAccounts();
+  const txns = state.txns.filter(t=>t.source === "imported" || t.source === "finart");
+  const bills = state.bills.filter(b=>(b.source === "imported" || b.source === "finart") && !b.manual);
+  const accountKeys = Object.keys(state.accounts).filter(k=>!k.startsWith("manual") && !state.accounts[k].typeLabel && !confirmed.has(k));
+  const subs = state.subsManual.filter(m=>m.source === "imported" || m.source === "finart");
+  const base = state.ruleBase || { rules: {}, names: {} };
+  const ruleKeys = Object.keys(base.rules||{}).filter(k=>state.rules[k] === base.rules[k]);
+  const nameKeys = Object.keys(base.names||{}).filter(k=>state.names[k] === base.names[k]);
+  return { txns, bills, accountKeys, subs, ruleKeys, nameKeys };
+}
+function removeImportedData(){
+  const s = importedSummary();
+  const months = new Set(s.txns.map(t=>t.date.slice(0,7)));
+  const txnIds = new Set(s.txns.map(t=>t.id));
+  state.txns = state.txns.filter(t=>!txnIds.has(t.id));
+  const billIds = new Set(s.bills.map(b=>b.id));
+  state.bills = state.bills.filter(b=>!billIds.has(b.id));
+  s.accountKeys.forEach(k=>delete state.accounts[k]);
+  const subIds = new Set(s.subs.map(m=>m.id));
+  state.subsManual = state.subsManual.filter(m=>!subIds.has(m.id));
+  s.ruleKeys.forEach(k=>{ delete state.rules[k]; if(state.ruleBase) delete state.ruleBase.rules[k]; });
+  s.nameKeys.forEach(k=>{ delete state.names[k]; if(state.ruleBase) delete state.ruleBase.names[k]; });
+  prefixCache = null;
+  persist([...months], true);
+}
+function refreshImportedBlock(){
+  const el = document.getElementById("importedNote"), btn = document.getElementById("removeImported");
+  if(!el) return;
+  const s = importedSummary();
+  const n = s.txns.length + s.bills.length + s.accountKeys.length + s.subs.length + s.ruleKeys.length + s.nameKeys.length;
+  if(!n){ el.textContent = "Everything in the app now comes from your phone's SMS."; btn.style.display = "none"; return; }
+  el.textContent = `Found ${inr.format(s.txns.length)} entries, ${inr.format(s.bills.length)} bills, ${inr.format(s.accountKeys.length)} accounts, ${inr.format(s.subs.length)} subscriptions and ${inr.format(s.ruleKeys.length + s.nameKeys.length)} merchant rules that no SMS on this phone confirms. Removing them keeps only what's read from your own SMS.`;
+  btn.style.display = "";
+}
 function openFreshSheet(then){
   const nSms = state.txns.filter(fromSms).length, nOther = state.txns.length - nSms;
   const b = state.ruleBase || { rules: {}, names: {} };
@@ -2557,8 +2481,8 @@ function openFreshSheet(then){
     <label class="check"><input type="checkbox" id="f-sms" checked>Remove ${inr.format(nSms)} entries read from SMS (they're read again)</label>
     <label class="check"><input type="checkbox" id="f-rules" checked>Undo ${inr.format(nRules)} changes you made to merchant names and categories</label>
     <label class="check"><input type="checkbox" id="f-bills" checked>Clear bills, balances and recurring payments found in SMS</label>
-    <label class="check"><input type="checkbox" id="f-all">Also remove ${inr.format(nOther)} entries you added by hand or imported from FinArt</label>
-    <p class="help">Budgets, your own categories, imported merchant rules, language and family data are kept. Download a backup first if you might want this back.</p>`,
+    <label class="check"><input type="checkbox" id="f-all">Also remove ${inr.format(nOther)} entries not read from SMS (added by hand, or from an earlier import)</label>
+    <p class="help">Budgets, your own categories, merchant rules, language and family data are kept. Download a backup first if you might want this back.</p>`,
   sc=>{
     const opt = id => sc.querySelector(id).checked;
     const months = new Set(state.txns.map(t=>t.date.slice(0,7)));

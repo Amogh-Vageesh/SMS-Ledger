@@ -83,11 +83,12 @@ Pick the currency when adding an entry. The app fetches that day's rate to conve
 your own rate, for example to match your card statement. Entries without a rate are left
 out of totals until converted (Settings > Currencies > Convert them now).
 
-## Moving from FinArt
-Settings > Import FinArt backup reads FinArt's backup CSV: entries (expenses, income,
-transfers, card payments, cash), bills, accounts and balances, subscriptions, custom
-categories, budgets, and merchant rules. Entries already in the ledger from SMS are skipped,
-and importing the same file twice adds nothing.
+## Data only comes from SMS
+The app no longer imports from FinArt or any other file; entries, bills, accounts, balances
+and subscriptions all come from reading your own SMS. Settings > Data not from SMS shows
+anything still on your phone that predates this (from an earlier import or FinArt backup)
+and lets you remove it in one step. Merchant name and category rules are still built into
+the app; they're software, not your data.
 
 ## How far back can it actually go?
 Only as far as the SMS still on the phone. If you switched phones without restoring SMS,
