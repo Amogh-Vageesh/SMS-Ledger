@@ -4,7 +4,9 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.bluetooth.BluetoothManager
 import android.content.res.Configuration
+import android.location.LocationManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -67,6 +69,27 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 31) p += listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_CONNECT)
         if (Build.VERSION.SDK_INT >= 33) p += Manifest.permission.NEARBY_WIFI_DEVICES
         return p.toTypedArray()
+    }
+
+    /**
+     * Nearby Connections needs Bluetooth switched on, and on Android 12 and below it also needs
+     * the phone's Location toggle on (the OS ties Bluetooth scanning to it), even though the app
+     * itself never reads your location. Checking first turns a silent 2-minute failure into a
+     * clear message telling the person exactly what to switch on.
+     */
+    private fun familyPreflight(): String? {
+        val bt = (getSystemService(BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        if (bt == null || !bt.isEnabled) return Lang.t(this,
+            "Turn on Bluetooth, then try Sync with family nearby again.",
+            "ಬ್ಲೂಟೂತ್ ಆನ್ ಮಾಡಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.")
+        if (Build.VERSION.SDK_INT <= 32) {
+            val lm = getSystemService(LOCATION_SERVICE) as? LocationManager
+            if (lm != null && !lm.isProviderEnabled(LocationManager.GPS_PROVIDER) && !lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
+                return Lang.t(this,
+                    "Turn on Location in your phone's settings (Android needs it for this kind of Bluetooth search, even though the app doesn't use your location), then try again.",
+                    "ಫೋನ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಲೊಕೇಶನ್ ಆನ್ ಮಾಡಿ (ಆ್ಯಪ್ ನಿಮ್ಮ ಸ್ಥಳ ಬಳಸದಿದ್ದರೂ, ಈ ಬಗೆಯ ಬ್ಲೂಟೂತ್ ಹುಡುಕಾಟಕ್ಕೆ Android ಇದನ್ನು ಕೇಳುತ್ತದೆ), ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.")
+        }
+        return null
     }
 
     private fun isNight() =
@@ -314,6 +337,8 @@ class MainActivity : ComponentActivity() {
         /** Start a Bluetooth / nearby Wi-Fi sync, sending [json] (this phone's family data) as [name]. */
         @JavascriptInterface
         fun familySync(name: String, json: String) = runOnUiThread {
+            val problem = familyPreflight()
+            if (problem != null) { toastJs(problem); return@runOnUiThread }
             val need = familyPermissions().filter {
                 ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
             }

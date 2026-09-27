@@ -60,6 +60,24 @@ they're close together. Check the 4-digit code matches on both, and the two ledg
 over Bluetooth or direct Wi-Fi (no internet needed). Home then has a "Just me / Family"
 switch. Sync again whenever you're together to refresh.
 
+## Getting the right bank for each entry
+Bank names are read from the message text, which can occasionally mention a different bank
+as a third party (a loan lender, a NEFT sender) rather than the bank that actually sent the
+SMS. Android also passes along the sender code (like "AD-HDFCBK"), and the app now prefers
+that when it recognises it, which fixes most of these mix-ups. If an account still looks
+wrong, open it under Accounts and tap Remove; it comes back on its own if a real SMS for it
+arrives.
+
+## If family sync won't connect
+- Both phones need Bluetooth switched on. On Android 12 and older, the phone's Location
+  toggle also needs to be on system-wide, even though the app never reads your location —
+  that's an Android requirement for this kind of Bluetooth search, not a choice this app
+  makes. From 1.14 the app checks both and tells you which one is off.
+- Keep both phones on the Settings screen, unlocked, and close together for the full sync.
+- Update Google Play services from the Play Store if it's old.
+- On Xiaomi/Redmi, Oppo, Vivo or OnePlus, the same Autostart/battery settings mentioned above
+  for SMS also affect Bluetooth scanning while the app is in the background.
+
 ## Transfers and card bill payments
 Paying a card bill or moving money between your own accounts sends two SMS: one debit, one
 credit. The app pairs them (same amount, within 2 days, different accounts) and files both

@@ -131,7 +131,6 @@ class FamilySync(
                     if (update.payloadId == outgoingId) sent = true
                     incoming.remove(update.payloadId)?.let { p ->
                         val dest = File(act.filesDir, "family-inbox.json")
-                        val uri = p.asFile()?.asUri()
                         val ok = runCatching { copyPayload(p, dest) }.isSuccess
                         if (ok) { got = true; received(dest) } else status("The other phone's data couldn't be saved.")
                     }

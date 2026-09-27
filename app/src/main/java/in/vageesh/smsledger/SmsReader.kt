@@ -30,7 +30,7 @@ object SmsReader {
                 val address = c.getString(iAddr)
                 val body = c.getString(iBody)
                 if (SmsFilter.accept(address, body)) {
-                    out.put(JSONObject().put("body", body).put("date", date))
+                    out.put(JSONObject().put("body", body).put("date", date).put("address", address ?: ""))
                 }
             }
         }

@@ -554,7 +554,8 @@ const KN = {
   "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
   "See trends by month and year":"ತಿಂಗಳು ಮತ್ತು ವರ್ಷವಾರು ಪ್ರವೃತ್ತಿ ನೋಡಿ","Recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ","Edit recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ತಿದ್ದಿ",
   "Recurring payment updated.":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ನವೀಕರಿಸಲಾಗಿದೆ.","Edit":"ತಿದ್ದಿ","Other accounts":"ಇತರ ಖಾತೆಗಳು","Investment":"ಹೂಡಿಕೆ","Loan outstanding":"ಬಾಕಿ ಸಾಲ",
-  "Month":"ತಿಂಗಳು","Spending is the same as last month":"ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಷ್ಟೇ ಇದೆ","View and edit rules":"ನಿಯಮಗಳನ್ನು ನೋಡಿ ಮತ್ತು ತಿದ್ದಿ","Undo my rule changes":"ನನ್ನ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ","Your rule changes were undone.":"ನಿಮ್ಮ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಲಾಗಿದೆ.",
+  "Month":"ತಿಂಗಳು","Spending is the same as last month":"ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಷ್ಟೇ ಇದೆ","View and edit rules":"ನಿಯಮಗಳನ್ನು ನೋಡಿ ಮತ್ತು ತಿದ್ದಿ","Remove":"ತೆಗೆದುಹಾಕಿ",
+  "Remove this account? Its balance history isn't kept, but new SMS for it will add it back.":"ಈ ಖಾತೆಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅದರ ಬಾಕಿ ಇತಿಹಾಸ ಉಳಿಯುವುದಿಲ್ಲ, ಆದರೆ ಹೊಸ SMS ಬಂದರೆ ಮತ್ತೆ ಸೇರುತ್ತದೆ.","Undo my rule changes":"ನನ್ನ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ","Your rule changes were undone.":"ನಿಮ್ಮ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಲಾಗಿದೆ.",
   "When a merchant matches, its new entries get this name and category.":"ವ್ಯಾಪಾರಿ ಹೊಂದಿದಾಗ ಅದರ ಹೊಸ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಬರುತ್ತದೆ.",
   "Budgets, your own categories, imported merchant rules, language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, ಆಮದು ಮಾಡಿದ ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು, ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
   "Merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು","Search merchant":"ವ್ಯಾಪಾರಿ ಹುಡುಕಿ","Done":"ಮುಗಿಯಿತು","Yours":"ನಿಮ್ಮದು","(name only)":"(ಹೆಸರು ಮಾತ್ರ)","Rule saved.":"ನಿಯಮ ಉಳಿಸಲಾಗಿದೆ.","FinArt rules removed.":"FinArt ನಿಯಮಗಳನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ.","No rules match.":"ಯಾವ ನಿಯಮವೂ ಹೊಂದುತ್ತಿಲ್ಲ.",
@@ -610,6 +611,7 @@ const KN_RX = [
   [/^Rate for the entry date will be fetched when you're online\. You can also type it\.$/, ()=>"ಆನ್‌ಲೈನ್ ಆದಾಗ ಆ ದಿನದ ದರ ಪಡೆಯಲಾಗುತ್ತದೆ. ನೀವೇ ಬರೆಯಲೂಬಹುದು."],
   [/^Getting the (\w+) rate for (.+)…$/, m=>`${m[2]} ರ ${m[1]} ದರ ಪಡೆಯಲಾಗುತ್ತಿದೆ…`],
   [/^Apply the name and category to all (.+) entries$/, m=>`${m[1]} ನ ಎಲ್ಲಾ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
+  [/^Only entries of (.+) too$/, m=>`${m[1]} ಮೊತ್ತದ ನಮೂದುಗಳಿಗೆ ಮಾತ್ರ`],
   [/^Also found (.+)\. They'll be saved with these entries\.$/, m=>`ಇದರ ಜೊತೆಗೆ ${m[1].replace(/bill reminders?/,"ಬಿಲ್ ಜ್ಞಾಪನೆಗಳು").replace(/balance updates?/,"ಬಾಕಿ ಅಪ್‌ಡೇಟ್‌ಗಳು").replace(" and "," ಮತ್ತು ")} ಸಿಕ್ಕಿವೆ. ಇವುಗಳೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.`],
   [/^Last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳು`],
   [/^Not updated for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ ನವೀಕರಿಸಿಲ್ಲ`],
@@ -1062,7 +1064,35 @@ function parseBill(t, fallbackDate){
   return { id: uidGen(), key: mkey((bank||biller) + account) || mkey(name), name, kind: isCard ? "card" : "bill",
     amount, minDue: min ? num(min[1]) : null, dueDate, account, bank, biller, seen: fallbackDate || todayISO(), paid: false, raw: t };
 }
-function parseOne(msg, fallbackDate){
+// senderAddr (an Android DLT code like "AD-HDFCBK") names the true sending bank far more reliably
+// than scanning the text, which can mention a different bank as a third party (a loan lender,
+// a beneficiary, etc). When available, it overrides whatever the text-based guess found.
+// Bank DLT sender codes (e.g. "AD-HDFCBK") concatenate the bank's short code with no separators,
+// so this is a plain substring check on the letters only, not the word-boundary regexes in BANKS
+// (those are tuned for free text and can miss "SBI" glued directly to "INB").
+const SENDER_BANK = [
+  ["HDFC","HDFC"],["ICICI","ICICI"],["SBI","SBI"],["Axis","AXIS"],["Kotak","KOTAK"],["IDFC First","IDFC"],
+  ["Yes Bank","YESBNK|YESBAN|-YBL"],["IndusInd","INDUS"],["Federal","FEDBNK|FEDERA"],["PNB","PNBSMS|PUNB"],
+  ["Bank of Baroda","BOBTXN|BOBIBK|BOIIND"],["Canara","CANBNK|CANARA"],["Union Bank","UNIONB|UBOI"],
+  ["IDBI","IDBIBK"],["RBL","RBLBNK"],["HSBC","HSBCIN"],["Standard Chartered","SCBANK|SCBIND"],
+  ["OneCard","ONECRD|ONECAR"],["AU","AUBANK|AUSFB"]
+];
+function senderToBank(addr){
+  const a = String(addr||"").toUpperCase();
+  for(const [name, pat] of SENDER_BANK) if(new RegExp(pat).test(a)) return name;
+  return "";
+}
+function parseOne(msg, fallbackDate, senderAddr){
+  const r = parseOneCore(msg, fallbackDate);
+  if(!senderAddr || (!r.txn && !r.bill && !r.balance)) return r;
+  const senderBank = senderToBank(senderAddr);
+  if(!senderBank) return r;
+  if(r.txn) r.txn.bank = senderBank;
+  if(r.bill) r.bill.bank = senderBank;
+  if(r.balance) r.balance.bank = senderBank;
+  return r;
+}
+function parseOneCore(msg, fallbackDate){
   const t = msg.replace(/\s+/g," ").trim();
   const low = t.toLowerCase();
   if(SKIP.test(t)) return { skip: "Not a completed transaction (OTP, offer or failed payment)" };
@@ -1846,7 +1876,8 @@ function openSheet(t, isNew){
       <label class="field"><span>Split with</span><input id="e-with" value="${esc(t.splitWith||"")}" placeholder="Names, e.g. Ravi, Anu"></label>
       ${t.share!=null?`<label class="check"><input type="checkbox" id="e-settled" ${t.settled?"checked":""}>They've paid me back</label>`:""}
     </div>
-    ${!isNew?`<label class="check"><input type="checkbox" id="e-rule" checked>Apply the name and category to all ${esc(t.merchant)} entries</label>`:""}
+    ${!isNew?`<label class="check"><input type="checkbox" id="e-rule" checked>Apply the name and category to all ${esc(t.merchant)} entries</label>
+    <label class="check" id="e-ruleAmtRow" style="margin-left:26px"><input type="checkbox" id="e-ruleAmt">Only entries of ${money(t.amount,true)} too</label>`:""}
     ${t.raw?`<div class="field"><span>Original SMS</span><div class="raw">${esc(t.raw)}</div></div>`:""}
     <div class="row">
       <button class="btn primary" id="e-save">Save</button>
@@ -1885,6 +1916,8 @@ function openSheet(t, isNew){
   scrim.querySelector("#e-split").onchange = e=>{ splitBox.classList.toggle("hidden", !e.target.checked); if(e.target.checked && !shareIn.value) evenShare(); };
   nIn.oninput = evenShare;
   scrim.querySelector("#e-type").onchange = syncSplitRow; syncSplitRow();
+  const ruleBox = scrim.querySelector("#e-rule"), ruleAmtRow = scrim.querySelector("#e-ruleAmtRow");
+  if(ruleBox){ const syncRule = ()=>ruleAmtRow.classList.toggle("hidden", !ruleBox.checked); ruleBox.onchange = syncRule; syncRule(); }
   scrim.querySelector("#e-save").onclick = ()=>{
     const amount = parseFloat(scrim.querySelector("#e-amt").value.replace(/[,₹\s]/g,""));
     if(!amount || amount <= 0){ toast("Enter an amount above zero."); return; }
@@ -1919,15 +1952,21 @@ function openSheet(t, isNew){
     else {
       state.txns = state.txns.map(x=>x.id === t.id ? upd : x);
       const rule = scrim.querySelector("#e-rule");
+      const ruleAmt = scrim.querySelector("#e-ruleAmt");
+      const sameEnough = x => !ruleAmt || !ruleAmt.checked || Math.abs(x.amount - t.amount) < 1;
       if(rule && rule.checked && upd.merchant !== t.merchant){
         const oldK = mkey(t.merchant);
-        state.names[oldK] = upd.merchant; settings = true;
+        // an amount-restricted rename only touches those entries, so it isn't remembered as a blanket rule for the name
+        if(!(ruleAmt && ruleAmt.checked)) state.names[oldK] = upd.merchant;
+        settings = true;
         if(state.rules[oldK]) state.rules[mkey(upd.merchant)] = state.rules[oldK];
-        state.txns.forEach(x=>{ if(x !== upd && mkey(x.merchant) === oldK){ x.merchant = upd.merchant; months.add(x.date.slice(0,7)); } });
+        state.txns.forEach(x=>{ if(x !== upd && mkey(x.merchant) === oldK && sameEnough(x)){ x.merchant = upd.merchant; if(ruleAmt && ruleAmt.checked) x.userCat = true; months.add(x.date.slice(0,7)); } });
       }
       if(rule && rule.checked && upd.category !== t.category){
-        const k = mkey(upd.merchant); state.rules[k] = upd.category; settings = true;
-        state.txns.forEach(x=>{ if(mkey(x.merchant) === k && x.category !== upd.category){ x.category = upd.category; months.add(x.date.slice(0,7)); } });
+        const k = mkey(upd.merchant);
+        if(!(ruleAmt && ruleAmt.checked)) state.rules[k] = upd.category;
+        settings = true;
+        state.txns.forEach(x=>{ if(mkey(x.merchant) === k && x.category !== upd.category && sameEnough(x)){ x.category = upd.category; if(ruleAmt && ruleAmt.checked) x.userCat = true; months.add(x.date.slice(0,7)); } });
       }
     }
     if(!isNew){
@@ -2090,17 +2129,20 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   if(ac){ openAcctSheet(ac.dataset.acct); return; }
   if(e.target.id === "addBill") openBillSheet();
 });
+// extraBtn: either one [label, fn] pair, or several as [[label, fn], [label, fn], ...]
 function sheet(title, inner, onSave, extraBtn){
+  const extras = !extraBtn ? [] : Array.isArray(extraBtn[0]) ? extraBtn : [extraBtn];
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2>${inner}
-    <div class="row"><button class="btn primary" data-s="save">Save</button><button class="btn" data-s="cancel">Cancel</button>${extraBtn ? `<button class="btn danger" data-s="extra" style="margin-left:auto">${esc(extraBtn[0])}</button>` : ""}</div></div>`;
+    <div class="row"><button class="btn primary" data-s="save">Save</button><button class="btn" data-s="cancel">Cancel</button>${extras.map((eb,i)=>`<button class="btn danger" data-s="extra${i}" style="${i===0?"margin-left:auto":""}">${esc(eb[0])}</button>`).join("")}</div></div>`;
   document.body.appendChild(scrim);
   const close = ()=>scrim.remove();
   scrim.addEventListener("click", e=>{
     if(e.target === scrim) return close();
     const b = e.target.closest("[data-s]"); if(!b) return;
     if(b.dataset.s === "cancel") return close();
-    if(b.dataset.s === "extra"){ extraBtn[1](); close(); render(); return; }
+    const ex = /^extra(\d+)$/.exec(b.dataset.s);
+    if(ex){ extras[+ex[1]][1](); close(); render(); return; }
     if(onSave(scrim) !== false){ close(); render(); }
   });
   return scrim;
@@ -2124,7 +2166,8 @@ function openAcctSheet(key){
     delete next.balance; delete next.availLimit;
     if(bal != null && !isNaN(bal)){ if(kind === "card") next.availLimit = bal; else next.balance = bal; }
     state.accounts[k] = next; persist([], true); toast("Account saved.");
-  }, key ? ["Hide", ()=>{ state.accounts[key].hidden = true; persist([], true); }] : null);
+  }, key ? [["Hide", ()=>{ state.accounts[key].hidden = true; persist([], true); }],
+             ["Remove", ()=>{ if(!confirm("Remove this account? Its balance history isn't kept, but new SMS for it will add it back.")) return; delete state.accounts[key]; persist([], true); }]] : null);
 }
 function openSubSheet(){
   sheet("Add a subscription", `
@@ -2357,7 +2400,7 @@ window.ingestSms = function(list, quiet){
   const add = [];
   let extra = false;
   list.forEach(m=>{
-    const r = parseOne(String(m.body||""), smsDate(m.date));
+    const r = parseOne(String(m.body||""), smsDate(m.date), m.address);
     if(r.skip) return;
     if(r.bill){ extra = upsertBill(r.bill) || extra; return; }
     if(r.balance){ extra = updateAccount(r.balance) || extra; return; }
