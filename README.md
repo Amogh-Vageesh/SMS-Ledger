@@ -78,6 +78,25 @@ arrives.
 - On Xiaomi/Redmi, Oppo, Vivo or OnePlus, the same Autostart/battery settings mentioned above
   for SMS also affect Bluetooth scanning while the app is in the background.
 
+## Money to and from people you know
+Family and friends need their own category, distinct from Self transfer (which is for your
+own accounts): "Friends and family transfers", also excluded from spend and income. Use it
+for things like your spouse sending money for household expenses.
+
+## Lending money to someone
+When you get money back that you'd earlier paid to someone (a personal loan, not a bill
+split), it shouldn't count as new income. There's a new "Loan repayment" category for this,
+excluded from both spend and income like Self transfer and Card payments.
+The same logic covers a normal bill split too, not just a full loan: if you paid the whole
+bill and a friend's share is unsettled, their repayment gets the same suggestion and settles
+the split automatically.
+To use it: mark what you lent as a split with your share at ₹0 (Entries > tap it > Split
+this with others > Your share 0) so it isn't counted as spending either. When the repayment
+SMS arrives, opening that entry shows a suggestion — "This looks like X paying back the
+₹Y you lent on <date>" — tick it and the credit is filed as a repayment while the original
+is marked settled, in one step. You can also just pick "Loan repayment" from the category
+list yourself at any time.
+
 ## Transfers and card bill payments
 Paying a card bill or moving money between your own accounts sends two SMS: one debit, one
 credit. The app pairs them (same amount, within 2 days, different accounts) and files both

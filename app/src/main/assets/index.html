@@ -415,7 +415,7 @@ const CATS = [
   ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
   ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
   ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
-  ["Self transfer","#6f7f8f"],["Card payments","#5c6f86"],["Income","#93b98c"],["Refunds","#77b3b0"]
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Income","#93b98c"],["Refunds","#77b3b0"]
 ];
 const BASE_CAT_COUNT = CATS.length;
 const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
@@ -423,7 +423,7 @@ function applyCustomCats(){
   (state.customCats||[]).forEach((c,i)=>{
     if(CAT_COLOR[c.name]) return;
     const col = c.color || PALETTE[i % PALETTE.length];
-    CATS.splice(CATS.length - 4, 0, [c.name, col]); CAT_COLOR[c.name] = col;
+    CATS.splice(CATS.length - 6, 0, [c.name, col]); CAT_COLOR[c.name] = col;
   });
 }
 function addCustomCat(name){
@@ -432,11 +432,12 @@ function addCustomCat(name){
   state.customCats.push({ name, color: PALETTE[state.customCats.length % PALETTE.length] });
   applyCustomCats(); return name;
 }
-// Paying a card bill moves money between your own accounts; counting it would double the card spends.
-const NOT_SPEND = new Set(["Card payments","Self transfer"]);
+// Paying a card bill moves money between your own accounts; a loan repayment is just getting your
+// own money back; money to or from someone you know isn't new spending or new income either.
+const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment"]);
 const SUB_WORDS = ["netflix","spotify","hotstar","jiohotstar","prime","youtube","apple","icloud","google","zee5","sonyliv","jiocinema","linkedin","openai","chatgpt","anthropic","claude","adobe","microsoft","office","notion","canva","swiggy one","zomato gold","audible","kindle","gaana","wynk","times prime","cult","gym","dropbox","github","figma","tata play","airtel xstream","disney"];
 const CAT_COLOR = Object.fromEntries(CATS);
-const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Card payments","Other"];
+const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Friends and family transfers","Card payments","Loan repayment","Other"];
 
 const KEYWORDS = {
   "Food & dining":["swiggy","zomato","eatsure","restaurant","cafe","coffee","starbucks","dominos","domino","pizza","mcdonald","kfc","burger","subway","chaayos","third wave","blue tokai","bakery","darshini","hotel ","dine","biryani","eat","udupi","kitchen","dosa","sagar","bhavan","bhavana","vadapav","canteen","tiffin","juice","mess","sweets","chai","tea ","food","dhaba","eatery","caterers","mcdonald","haldiram","barbeque","bbq","box8","faasos","behrouz","ovenstory","freshmenu","rebel foods","wow momo","cafe coffee day","barista","costa coffee","tim hortons","burger king","pizza hut","la pino","taco bell","wendys","krispy kreme","baskin","naturals ice","corner house","meghana","empire restaurant","adyar ananda","a2b","saravana bhavan","mtr ","vidyarthi bhavan","rameshwaram cafe","truffles","chai point","eazydiner","dineout","magicpin","haldirams","bikanervala","paradise biryani","behrouz biryani","hard rock","barbeque nation"],
@@ -485,7 +486,7 @@ const KN = {
   "Nothing matches here.":"ಇಲ್ಲಿ ಯಾವುದೂ ಹೊಂದುತ್ತಿಲ್ಲ.","rate pending":"ದರ ಬಾಕಿ ಇದೆ",
   "Food & dining":"ಊಟ ಮತ್ತು ಹೋಟೆಲ್","Groceries":"ದಿನಸಿ","Transport":"ಸಾರಿಗೆ","Fuel":"ಇಂಧನ","Shopping":"ಶಾಪಿಂಗ್","Bills & utilities":"ಬಿಲ್‌ಗಳು ಮತ್ತು ಸೇವೆಗಳು",
   "Entertainment":"ಮನರಂಜನೆ","Health":"ಆರೋಗ್ಯ","Travel":"ಪ್ರವಾಸ","Education":"ಶಿಕ್ಷಣ","Investments":"ಹೂಡಿಕೆಗಳು","EMI & loans":"EMI ಮತ್ತು ಸಾಲಗಳು","Rent":"ಬಾಡಿಗೆ",
-  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
+  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
   "Household":"ಮನೆ ಖರ್ಚು","Sports":"ಕ್ರೀಡೆ","Vehicles":"ವಾಹನಗಳು","Office":"ಕಚೇರಿ","Grooming":"ಸೌಂದರ್ಯ ಆರೈಕೆ",
   "Card":"ಕಾರ್ಡ್","Bank transfer":"ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆ","Auto-debit":"ಸ್ವಯಂ ಡೆಬಿಟ್","ATM withdrawal":"ATM ಹಣ ತೆಗೆತ","Card payment received":"ಕಾರ್ಡ್ ಪಾವತಿ ಬಂದಿದೆ","Money received":"ಬಂದ ಹಣ","Payment":"ಪಾವತಿ",
   "Paste bank SMS":"ಬ್ಯಾಂಕ್ SMS ಅಂಟಿಸಿ","Read messages":"ಸಂದೇಶಗಳನ್ನು ಓದಿ","Paste from clipboard":"ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ನಿಂದ ಅಂಟಿಸಿ","Try sample SMS":"ಮಾದರಿ SMS ಪ್ರಯತ್ನಿಸಿ",
@@ -612,6 +613,8 @@ const KN_RX = [
   [/^Getting the (\w+) rate for (.+)…$/, m=>`${m[2]} ರ ${m[1]} ದರ ಪಡೆಯಲಾಗುತ್ತಿದೆ…`],
   [/^Apply the name and category to all (.+) entries$/, m=>`${m[1]} ನ ಎಲ್ಲಾ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
   [/^Only entries of (.+) too$/, m=>`${m[1]} ಮೊತ್ತದ ನಮೂದುಗಳಿಗೆ ಮಾತ್ರ`],
+  [/^This looks like (.+ )?paying back the (.+) you lent on (.+)\. Mark it as a repayment \(not income\) and settle it\?$/,
+    m=>`ಇದು ${m[1]||"ಅವರು "}${m[3]} ರಂದು ನೀವು ಕೊಟ್ಟ ${m[2]} ಮರುಪಾವತಿಸುತ್ತಿರುವಂತೆ ಕಾಣುತ್ತದೆ. ಇದನ್ನು ಮರುಪಾವತಿ (ಆದಾಯ ಅಲ್ಲ) ಎಂದು ಗುರುತಿಸಿ ಚುಕ್ತಾ ಮಾಡಬೇಕೇ?`],
   [/^Also found (.+)\. They'll be saved with these entries\.$/, m=>`ಇದರ ಜೊತೆಗೆ ${m[1].replace(/bill reminders?/,"ಬಿಲ್ ಜ್ಞಾಪನೆಗಳು").replace(/balance updates?/,"ಬಾಕಿ ಅಪ್‌ಡೇಟ್‌ಗಳು").replace(" and "," ಮತ್ತು ")} ಸಿಕ್ಕಿವೆ. ಇವುಗಳೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.`],
   [/^Last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳು`],
   [/^Not updated for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ ನವೀಕರಿಸಿಲ್ಲ`],
@@ -1844,7 +1847,19 @@ function renderSettings(){
 }
 
 /* ---------- Edit sheet ---------- */
+// The best open "owed to you" debit that this incoming credit could be repaying, by amount.
+function findLoanMatch(forCredit){
+  if(!forCredit || forCredit.type !== "credit") return null;
+  const open = state.txns.filter(x=>x.type==="debit" && x.share!=null && !x.settled && x.amount>x.share && x.id!==forCredit.id);
+  let best = null, bestDiff = Infinity;
+  open.forEach(x=>{
+    const owed = x.amount - x.share, diff = Math.abs(owed - forCredit.amount);
+    if(diff <= Math.max(5, owed * 0.05) && diff < bestDiff){ best = x; bestDiff = diff; }
+  });
+  return best;
+}
 function openSheet(t, isNew){
+  const loanMatch = !isNew ? findLoanMatch(t) : null;
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${isNew?"New entry":"Edit entry"}">
     <h2>${isNew?"New entry":"Edit entry"}</h2>
@@ -1862,6 +1877,7 @@ function openSheet(t, isNew){
       <label class="field"><span>Date</span><input id="e-date" type="date" value="${t.date||todayISO()}"></label>
       <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
     </div>
+    ${loanMatch?`<label class="check"><input type="checkbox" id="e-loan">This looks like ${loanMatch.splitWith?esc(loanMatch.splitWith)+" ":""}paying back the ${money(loanMatch.amount-loanMatch.share,true)} you lent on ${esc(niceDate(loanMatch.date))}. Mark it as a repayment (not income) and settle it?</label>`:""}
     <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
     <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
     ${t.reimb?`<label class="check"><input type="checkbox" id="e-reimbDone" ${t.reimbDone?"checked":""}>Reimbursement received</label>`:""}
@@ -1948,6 +1964,11 @@ function openSheet(t, isNew){
     } else { delete upd.share; delete upd.splitN; delete upd.splitWith; delete upd.settled; }
     const months = new Set([upd.date.slice(0,7)]); if(oldMonth) months.add(oldMonth);
     let settings = false;
+    const loanBox = scrim.querySelector("#e-loan");
+    if(loanMatch && loanBox && loanBox.checked){
+      upd.category = "Loan repayment"; upd.userCat = true;
+      loanMatch.settled = true; months.add(loanMatch.date.slice(0,7)); settings = true;
+    }
     if(isNew){ upd.id = uidGen(); upd.added = Date.now(); state.txns.push(upd); }
     else {
       state.txns = state.txns.map(x=>x.id === t.id ? upd : x);
