@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.bluetooth.BluetoothManager
 import android.content.res.Configuration
 import android.location.LocationManager
+import android.telephony.SubscriptionManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -95,6 +96,28 @@ class MainActivity : ComponentActivity() {
     private fun isNight() =
         (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
+    /** "system" (default), "light" or "dark" — the person's choice in Settings > Theme. */
+    private fun themePref() = prefs.getString("theme", "system") ?: "system"
+
+    /** Whether the app should currently render dark, honouring an explicit choice over the phone's setting. */
+    private fun resolvedNight() = when (themePref()) {
+        "dark" -> true
+        "light" -> false
+        else -> isNight()
+    }
+
+    /** Colours the status bar, navigation bar and WebView background to match [resolvedNight]. */
+    private fun applyChrome() {
+        val night = resolvedNight()
+        window.statusBarColor = Color.parseColor(if (night) "#17140F" else "#F4EFE4")
+        window.navigationBarColor = Color.parseColor(if (night) "#201C16" else "#FBF8F1")
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !night
+            isAppearanceLightNavigationBars = !night
+        }
+        if (::web.isInitialized) web.setBackgroundColor(Color.parseColor(if (night) "#17140F" else "#F4EFE4"))
+    }
+
     private val saveCsv =
         registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { writeSave(it) }
     private val saveJson =
@@ -103,21 +126,11 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Follow the phone's dark / light setting.
-        val night = isNight()
-        window.statusBarColor = Color.parseColor(if (night) "#17140F" else "#F4EFE4")
-        window.navigationBarColor = Color.parseColor(if (night) "#201C16" else "#FBF8F1")
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = !night
-            isAppearanceLightNavigationBars = !night
-        }
-
         val assets = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
 
         web = WebView(this).apply {
-            setBackgroundColor(Color.parseColor(if (night) "#17140F" else "#F4EFE4"))
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true      // the ledger lives in the page's localStorage
             settings.allowFileAccess = false
@@ -143,11 +156,12 @@ class MainActivity : ComponentActivity() {
                 override fun onPageFinished(view: WebView, url: String) {
                     if (pageReady) return
                     pageReady = true
-                    view.evaluateJavascript("document.documentElement.dataset.theme='${if (isNight()) "dark" else "light"}'", null)
+                    view.evaluateJavascript("document.documentElement.dataset.theme='${if (resolvedNight()) "dark" else "light"}'", null)
                     onPageReady()
                 }
             }
         }
+        applyChrome()
         setContentView(web)
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html")
 
@@ -349,6 +363,44 @@ class MainActivity : ComponentActivity() {
         /** The language the person picked, kept for notifications and dialogs. */
         @JavascriptInterface
         fun setLanguage(lang: String) { prefs.edit().putString("lang", if (lang == "kn") "kn" else "en").apply() }
+
+        /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
+        @JavascriptInterface
+        fun setTheme(theme: String) = runOnUiThread {
+            prefs.edit().putString("theme", if (theme in listOf("light", "dark")) theme else "system").apply()
+            applyChrome()
+        }
+
+        /**
+         * The distinct SIMs bank SMS have actually arrived on, each with a best-effort label.
+         * Reads only the subscription id already visible via READ_SMS — no extra permission
+         * is requested just to name a SIM; if the carrier name isn't available it falls back
+         * to "SIM 1"/"SIM 2" and the person can rename it themselves in Settings.
+         */
+        @JavascriptInterface
+        fun getSimList(): String {
+            val ids = linkedSetOf<Int>()
+            try {
+                contentResolver.query(
+                    android.provider.Telephony.Sms.Inbox.CONTENT_URI,
+                    arrayOf(android.provider.Telephony.Sms.SUBSCRIPTION_ID), null, null, null
+                )?.use { c ->
+                    val i = c.getColumnIndex(android.provider.Telephony.Sms.SUBSCRIPTION_ID)
+                    if (i >= 0) while (c.moveToNext()) { val v = c.getInt(i); if (v >= 0) ids.add(v) }
+                }
+            } catch (e: Exception) { }
+            val arr = JSONArray()
+            var n = 0
+            ids.forEach { id ->
+                n++
+                val label = try {
+                    (getSystemService(SubscriptionManager::class.java))
+                        ?.getActiveSubscriptionInfo(id)?.displayName?.toString()?.takeIf { it.isNotBlank() }
+                } catch (e: Exception) { null } ?: "SIM $n"
+                arr.put(org.json.JSONObject().put("id", id).put("label", label))
+            }
+            return arr.toString()
+        }
 
         /** First-launch language picked: carry on with SMS permission. */
         @JavascriptInterface

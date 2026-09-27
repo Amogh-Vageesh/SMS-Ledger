@@ -213,6 +213,11 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .members{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .member{display:flex;align-items:center;gap:8px;background:var(--raise);border-radius:999px;padding:5px 12px 5px 5px;font-weight:600;font-size:.9rem}
 .member .av{width:28px;height:28px;border-radius:50%;color:var(--brass-ink);font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center}
+#simList{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.simrow{display:flex;align-items:center;gap:10px;background:var(--raise);border-radius:12px;padding:10px 12px}
+.simrow input[type=text]{flex:1;min-width:0;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:7px 9px}
+.simrow label{display:flex;align-items:center;gap:5px;font-size:.82rem;color:var(--muted);white-space:nowrap}
+.simrow input[type=radio]{accent-color:var(--brass);width:16px;height:16px}
 .psplit{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--rule);padding-top:12px;margin-top:12px}
 .psplit div{display:flex;align-items:center;gap:10px;font-size:.82rem}
 .psplit .nm{width:70px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -347,6 +352,13 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
       <button data-lang="en">English</button><button data-lang="kn">ಕನ್ನಡ</button>
     </div>
   </div>
+  <h1 class="section-h">Theme</h1>
+  <div class="set-block">
+    <div class="seg wide" id="themeSeg" role="group" aria-label="Theme" style="margin:12px 0">
+      <button data-theme-pick="system">System</button><button data-theme-pick="light">Light</button><button data-theme-pick="dark">Dark</button>
+    </div>
+    <p>System follows your phone's own dark or light setting.</p>
+  </div>
   <h1 class="section-h">Month cycle</h1>
   <div class="set-block">
     <label class="budget" style="grid-template-columns:1fr 120px"><span>Your month starts on day</span>
@@ -376,6 +388,11 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
         <button class="btn" data-days="0">All SMS</button>
       </div></div>
     </div>
+  </div>
+  <h1 class="section-h" id="simHeading" style="display:none">Dual SIM</h1>
+  <div class="set-block" id="simBlock" style="display:none">
+    <p>This phone has more than one SIM receiving bank SMS. Name each one, and mark which is yours — the other's entries then show separately under Family view.</p>
+    <div id="simList"></div>
   </div>
   <h1 class="section-h">Family</h1>
   <div class="set-block">
@@ -574,7 +591,8 @@ const KN = {
   "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
   "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
   "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Starting…":"ಪ್ರಾರಂಭಿಸಲಾಗುತ್ತಿದೆ…","Family sync needs the Android app, not this browser view.":"ಕುಟುಂಬ ಸಿಂಕ್‌ಗೆ Android ಆ್ಯಪ್ ಬೇಕು, ಈ ಬ್ರೌಸರ್ ನೋಟದಲ್ಲಿ ಅಲ್ಲ.","Month":"ತಿಂಗಳು","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
-  "Import SMS":"SMS ಆಮದು","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
+  "Import SMS":"SMS ಆಮದು","Standing instruction / mandate notice without an amount":"ಮೊತ್ತವಿಲ್ಲದ ಸ್ಟ್ಯಾಂಡಿಂಗ್ ಇನ್‌ಸ್ಟ್ರಕ್ಷನ್/ಮ್ಯಾಂಡೇಟ್ ಸೂಚನೆ","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Theme updated.":"ಥೀಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ.",
+  "System follows your phone's own dark or light setting.":"ಸಿಸ್ಟಂ ಆಯ್ಕೆ ನಿಮ್ಮ ಫೋನ್‌ನ ಡಾರ್ಕ್/ಲೈಟ್ ಸೆಟ್ಟಿಂಗ್ ಅನುಸರಿಸುತ್ತದೆ.","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
   "Everything in the app now comes from your phone's SMS.":"ಈಗ ಆ್ಯಪ್‌ನಲ್ಲಿರುವುದೆಲ್ಲಾ ನಿಮ್ಮ ಫೋನ್‌ನ SMS ನಿಂದ ಬಂದದ್ದು.",
   "Removed. Only SMS-confirmed data remains.":"ತೆಗೆದುಹಾಕಲಾಗಿದೆ. SMS ದೃಢಪಡಿಸಿದ ಮಾಹಿತಿ ಮಾತ್ರ ಉಳಿದಿದೆ.","This can't be undone.":"ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.","Promotional message":"ಜಾಹೀರಾತು ಸಂದೇಶ","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
   "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
@@ -640,7 +658,6 @@ const KN_RX = [
   [/^Only entries of (.+) too$/, m=>`${m[1]} ಮೊತ್ತದ ನಮೂದುಗಳಿಗೆ ಮಾತ್ರ`],
   [/^This looks like (.+ )?paying back the (.+) you lent on (.+)\. Mark it as a repayment \(not income\) and settle it\?$/,
     m=>`ಇದು ${m[1]||"ಅವರು "}${m[3]} ರಂದು ನೀವು ಕೊಟ್ಟ ${m[2]} ಮರುಪಾವತಿಸುತ್ತಿರುವಂತೆ ಕಾಣುತ್ತದೆ. ಇದನ್ನು ಮರುಪಾವತಿ (ಆದಾಯ ಅಲ್ಲ) ಎಂದು ಗುರುತಿಸಿ ಚುಕ್ತಾ ಮಾಡಬೇಕೇ?`],
-  [/^Also found (.+)\. They'll be saved with these entries\.$/, m=>`ಇದರ ಜೊತೆಗೆ ${m[1].replace(/bill reminders?/,"ಬಿಲ್ ಜ್ಞಾಪನೆಗಳು").replace(/balance updates?/,"ಬಾಕಿ ಅಪ್‌ಡೇಟ್‌ಗಳು").replace(" and "," ಮತ್ತು ")} ಸಿಕ್ಕಿವೆ. ಇವುಗಳೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.`],
   [/^Last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳು`],
   [/^Not updated for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ ನವೀಕರಿಸಿಲ್ಲ`],
   [/^No SMS for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ SMS ಇಲ್ಲ`],
@@ -670,6 +687,8 @@ const KN_RX = [
   [/^No entries from (.+) yet\.$/, m=>`${m[1]} ನಿಂದ ಇನ್ನೂ ಯಾವುದೇ ನಮೂದುಗಳಿಲ್ಲ.`],
   [/^([\d,]+) (entry|entries)$/, m=>`${m[1]} ${m[2]==="entry"?"ನಮೂದು":"ನಮೂದುಗಳು"}`],
   [/^paid (.+)$/, m=>`${m[1]} ಪಾವತಿಸಲಾಗಿದೆ`],[/^received (.+)$/, m=>`${m[1]} ಬಂದಿದೆ`],
+  [/^Also found (.+)\. They'll be saved with these entries\.$/, m=>`ಇದರ ಜೊತೆಗೆ ${m[1].replace(/bill reminders?/,"ಬಿಲ್ ಜ್ಞಾಪನೆಗಳು").replace(/balance updates?/,"ಬಾಕಿ ಅಪ್‌ಡೇಟ್‌ಗಳು").replace(/subscriptions?/,"ಚಂದಾದಾರಿಕೆಗಳು").replace(/ and /g," ಮತ್ತು ")} ಸಿಕ್ಕಿವೆ. ಇವುಗಳೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.`],
+  [/^Saved (\d+) bills?, (\d+) balances? and (\d+) subscriptions?\.$/, m=>`${m[1]} ಬಿಲ್‌ಗಳು, ${m[2]} ಬಾಕಿಗಳು ಮತ್ತು ${m[3]} ಚಂದಾದಾರಿಕೆಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ.`],
   [/^Undo ([\d,]+) changes you made to merchant names and categories$/, m=>`ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳಿಗೆ ನೀವು ಮಾಡಿದ ${m[1]} ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ`],
   [/^Showing 80 of ([\d,]+)\. Search to narrow down\.$/, m=>`${m[1]} ರಲ್ಲಿ 80 ತೋರಿಸಲಾಗಿದೆ. ಕಡಿಮೆ ಮಾಡಲು ಹುಡುಕಿ.`],
   [/^Remove ([\d,]+) entries read from SMS \(they're read again\)$/, m=>`SMS ನಿಂದ ಓದಿದ ${m[1]} ನಮೂದುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ (ಮತ್ತೆ ಓದಲಾಗುತ್ತದೆ)`],
@@ -871,7 +890,7 @@ const DUE = /\bis due\b|\bdue (on|by|date)|min(imum)?\.? ?(amt|amount)? ?due|tot
 // sufficient balance") reads like a completed debit to the amount/direction scanner below
 // (it contains "payment of"), so it has to be caught here first and filed as a bill instead.
 const AUTOPAY_DUE = /(will be (auto[- ]?)?debited|scheduled (to be )?debit|due for (auto[- ]?)?debit|is scheduled (for|to be debited|on)\b|(mandate|autopay|standing instruction).{0,50}(will be|is scheduled|scheduled for))/i;
-const SKIP = /\botp\b|one[- ]time password|verification code|to be debited|requested (money|rs|inr)|has requested|collect request|pre-?approved|\boffer\b|get up ?to|apply now|click here to (buy|avail)|payment reminder|declined|failed|unsuccessful|not processed/i;
+const SKIP = /\botp\b|one[- ]time password|verification code|to be debited|requested (money|rs|inr)|has requested|collect request|pre-?approved|\boffer\b|get up ?to|apply now|click here to (buy|avail)|payment reminder|declined|failed|unsuccessful|not processed|not (completed|successful|honou?red)/i;
 const DEBIT_WORDS = ["has a debit","debit by transfer","debited@","dr from","debited","spent","sent","paid","withdrawn","purchase","deducted","txn of","transaction of","used at","charged","payment of","dr."];
 const CREDIT_WORDS = ["has a credit","credit by transfer","deposit by","cr to","credited","received","deposited","refund","reversed","reversal","cr.","money added","added to your"];
 
@@ -1132,11 +1151,34 @@ function parseOne(msg, fallbackDate, senderAddr){
   if(r.balance) r.balance.bank = senderBank;
   return r;
 }
+// "We have activated a Standing Instruction... Merchant: X, Maximum Amount: Rs Y, Frequency: monthly"
+// authorizes future charges; it isn't a charge itself, so it's read into Subscriptions instead
+// of being mistaken for a payment (the word "Purchase" in a merchant name like "App Purchase
+// Services" otherwise looks exactly like a completed purchase to the scanner below).
+const MANDATE_SETUP = /(activat|regist|creat)(?:e[ds]?|ion)\b.{0,40}\b(standing instruction|mandate)\b|\b(standing instruction|mandate)\b.{0,40}\b(has been |is |was )?(activat|regist|creat)(?:e[ds]?|ion)\b/i;
+function parseMandate(t, fallbackDate){
+  const merchM = t.match(/merchant:?\s*([^,]+)/i);
+  let merchant = merchM ? merchM[1].trim().replace(/\s+/g," ") : "";
+  const bank = bankOf(t);
+  if(!merchant) merchant = bank ? bank + " standing instruction" : "Standing instruction";
+  const amtM = t.match(/max(?:imum)? amount:?\s*(?:inr|rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) || t.match(/(?:inr|rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  const amount = amtM ? parseFloat(amtM[1].replace(/,/g,"")) : 0;
+  if(!amount) return null;
+  const freqM = t.match(/frequency:?\s*([a-z]+)/i);
+  const fw = freqM ? freqM[1].toLowerCase() : "";
+  const freq = /quart/.test(fw) ? "quarter" : /year|annual/.test(fw) ? "year" : "month";
+  const category = categorize(merchant, merchant.toLowerCase(), false, "", "");
+  return { id: uidGen(), key: mkey(merchant), name: merchant, amount, freq, category, source: "sms" };
+}
 function parseOneCore(msg, fallbackDate){
   const t = msg.replace(/\s+/g," ").trim();
   const low = t.toLowerCase();
   if(SKIP.test(t)) return { skip: "Not a completed transaction (OTP, offer or failed payment)" };
   if(looksLikePromo(t)) return { skip: "Promotional message" };
+  if(MANDATE_SETUP.test(t)){
+    const sub = parseMandate(t, fallbackDate);
+    return sub ? { subscription: sub } : { skip: "Standing instruction / mandate notice without an amount" };
+  }
   if(AUTOPAY_DUE.test(t)){
     const bill = parseBill(t, fallbackDate);
     if(bill){
@@ -1210,6 +1252,18 @@ function absorbTxn(t){
   const ok = updateAccount({ bank: inv ? (/nps|pran/i.test(t.raw) ? "NPS" : "EPFO") : t.bank, account: t.account, kind: inv ? "invest" : t.availLimit != null || /card/i.test(t.mode) ? "card" : "bank", balance: t.balance, availLimit: t.availLimit, asOf: t.date });
   if(inv){ const a = state.accounts[mkey(/nps|pran/i.test(t.raw) ? "NPS" : "EPFO") + t.account]; if(a) a.typeLabel = /nps|pran/i.test(t.raw) ? "Pension (NPS)" : "Provident fund"; }
   return ok;
+}
+// Adds a mandate-detected subscription, or updates it if the same merchant sets one up again
+// with a different ceiling amount or frequency.
+function upsertSubscription(sub){
+  const existing = state.subsManual.find(m=>m.key === sub.key);
+  if(existing){
+    if(existing.amount === sub.amount && existing.freq === sub.freq) return false;
+    existing.amount = sub.amount; existing.freq = sub.freq; return true;
+  }
+  state.subsHidden = state.subsHidden.filter(k=>k !== sub.key);
+  state.subsManual.push(sub);
+  return true;
 }
 function upsertBill(b){
   const same = state.bills.find(x=>x.key === b.key && ((x.dueDate && x.dueDate === b.dueDate) || (!x.paid && Math.abs(daysBetween(x.seen, b.seen)) <= 20)));
@@ -1340,7 +1394,41 @@ function chartNum(n, div){
   return String(parseFloat(v >= 10 ? v.toFixed(0) : v.toFixed(1)));
 }
 function shortInr(n){ return n >= 100000 ? "₹" + lakh(n) + "L" : n >= 1000 ? "₹" + Math.round(n/1000) + "k" : money(n); }
-function familyMembers(){ return Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m })); }
+// A dual-SIM phone: state.simOwners maps each SIM's Android subscription id to a name/colour and
+// whether it's the phone owner's own SIM. The other named SIM is treated exactly like a Bluetooth
+// family member for Home's Family view, without needing a second phone at all.
+function simOwnerList(){ return Object.entries(state.simOwners || {}).map(([id,o])=>({ id, ...o })); }
+function familyMembers(){
+  const remote = Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m, kind: "remote" }));
+  const simFam = simOwnerList().filter(o=>!o.isMe).map(o=>({ id: "sim:" + o.id, name: o.name || "Family", color: o.color, kind: "sim", simId: o.id }));
+  return remote.concat(simFam);
+}
+let simListCache = null;
+async function refreshSimBlock(){
+  const head = document.getElementById("simHeading"), block = document.getElementById("simBlock");
+  if(!(window.Android && window.Android.getSimList)){ head.style.display = "none"; block.style.display = "none"; return; }
+  if(!simListCache){ try{ simListCache = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ simListCache = []; } }
+  if(simListCache.length < 2){ head.style.display = "none"; block.style.display = "none"; return; }
+  head.style.display = ""; block.style.display = "";
+  state.simOwners = state.simOwners || {};
+  if(!Object.values(state.simOwners).some(o=>o.isMe) && simListCache.length){ state.simOwners[simListCache[0].id] = { ...(state.simOwners[simListCache[0].id]||{}), isMe: true }; persist([], false); }
+  document.getElementById("simList").innerHTML = simListCache.map((sim,i)=>{
+    const o = state.simOwners[sim.id] || {};
+    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc(o.name || sim.label || ("SIM " + (i+1)))}" placeholder="${esc(sim.label || "SIM " + (i+1))}">
+      <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
+  }).join("");
+}
+document.getElementById("simList").addEventListener("change", e=>{
+  const nm = e.target.closest("[data-simname]");
+  if(nm){ state.simOwners[nm.dataset.simname] = { ...(state.simOwners[nm.dataset.simname]||{}), name: nm.value.trim() }; persist([], false); return; }
+  const me = e.target.closest("[data-simme]");
+  if(me){
+    Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
+    state.simOwners[me.dataset.simme] = { ...(state.simOwners[me.dataset.simme]||{}), isMe: true };
+    simListCache.filter(s=>String(s.id) !== me.dataset.simme).forEach((s,i)=>{ if(!state.simOwners[s.id]) state.simOwners[s.id] = {}; if(!state.simOwners[s.id].color) state.simOwners[s.id].color = PALETTE[i % PALETTE.length]; });
+    persist([], false); toast("Saved."); render();
+  }
+});
 function renderHome(){
   const members = familyMembers();
   const fam = homeFamily && members.length > 0;
@@ -1349,8 +1437,11 @@ function renderHome(){
   document.getElementById("homeMonth").textContent = monthLabel(k);
   const [py, pm] = k.split("-").map(Number); const prevK = pm === 1 ? (py-1) + "-12" : py + "-" + String(pm-1).padStart(2,"0");
   const meName = (state.family && state.family.me) || "You";
-  const people = [{ id: "me", name: meName, color: "var(--brass)", txns: state.txns }]
-    .concat(fam ? members.map((m,i)=>({ id: m.id, name: m.name || "Member", color: i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length], txns: m.txns || [] })) : []);
+  const simExcluded = new Set(members.filter(m=>m.kind === "sim").map(m=>m.simId));
+  const meTxns = simExcluded.size ? state.txns.filter(t=>!simExcluded.has(String(t.sim))) : state.txns;
+  const people = [{ id: "me", name: meName, color: "var(--brass)", txns: meTxns }]
+    .concat(fam ? members.map((m,i)=>({ id: m.id, name: m.name || "Member", color: m.color || (i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length]),
+      txns: m.kind === "sim" ? state.txns.filter(t=>String(t.sim) === m.simId) : (m.txns || []) })) : []);
   const tot = { inc: 0, exp: 0, prevExp: 0, refunds: 0 }, byCat = {}, bySrc = {}, byPerson = {};
   people.forEach(p=>{
     byPerson[p.id] = { inc: 0, exp: 0 };
@@ -1370,8 +1461,12 @@ function renderHome(){
   let html = "";
   if(members.length) html += `<div class="seg wide" id="homeScope" role="group" aria-label="Whose money"><button data-f="0" aria-pressed="${!fam}">Just me</button><button data-f="1" aria-pressed="${fam}">Family</button></div>`;
   if(fam){
+    const remoteM = members.filter(m=>m.kind !== "sim"), simM = members.filter(m=>m.kind === "sim");
+    const famBits = [];
+    if(remoteM.length) famBits.push(remoteM.map(m=>`${esc(m.name)}'s ledger synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}`).join(" · ") + ". Sync again from Settings when you're together.");
+    if(simM.length) famBits.push(`${simM.map(m=>esc(m.name)).join(", ")} read from the other SIM on this phone.`);
     html += `<div class="card"><div class="members">${people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("")}</div>
-      <p class="hint">${members.map(m=>`${esc(m.name)}'s ledger synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}`).join(" · ")}. Sync again from Settings when you're together.</p></div>`;
+      <p class="hint">${famBits.join(" ")}</p></div>`;
   }
   if(!inc && !exp && !Object.keys(byCat).length){
     body.innerHTML = html + `<div class="card"><div class="empty"><p>Nothing recorded for ${esc(monthLabel(k))} yet.<br>New bank SMS appear here as they arrive.</p><button class="btn primary" data-go="add">Add entries</button></div></div>`;
@@ -1877,7 +1972,8 @@ function commitExtras(){
   let changed = false;
   pendingBills.forEach(b=>{ changed = upsertBill(b) || changed; });
   pendingBals.forEach(b=>{ changed = updateAccount(b) || changed; });
-  pendingBills = []; pendingBals = [];
+  pendingSubs.forEach(sub=>{ changed = upsertSubscription(sub) || changed; });
+  pendingBills = []; pendingBals = []; pendingSubs = [];
   if(autoMarkPaid()) changed = true;
   if(changed) persist([], true);
   return changed;
@@ -1900,7 +1996,7 @@ function renderPreview(skipped){
           ${p.dup?`<span>Already in your ledger</span>`:""}</div>
       </div>`;
     }).join("");
-    if(pendingBills.length || pendingBals.length) html += `<p class="help">Also found ${[pendingBills.length ? pendingBills.length + (pendingBills.length===1?" bill reminder":" bill reminders") : "", pendingBals.length ? pendingBals.length + (pendingBals.length===1?" balance update":" balance updates") : ""].filter(Boolean).join(" and ")}. They'll be saved with these entries.</p>`;
+    if(pendingBills.length || pendingBals.length || pendingSubs.length) html += `<p class="help">Also found ${[pendingBills.length ? pendingBills.length + (pendingBills.length===1?" bill reminder":" bill reminders") : "", pendingBals.length ? pendingBals.length + (pendingBals.length===1?" balance update":" balance updates") : "", pendingSubs.length ? pendingSubs.length + (pendingSubs.length===1?" subscription":" subscriptions") : ""].filter(Boolean).join(" and ")}. They'll be saved with these entries.</p>`;
     html += `<div class="row"><button class="btn primary" id="commitBtn" ${fresh?"":"disabled"}>Add ${fresh} to ledger</button><button class="btn link" id="discardBtn">Discard</button></div>`;
   }
   if(skipped.length){
@@ -1918,6 +2014,8 @@ function renderSettings(){
   document.getElementById("monthStart").value = String(state.monthStart || 1);
   refreshImportedBlock();
   document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.themePick === (state.theme || "system"))));
+  refreshSimBlock();
   document.getElementById("fxPending").textContent = state.txns.filter(t=>isForeign(t) && !t.fxRate).length;
   const fam = state.family || {};
   const mn = document.getElementById("meName"); if(document.activeElement !== mn) mn.value = fam.me || "";
@@ -2217,7 +2315,7 @@ document.getElementById("list").addEventListener("keydown", e=>{
   e.preventDefault(); const t = state.txns.find(x=>x.id === b.dataset.id); if(t) openSheet(t, false);
 });
 
-let lastSkipped = [], pendingBills = [], pendingBals = [];
+let lastSkipped = [], pendingBills = [], pendingBals = [], pendingSubs = [];
 document.getElementById("accountsBody").addEventListener("toggle", e=>{ const d = e.target.closest && e.target.closest("details.agroup"); if(d) acctOpen[d.dataset.g] = d.open; }, true);
 document.getElementById("accountsBody").addEventListener("click", e=>{
   const p = e.target.closest("[data-paid]");
@@ -2320,18 +2418,19 @@ document.getElementById("parseBtn").onclick = ()=>{
   const msgs = splitMessages(text);
   const existing = new Set(state.txns.map(dupKey)), soft = softKeys();
   const seen = new Set();
-  pending = []; lastSkipped = []; pendingBills = []; pendingBals = [];
+  pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; pendingSubs = [];
   msgs.forEach(m=>{
     const r = parseOne(m);
     if(r.skip){ lastSkipped.push({ reason: r.skip, text: m }); return; }
     if(r.bill){ pendingBills.push(r.bill); return; }
     if(r.balance){ pendingBals.push(r.balance); return; }
+    if(r.subscription){ pendingSubs.push(r.subscription); return; }
     const k = dupKey(r.txn);
     const dup = existing.has(k) || seen.has(k) || soft.has(softKey(r.txn)); seen.add(k);
     pending.push({ txn: r.txn, dup, use: !dup });
   });
   renderPreview(lastSkipped);
-  if(!pending.length && (pendingBills.length || pendingBals.length)){ commitExtras(); toast(`Saved ${pendingBills.length} ${pendingBills.length===1?"bill":"bills"} and ${pendingBals.length} ${pendingBals.length===1?"balance":"balances"}.`); }
+  if(!pending.length && (pendingBills.length || pendingBals.length || pendingSubs.length)){ commitExtras(); toast(`Saved ${pendingBills.length} ${pendingBills.length===1?"bill":"bills"}, ${pendingBals.length} ${pendingBals.length===1?"balance":"balances"} and ${pendingSubs.length} ${pendingSubs.length===1?"subscription":"subscriptions"}.`); }
   else if(!pending.length) toast("No transactions found in that text.");
 };
 document.getElementById("pasteBtn").onclick = async ()=>{
@@ -2368,7 +2467,7 @@ document.getElementById("preview").addEventListener("click", e=>{
     view = "overview"; render();
     toast(`Added ${add.length} ${add.length===1?"entry":"entries"}.`);
   }
-  if(e.target.id === "discardBtn"){ pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; renderPreview([]); }
+  if(e.target.id === "discardBtn"){ pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; pendingSubs = []; renderPreview([]); }
 });
 
 document.getElementById("budgets").addEventListener("change", e=>{
@@ -2521,9 +2620,10 @@ window.ingestSms = function(list, quiet){
     if(r.skip) return;
     if(r.bill){ extra = upsertBill(r.bill) || extra; return; }
     if(r.balance){ extra = updateAccount(r.balance) || extra; return; }
+    if(r.subscription){ extra = upsertSubscription(r.subscription) || extra; return; }
     extra = absorbTxn(r.txn) || extra;
     const k = dupKey(r.txn); if(keys.has(k) || soft.has(softKey(r.txn))) return; keys.add(k);
-    add.push({ ...r.txn, added: +m.date || Date.now(), source: "sms" });
+    add.push({ ...r.txn, added: +m.date || Date.now(), source: "sms", sim: m.sim != null && m.sim >= 0 ? String(m.sim) : undefined });
   });
   if(add.length) state.txns.push(...add);
   const lk = linkTransfers(); if(lk.n) extra = true;
@@ -2662,6 +2762,23 @@ function openFreshSheet(then){
   const save = document.querySelector(".scrim [data-s=save]"); if(save) save.textContent = "Clear and rescan";
 }
 
+/* ---------- Theme ---------- */
+function resolveTheme(){
+  if(state.theme === "light" || state.theme === "dark") return state.theme;
+  if(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+function applyTheme(){ document.documentElement.dataset.theme = resolveTheme(); }
+if(window.matchMedia){
+  try{ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ if(!state.theme || state.theme === "system") applyTheme(); }); }catch(e){}
+}
+document.getElementById("themeSeg").addEventListener("click", e=>{
+  const b = e.target.closest("[data-theme-pick]"); if(!b) return;
+  state.theme = b.dataset.themePick; persist([], false); applyTheme();
+  if(window.Android && window.Android.setTheme) try{ window.Android.setTheme(state.theme); }catch(err){}
+  render(); toast("Theme updated.");
+});
+
 /* ---------- Screen help ---------- */
 const HELP = {
   home: { title: "Home", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
@@ -2770,6 +2887,7 @@ document.getElementById("langSeg").addEventListener("click", e=>{
 
 /* ---------- Boot ---------- */
 loadLocal();
+applyTheme();
 migrateRules();
 applyCustomCats();
 applyLanguage(state.lang || "en");

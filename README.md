@@ -66,16 +66,39 @@ tab's Top places) to see everything from them: total paid or received, entry cou
 year-by-year breakdown you can expand into the actual entries. Tapping the rest of an entry
 still opens it for editing, same as before.
 
+## Theme
+Settings > Theme: System (follows your phone), Light, or Dark. Applies immediately, including
+the status and navigation bar colours, and is remembered across app restarts.
+
 ## Home
 Income vs expenses by month (amounts in lakh on each bar), a category donut, and your top
 5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
 its numbers. Dark or light follows your phone's setting.
+
+## Dual SIM (two numbers, one phone)
+If this phone has two SIMs each receiving bank SMS (yours and your spouse's, say), Settings
+shows a "Dual SIM" section once it's found SMS from both. Name each SIM and mark which is
+yours; the other is then treated exactly like a synced family member on Home's Family view,
+with no Bluetooth pairing needed since both are already on this phone. No extra permission
+is requested — SIM names are read from the SMS you've already given the app access to, or
+fall back to "SIM 1"/"SIM 2" for you to rename.
 
 ## Family
 Settings > Family: add your name, then tap "Sync with family nearby" on both phones while
 they're close together. Check the 4-digit code matches on both, and the two ledgers swap
 over Bluetooth or direct Wi-Fi (no internet needed). Home then has a "Just me / Family"
 switch. Sync again whenever you're together to refresh.
+
+## Standing Instructions and mandates
+"We have activated a Standing Instruction... Merchant: X, Maximum Amount: Rs Y, Frequency:
+monthly" sets up future charges; it isn't a charge itself. It now creates a subscription
+(Accounts > Subscriptions) with the merchant, amount and frequency read from the message,
+instead of being logged as a payment.
+
+## Failed transactions worded as "not completed"
+A transaction that a bank reports as "not completed" (rather than "declined" or "failed",
+which were already excluded) was being read as a real expense, since it still describes an
+amount and a transaction. It's now recognised and skipped like other failed payments.
 
 ## Advance bill notices ("please maintain sufficient balance")
 A message like "Bill payment of Rs.958 for BESCOM is scheduled for 24-04-2026. Please
