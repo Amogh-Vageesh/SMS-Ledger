@@ -49,6 +49,23 @@ Open this folder, let Gradle sync, then Build > Build APK(s), or connect the pho
 ## Language
 English or ಕನ್ನಡ (Kannada). Chosen on first launch; change any time in Settings > Language.
 
+## Getting help in the app
+- A one-time guided tour walks through Home, Details, Entries, Accounts, Add and Settings
+  right after you pick a language on first launch.
+- A small "?" button, always in the same spot near the bottom right, explains whatever
+  screen you're currently on — tap it any time.
+Both are in your language automatically.
+
+## Second tab renamed
+"Month" is now "Details" (ವಿವರಗಳು in Kannada), since it covers Month, Year and All years,
+not just a single month.
+
+## Merchant and person totals
+Tap any merchant or person's name (in Entries, Home's top income sources, or the Month
+tab's Top places) to see everything from them: total paid or received, entry count, and a
+year-by-year breakdown you can expand into the actual entries. Tapping the rest of an entry
+still opens it for editing, same as before.
+
 ## Home
 Income vs expenses by month (amounts in lakh on each bar), a category donut, and your top
 5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
@@ -60,6 +77,19 @@ they're close together. Check the 4-digit code matches on both, and the two ledg
 over Bluetooth or direct Wi-Fi (no internet needed). Home then has a "Just me / Family"
 switch. Sync again whenever you're together to refresh.
 
+## Advance bill notices ("please maintain sufficient balance")
+A message like "Bill payment of Rs.958 for BESCOM is scheduled for 24-04-2026. Please
+maintain sufficient balance" is a heads-up, not a completed payment — it used to get read as
+an actual expense because it contains wording ("payment of") that looks like a debit. It's
+now recognised and filed as a bill due on that date instead, the same as other advance
+notices.
+
+## EMI due notices
+A message like "EMI of Rs.68,946 for Axis Bank Loan A/c XX7441 is due on 10-09-26" was
+already treated as a bill, not an expense (it says "due on", which the app has recognised
+from the start). It now also gets a clearer name ("Axis loan ··7441") and an "EMI" label in
+the Bills list, the same as EMI notices worded as an upcoming auto-debit.
+
 ## Getting the right bank for each entry
 Bank names are read from the message text, which can occasionally mention a different bank
 as a third party (a loan lender, a NEFT sender) rather than the bank that actually sent the
@@ -67,6 +97,11 @@ SMS. Android also passes along the sender code (like "AD-HDFCBK"), and the app n
 that when it recognises it, which fixes most of these mix-ups. If an account still looks
 wrong, open it under Accounts and tap Remove; it comes back on its own if a real SMS for it
 arrives.
+
+## If tapping "Sync with family nearby" does nothing
+From 1.17, any problem starting a sync now shows a message instead of failing silently — so
+if you still see nothing at all, that itself is worth reporting with a screenshot. Otherwise
+check what the message says:
 
 ## If family sync won't connect
 - Both phones need Bluetooth switched on. On Android 12 and older, the phone's Location

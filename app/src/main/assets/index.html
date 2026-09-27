@@ -218,6 +218,18 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .psplit .nm{width:70px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .psplit .mid{flex:1;color:var(--muted)}
 .psplit .sv{font-weight:700;color:var(--good)}
+#v-merchant{padding-bottom:20px}
+.mtop{display:flex;align-items:center;gap:10px;margin:4px 0 16px}
+.mtop h1{font-family:var(--serif);font-weight:400;font-size:1.3rem;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mname{all:unset;cursor:pointer;border-bottom:1px dotted var(--muted)}
+.mname:hover, .mname:focus-visible{border-bottom-color:var(--brass)}
+.msum{display:flex;gap:22px;margin-bottom:2px}
+.msum div{display:flex;flex-direction:column;gap:2px}
+.msum small{color:var(--muted);font-size:.78rem}
+.msum b{font-size:1.15rem}
+.yrow{width:100%;text-align:left;background:none;border:1px solid var(--rule);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.yrow .yh{display:flex;justify-content:space-between;font-weight:600}
+.yrow .ys{display:flex;gap:14px;font-size:.82rem;color:var(--muted)}
 .hbars{display:flex;flex-direction:column;gap:14px;margin:6px 0 4px}
 .hbars div{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;font-size:.9rem}
 .hbars .hl{color:var(--muted)}
@@ -247,6 +259,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .total-line b{color:var(--text)}
 .split-box{background:var(--raise);border-radius:12px;padding:10px 12px 2px;margin-bottom:12px}
 .split-box .field input{background:var(--panel)}
+#helpBtn{position:fixed;right:14px;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:6;width:38px;height:38px;border-radius:50%;background:var(--panel);border:1px solid var(--brass);color:var(--brass);font-family:var(--serif);font-size:1.05rem;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.tourdots{display:flex;justify-content:center;gap:6px;margin-top:14px}
+.tourdots span{width:6px;height:6px;border-radius:50%;background:var(--rule)}
+.tourdots span.on{background:var(--brass)}
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
 .empty .btn{margin-top:12px}
 </style>
@@ -299,6 +315,14 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 
 <section id="v-accounts" class="hidden">
   <div id="accountsBody"></div>
+</section>
+
+<section id="v-merchant" class="hidden">
+  <div class="mtop">
+    <button class="iconbtn" id="mBack" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="mTitle"></h1>
+  </div>
+  <div id="mBody"></div>
 </section>
 
 <section id="v-add" class="hidden">
@@ -397,13 +421,14 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 <div class="tabs">
   <nav aria-label="Sections">
     <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Home</button>
-    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Month</button>
+    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Details</button>
     <button data-v="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Entries</button>
     <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Accounts</button>
     <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
     <button data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
   </nav>
 </div>
+<button id="helpBtn" aria-label="Help for this screen">?</button>
 
 <script>
 (function(){
@@ -470,7 +495,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 // Stored data stays in English (category keys etc.); only what's shown on screen is translated.
 let LANG = "en";
 const KN = {
-  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
+  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Details":"ವಿವರಗಳು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
   "Your money at a glance":"ನಿಮ್ಮ ಹಣದ ಒಂದು ನೋಟ","Your family's money at a glance":"ನಿಮ್ಮ ಕುಟುಂಬದ ಹಣದ ಒಂದು ನೋಟ","Period":"ಅವಧಿ",
   "Just me":"ನಾನು ಮಾತ್ರ","Family":"ಕುಟುಂಬ","Whose money":"ಯಾರ ಹಣ",
   "Money in":"ಬಂದ ಹಣ","Money out":"ಹೋದ ಹಣ","In":"ಬಂದದ್ದು","Out":"ಹೋದದ್ದು","in":"ಬಂದದ್ದು","out":"ಹೋದದ್ದು","in ·":"ಬಂದದ್ದು ·",
@@ -548,8 +573,8 @@ const KN = {
   "Reading your SMS inbox…":"ನಿಮ್ಮ SMS ಇನ್‌ಬಾಕ್ಸ್ ಓದಲಾಗುತ್ತಿದೆ…","Reading your SMS…":"ನಿಮ್ಮ SMS ಓದಲಾಗುತ್ತಿದೆ…","Reading every bank SMS on this phone…":"ಈ ಫೋನ್‌ನ ಎಲ್ಲಾ ಬ್ಯಾಂಕ್ SMS ಓದಲಾಗುತ್ತಿದೆ…",
   "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
   "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
-  "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Month":"ತಿಂಗಳು","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
-  "Import SMS":"SMS ಆಮದು","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
+  "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Starting…":"ಪ್ರಾರಂಭಿಸಲಾಗುತ್ತಿದೆ…","Family sync needs the Android app, not this browser view.":"ಕುಟುಂಬ ಸಿಂಕ್‌ಗೆ Android ಆ್ಯಪ್ ಬೇಕು, ಈ ಬ್ರೌಸರ್ ನೋಟದಲ್ಲಿ ಅಲ್ಲ.","Month":"ತಿಂಗಳು","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
+  "Import SMS":"SMS ಆಮದು","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
   "Everything in the app now comes from your phone's SMS.":"ಈಗ ಆ್ಯಪ್‌ನಲ್ಲಿರುವುದೆಲ್ಲಾ ನಿಮ್ಮ ಫೋನ್‌ನ SMS ನಿಂದ ಬಂದದ್ದು.",
   "Removed. Only SMS-confirmed data remains.":"ತೆಗೆದುಹಾಕಲಾಗಿದೆ. SMS ದೃಢಪಡಿಸಿದ ಮಾಹಿತಿ ಮಾತ್ರ ಉಳಿದಿದೆ.","This can't be undone.":"ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.","Promotional message":"ಜಾಹೀರಾತು ಸಂದೇಶ","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
   "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
@@ -641,6 +666,10 @@ const KN_RX = [
     m=>`SMS ದೃಢಪಡಿಸದ ${m[1]} ನಮೂದುಗಳು, ${m[2]} ಬಿಲ್‌ಗಳು, ${m[3]} ಖಾತೆಗಳು ಮತ್ತು ${m[4]} ಚಂದಾದಾರಿಕೆಗಳನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.`],
   [/^Excludes card bill payments and transfers between your own accounts(, and is after (.+) of refunds and cashback)?\.$/,
     m=>`ಕಾರ್ಡ್ ಬಿಲ್ ಪಾವತಿಗಳು ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ಖಾತೆಗಳ ನಡುವಿನ ವರ್ಗಾವಣೆಗಳನ್ನು ಹೊರತುಪಡಿಸಿ` + (m[2] ? `, ಮತ್ತು ${m[2]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು` : "") + "."],
+  [/^Couldn't start: (.+)\. Screenshot this and send it over\.$/, m=>`ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ: ${m[1]}. ಇದರ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ತೆಗೆದು ಕಳುಹಿಸಿ.`],
+  [/^No entries from (.+) yet\.$/, m=>`${m[1]} ನಿಂದ ಇನ್ನೂ ಯಾವುದೇ ನಮೂದುಗಳಿಲ್ಲ.`],
+  [/^([\d,]+) (entry|entries)$/, m=>`${m[1]} ${m[2]==="entry"?"ನಮೂದು":"ನಮೂದುಗಳು"}`],
+  [/^paid (.+)$/, m=>`${m[1]} ಪಾವತಿಸಲಾಗಿದೆ`],[/^received (.+)$/, m=>`${m[1]} ಬಂದಿದೆ`],
   [/^Undo ([\d,]+) changes you made to merchant names and categories$/, m=>`ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳಿಗೆ ನೀವು ಮಾಡಿದ ${m[1]} ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ`],
   [/^Showing 80 of ([\d,]+)\. Search to narrow down\.$/, m=>`${m[1]} ರಲ್ಲಿ 80 ತೋರಿಸಲಾಗಿದೆ. ಕಡಿಮೆ ಮಾಡಲು ಹುಡುಕಿ.`],
   [/^Remove ([\d,]+) entries read from SMS \(they're read again\)$/, m=>`SMS ನಿಂದ ಓದಿದ ${m[1]} ನಮೂದುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ (ಮತ್ತೆ ಓದಲಾಗುತ್ತದೆ)`],
@@ -838,7 +867,10 @@ function niceDate(iso){
 
 /* ---------- SMS parser ---------- */
 const DUE = /\bis due\b|\bdue (on|by|date)|min(imum)?\.? ?(amt|amount)? ?due|total (amt|amount)? ?due|(amount|amt|bill|payment) due|payable by|statement (is|for|has been|generated)|bill (of|for) .{0,40}generated/i;
-const AUTOPAY_DUE = /(will be (auto[- ]?)?debited|scheduled (to be )?debit|due for (auto[- ]?)?debit|(mandate|autopay|standing instruction).{0,50}(will be|is scheduled|scheduled for))/i;
+// A future deduction notice ("Bill payment ... is scheduled for 24-04-2026. Please maintain
+// sufficient balance") reads like a completed debit to the amount/direction scanner below
+// (it contains "payment of"), so it has to be caught here first and filed as a bill instead.
+const AUTOPAY_DUE = /(will be (auto[- ]?)?debited|scheduled (to be )?debit|due for (auto[- ]?)?debit|is scheduled (for|to be debited|on)\b|(mandate|autopay|standing instruction).{0,50}(will be|is scheduled|scheduled for))/i;
 const SKIP = /\botp\b|one[- ]time password|verification code|to be debited|requested (money|rs|inr)|has requested|collect request|pre-?approved|\boffer\b|get up ?to|apply now|click here to (buy|avail)|payment reminder|declined|failed|unsuccessful|not processed/i;
 const DEBIT_WORDS = ["has a debit","debit by transfer","debited@","dr from","debited","spent","sent","paid","withdrawn","purchase","deducted","txn of","transaction of","used at","charged","payment of","dr."];
 const CREDIT_WORDS = ["has a credit","credit by transfer","deposit by","cr to","credited","received","deposited","refund","reversed","reversal","cr.","money added","added to your"];
@@ -1061,10 +1093,15 @@ function parseBill(t, fallbackDate){
   let biller = "";
   if(!/card/i.test(t)) for(const w of KEYWORDS["Bills & utilities"]) if(low.includes(w.trim()) && w.trim().length > 3){ biller = w.trim(); break; }
   const isCard = /card/i.test(t);
+  const isLoan = !isCard && /\b(emi|loan)\b/i.test(t);
   const name = isCard ? `${bank || "Credit"} card${account ? " ··" + account : ""}` :
+               isLoan ? `${bank || ""} loan${account ? " ··" + account : ""}`.trim() :
                biller ? biller.replace(/\b[a-z]/g, c=>c.toUpperCase()) + (account ? " ··" + account : "") :
                (bank ? bank + " bill" : "Bill");
-  return { id: uidGen(), key: mkey((bank||biller) + account) || mkey(name), name, kind: isCard ? "card" : "bill",
+  // Label the bill by what it clearly is, so an EMI or e-mandate reads that way in the Bills list
+  // whether it arrived as an upcoming-debit notice or an ordinary "is due on" reminder.
+  const label = isCard ? "" : isLoan ? "EMI" : /mandate|\bnach\b|\becs\b/i.test(t) ? "E-mandate" : "";
+  return { id: uidGen(), key: mkey((bank||biller) + account) || mkey(name), name, kind: isCard ? "card" : "bill", label,
     amount, minDue: min ? num(min[1]) : null, dueDate, account, bank, biller, seen: fallbackDate || todayISO(), paid: false, raw: t };
 }
 // senderAddr (an Android DLT code like "AD-HDFCBK") names the true sending bank far more reliably
@@ -1370,7 +1407,7 @@ function renderHome(){
       <div class="dleg">${segs.map(([c,v,col])=>`<div><span class="dot" style="background:${col}"></span><span class="n">${esc(c)}</span><span class="p num">${Math.round(v/gross*100)}%</span></div>`).join("")}</div></div></div>`;
   }
   const srcs = Object.values(bySrc).sort((a,b)=>b.v-a.v).slice(0,5);
-  if(srcs.length) html += `<div class="toplist"><h2>Top income sources${fam ? "" : `<button data-see="__credit">See all</button>`}</h2>${srcs.map(s=>`<div class="trow"><div class="l1 num"><span>${esc(s.name)}${fam ? `<span class="owner" style="background:${s.who.color}">${esc(s.who.name)}</span>` : ""}</span><b style="color:var(--inc)">${money(s.v)}</b></div>
+  if(srcs.length) html += `<div class="toplist"><h2>Top income sources${fam ? "" : `<button data-see="__credit">See all</button>`}</h2>${srcs.map(s=>`<div class="trow"><div class="l1 num"><span>${fam ? esc(s.name) : `<button class="mname" data-merchant="${esc(s.name)}">${esc(s.name)}</button>`}${fam ? `<span class="owner" style="background:${s.who.color}">${esc(s.who.name)}</span>` : ""}</span><b style="color:var(--inc)">${money(s.v)}</b></div>
       <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(s.v/srcs[0].v*100))}%;background:var(--inc)"></i></span><small class="num">${inc ? Math.round(s.v/inc*100) : 0}%</small></div></div>`).join("")}</div>`;
   const topC = cats.slice(0,5), gross2 = cats.reduce((a,c)=>a+c[1],0) || 1;
   if(topC.length) html += `<div class="toplist"><h2>Top expense categories${fam ? "" : `<button data-see="__debit">See all</button>`}</h2>${topC.map(([c,v])=>`<button class="trow" ${fam ? "disabled" : `data-cat="${esc(c)}"`}><div class="l1 num"><span><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span>${esc(c)}</span><b>${money(v)}</b></div>
@@ -1598,7 +1635,7 @@ function monthLabel(m){
 }
 
 function render(){
-  document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + view));
+  document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + (view === "merchant" ? "merchant" : view)));
   document.querySelectorAll(".tabs button").forEach(b=>b.toggleAttribute("aria-current", b.dataset.v === view) || (b.dataset.v === view && b.setAttribute("aria-current","page")));
   document.querySelectorAll(".tabs button").forEach(b=>{ if(b.dataset.v === view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   const isNow = cursor >= currentPK();
@@ -1609,6 +1646,7 @@ function render(){
   if(view === "list") renderList();
   if(view === "settings") renderSettings();
   if(view === "accounts") renderAccounts();
+  if(view === "merchant") renderMerchant();
   if(LANG === "kn") trNode(document.querySelector("main"));
   scheduleReminders();
 }
@@ -1750,11 +1788,57 @@ function renderPeriodSummary(){
     html += `<h2 class="section-h">Where it went</h2><ul class="cats">` + cats.map(([c,v])=>`<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button><div class="meta num"><span>${Math.round(v/gross*100)}% of spend</span></div></li>`).join("") + `</ul>`;
   }
   const top = Object.entries(byM).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
-  if(top.length) html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>`<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]||"#777"}"></span><span>${esc(k)}</span><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${inr.format(o.n)} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
+  if(top.length) html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>`<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]||"#777"}"></span><button class="mname" data-merchant="${esc(k)}">${esc(k)}</button><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${inr.format(o.n)} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
   document.getElementById("overviewBody").innerHTML = html;
 }
 
-let listCat = "";
+let listCat = "", merchantFocus = "", merchantReturn = "list", merchantYearOpen = null;
+function openMerchant(name, from){
+  if(!name) return;
+  merchantFocus = name; merchantReturn = from || view; merchantYearOpen = null;
+  view = "merchant"; window.scrollTo(0,0); render();
+}
+function renderMerchant(){
+  const mk = mkey(merchantFocus);
+  const entries = state.txns.filter(t=>mkey(t.merchant) === mk).sort((a,b)=>b.date.localeCompare(a.date) || (b.added||0)-(a.added||0));
+  document.getElementById("mTitle").textContent = merchantFocus;
+  const el = document.getElementById("mBody");
+  if(!entries.length){ el.innerHTML = `<p class="empty">No entries from ${esc(merchantFocus)} yet.</p>`; return; }
+  let totalOut = 0, totalIn = 0, nOut = 0, nIn = 0;
+  const byYear = {};
+  entries.forEach(t=>{
+    const y = t.date.slice(0,4); const yr = byYear[y] = byYear[y] || { out: 0, in: 0, n: 0, items: [] };
+    yr.n++; yr.items.push(t);
+    if(!counts(t)) return;
+    if(t.type === "debit"){ const v = spendAmt(t); totalOut += v; nOut++; yr.out += v; }
+    else { const v = inAmt(t); totalIn += v; nIn++; yr.in += v; }
+  });
+  const years = Object.keys(byYear).sort((a,b)=>b-a);
+  let html = `<div class="card"><div class="msum num">
+    ${nOut ? `<div><small>Total paid</small><b style="color:var(--brass)">${money(totalOut)}</b></div>` : ""}
+    ${nIn ? `<div><small>Total received</small><b style="color:var(--inc)">${money(totalIn)}</b></div>` : ""}
+    <div><small>Entries</small><b>${inr.format(entries.length)}</b></div>
+  </div></div>`;
+  html += `<h2 class="section-h">By year</h2>`;
+  years.forEach(y=>{
+    const yr = byYear[y], open = merchantYearOpen === y;
+    html += `<button class="yrow" data-yr="${y}" aria-expanded="${open}">
+      <span class="yh"><span>${y}</span><span class="num">${inr.format(yr.n)} ${yr.n===1?"entry":"entries"}</span></span>
+      <span class="ys num">${yr.out ? `<span style="color:var(--brass)">paid ${money(yr.out)}</span>` : ""}${yr.in ? `<span style="color:var(--inc)">received ${money(yr.in)}</span>` : ""}</span>
+    </button>`;
+    if(open){
+      html += yr.items.map(t=>`<button class="trow" data-id="${t.id}"><div class="l1 num"><span>${esc(niceDate(t.date))}</span><b style="${t.type==="credit"?"color:var(--inc)":""}">${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div>
+        <div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span></div></button>`).join("");
+    }
+  });
+  el.innerHTML = html;
+}
+document.getElementById("mBack").onclick = ()=>{ view = merchantReturn || "list"; window.scrollTo(0,0); render(); };
+document.getElementById("mBody").addEventListener("click", e=>{
+  const yb = e.target.closest("[data-yr]"); if(yb){ merchantYearOpen = merchantYearOpen === yb.dataset.yr ? null : yb.dataset.yr; renderMerchant(); return; }
+  const eb = e.target.closest("[data-id]"); if(eb){ const t = state.txns.find(x=>x.id === eb.dataset.id); if(t) openSheet(t, false); }
+});
+
 function renderList(){
   document.getElementById("monthName2").textContent = monthLabel(cursor);
   const sel = document.getElementById("catFilter");
@@ -1776,11 +1860,11 @@ function renderList(){
   el.innerHTML = Object.entries(groups).map(([d, arr])=>{
     const dayOut = arr.filter(t=>t.type==="debit" && counts(t)).reduce((a,t)=>a+spendAmt(t),0);
     return `<div class="dayhead"><span>${esc(niceDate(d))}</span><span class="num">${dayOut ? money(dayOut) : ""}</span></div>` +
-      arr.map(t=>`<button class="tx" data-id="${t.id}">
-        <span class="m">${esc(t.merchant)}</span>
+      arr.map(t=>`<div class="tx" data-id="${t.id}" tabindex="0" role="button">
+        <span class="m"><button class="mname" data-merchant="${esc(t.merchant)}">${esc(t.merchant)}</button></span>
         <span class="a num${t.type==="credit"?" cr":""}">${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}${isForeign(t) ? `<small style="display:block;font-weight:400;color:var(--muted);text-align:right">${t.fxRate ? money(inrOf(t),false) : "rate pending"}</small>` : ""}</span>
         <span class="d"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span>${t.mode?`<span>${esc(t.mode)}</span>`:""}${t.bank||t.account?`<span>${esc(t.bank)}${t.account?" ··"+esc(t.account):""}</span>`:""}${t.share!=null?`<span>Split · your share ${money(t.share,true,t.currency)}</span>`:""}${t.reimb?`<span>${t.reimbDone?"Reimbursed":"Reimbursable"}</span>`:""}${t.note?`<span>${esc(t.note)}</span>`:""}</span>
-      </button>`).join("");
+      </div>`).join("");
   }).join("");
 }
 
@@ -2104,6 +2188,7 @@ function shift(n){
 
 
 document.getElementById("homeBody").addEventListener("click", e=>{
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
   const f = e.target.closest("[data-f]"); if(f){ homeFamily = f.dataset.f === "1"; render(); return; }
   const k = e.target.closest("[data-k]"); if(k){ homeSel = k.dataset.k; render(); return; }
@@ -2116,13 +2201,20 @@ document.getElementById("overviewBody").addEventListener("click", e=>{
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; window.scrollTo(0,0); render(); return; }
   const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
   const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "overview"); return; }
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; render(); }
 });
 document.getElementById("q").addEventListener("input", renderList);
 document.getElementById("catFilter").addEventListener("change", e=>{ listCat = e.target.value; renderList(); });
 document.getElementById("list").addEventListener("click", e=>{
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "list"); return; }
   const b = e.target.closest(".tx"); if(!b) return;
   const t = state.txns.find(x=>x.id === b.dataset.id); if(t) openSheet(t, false);
+});
+document.getElementById("list").addEventListener("keydown", e=>{
+  if(e.key !== "Enter" && e.key !== " ") return;
+  const b = e.target.closest(".tx"); if(!b || e.target.closest("[data-merchant]")) return;
+  e.preventDefault(); const t = state.txns.find(x=>x.id === b.dataset.id); if(t) openSheet(t, false);
 });
 
 let lastSkipped = [], pendingBills = [], pendingBals = [];
@@ -2298,13 +2390,17 @@ document.getElementById("famList").addEventListener("click", e=>{
   delete state.family.members[b.dataset.unfam]; persist([], false); render(); toast("Removed.");
 });
 document.getElementById("famSync").onclick = ()=>{
-  const fam = state.family = state.family || { members: {} };
-  if(!fam.me){ toast("Add your name first, so the other phone knows whose data it is."); document.getElementById("meName").focus(); return; }
-  fam.deviceId = fam.deviceId || uidGen();
-  // share only what Family view needs
-  const slim = state.txns.map(t=>({ date: t.date, amount: t.amount, type: t.type, category: t.category, merchant: t.merchant,
-    share: t.share, currency: t.currency, fxRate: t.fxRate }));
-  window.Android.familySync(fam.me, JSON.stringify({ app: "sms-ledger-family", v: 1, id: fam.deviceId, name: fam.me, sentAt: new Date().toISOString(), txns: slim }));
+  try{
+    if(!(window.Android && window.Android.familySync)){ toast("Family sync needs the Android app, not this browser view."); return; }
+    const fam = state.family = state.family || { members: {} };
+    if(!fam.me){ toast("Add your name first, so the other phone knows whose data it is."); document.getElementById("meName").focus(); return; }
+    fam.deviceId = fam.deviceId || uidGen();
+    // share only what Family view needs
+    const slim = state.txns.map(t=>({ date: t.date, amount: t.amount, type: t.type, category: t.category, merchant: t.merchant,
+      share: t.share, currency: t.currency, fxRate: t.fxRate }));
+    window.Android.familySync(fam.me, JSON.stringify({ app: "sms-ledger-family", v: 1, id: fam.deviceId, name: fam.me, sentAt: new Date().toISOString(), txns: slim }));
+    toast("Starting…");
+  }catch(e){ toast("Couldn't start: " + (e && e.message ? e.message : "unknown error") + ". Screenshot this and send it over."); }
 };
 window.familyStatus = function(msg){ toast(msg); };
 window.familyArrived = function(){
@@ -2483,6 +2579,7 @@ window.chooseImportRange = function(){
 };
 window.appBack = function(){
   const sc = document.querySelector(".scrim"); if(sc){ sc.remove(); return true; }
+  if(view === "merchant"){ view = merchantReturn || "list"; render(); return true; }
   if(view !== "home"){ view = "home"; render(); return true; }
   return false;
 };
@@ -2565,6 +2662,74 @@ function openFreshSheet(then){
   const save = document.querySelector(".scrim [data-s=save]"); if(save) save.textContent = "Clear and rescan";
 }
 
+/* ---------- Screen help ---------- */
+const HELP = {
+  home: { title: "Home", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
+    kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ: ಉಳಿತಾಯ, ಆದಾಯ ಮತ್ತು ಖರ್ಚು, ಮತ್ತು ನಿಮ್ಮ ಪ್ರಮುಖ ವರ್ಗಗಳು ಮತ್ತು ಪಾವತಿಸುವವರು." },
+  overview: { title: "Details", en: "Switch between Month, Year and All years to see how your income and spending change over time.",
+    kn: "ನಿಮ್ಮ ಆದಾಯ ಮತ್ತು ಖರ್ಚು ಕಾಲಕ್ರಮೇಣ ಹೇಗೆ ಬದಲಾಗುತ್ತದೆ ಎಂದು ನೋಡಲು ತಿಂಗಳು, ವರ್ಷ ಮತ್ತು ಎಲ್ಲಾ ವರ್ಷಗಳ ನಡುವೆ ಬದಲಿಸಿ." },
+  list: { title: "Entries", en: "Every entry from your SMS or added by hand. Search, filter by category, or tap a name for its full history.",
+    kn: "ನಿಮ್ಮ SMS ಅಥವಾ ಕೈಯಾರೆ ಸೇರಿಸಿದ ಎಲ್ಲಾ ನಮೂದುಗಳು. ಹುಡುಕಿ, ವರ್ಗದ ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಿ, ಅಥವಾ ಹೆಸರನ್ನು ಒತ್ತಿ ಪೂರ್ಣ ಇತಿಹಾಸ ನೋಡಿ." },
+  accounts: { title: "Accounts", en: "Bills due, account balances, subscriptions, and money owed to or by you.",
+    kn: "ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು, ಖಾತೆ ಬಾಕಿ, ಚಂದಾದಾರಿಕೆಗಳು, ಮತ್ತು ನೀವು ಕೊಡಬೇಕಾದ/ಪಡೆಯಬೇಕಾದ ಹಣ." },
+  add: { title: "Add", en: "Bank SMS on your phone are usually added automatically. Paste one here by hand if it was missed.",
+    kn: "ಫೋನ್‌ನ ಬ್ಯಾಂಕ್ SMS ಸಾಮಾನ್ಯವಾಗಿ ತಾನಾಗಿಯೇ ಸೇರುತ್ತವೆ. ಯಾವುದಾದರೂ ತಪ್ಪಿದ್ದರೆ ಇಲ್ಲಿ ಕೈಯಾರೆ ಅಂಟಿಸಿ." },
+  settings: { title: "Settings", en: "Language, budgets, categories, family sync, and how the app reads and stores your data.",
+    kn: "ಭಾಷೆ, ಬಜೆಟ್, ವರ್ಗಗಳು, ಕುಟುಂಬ ಸಿಂಕ್, ಮತ್ತು ಆ್ಯಪ್ ನಿಮ್ಮ ಮಾಹಿತಿಯನ್ನು ಹೇಗೆ ಓದುತ್ತದೆ/ಸಂಗ್ರಹಿಸುತ್ತದೆ." },
+  merchant: { title: "", en: "How much you've paid or received from this person or merchant, by year.",
+    kn: "ಈ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯಾಪಾರಿಯಿಂದ ನೀವು ಎಷ್ಟು ಪಾವತಿಸಿದ್ದೀರಿ/ಪಡೆದಿದ್ದೀರಿ, ವರ್ಷವಾರು." }
+};
+function openScreenHelp(){
+  const h = HELP[view] || HELP.home;
+  const title = view === "merchant" ? (merchantFocus || "") : h.title;
+  const text = LANG === "kn" ? h.kn : h.en;
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2>
+    <p class="help">${esc(text)}</p>
+    <div class="row"><button class="btn primary" data-close>Got it</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{ if(e.target === scrim || e.target.closest("[data-close]")) scrim.remove(); });
+}
+document.getElementById("helpBtn").onclick = openScreenHelp;
+
+/* ---------- First-run tour ---------- */
+const TOUR = [
+  { view: "home", title: "Home", en: "Your money this month, at a glance: savings, income vs expenses, and top categories.",
+    kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ ಒಂದೇ ನೋಟದಲ್ಲಿ: ಉಳಿತಾಯ, ಆದಾಯ-ಖರ್ಚು ಮತ್ತು ಪ್ರಮುಖ ವರ್ಗಗಳು." },
+  { view: "overview", title: "Details", en: "Month, Year or All years — see your income and spending trends over time.",
+    kn: "ತಿಂಗಳು, ವರ್ಷ ಅಥವಾ ಎಲ್ಲಾ ವರ್ಷಗಳು — ಕಾಲಕ್ರಮೇಣ ನಿಮ್ಮ ಆದಾಯ-ಖರ್ಚಿನ ಪ್ರವೃತ್ತಿ ನೋಡಿ." },
+  { view: "list", title: "Entries", en: "Every entry, searchable. Tap a name to see everything from that person or merchant.",
+    kn: "ಎಲ್ಲಾ ನಮೂದುಗಳು, ಹುಡುಕಬಹುದು. ಒಬ್ಬ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲವನ್ನೂ ನೋಡಲು ಹೆಸರನ್ನು ಒತ್ತಿ." },
+  { view: "accounts", title: "Accounts", en: "Bills, balances, subscriptions, and money owed to or by you, in one place.",
+    kn: "ಬಿಲ್‌ಗಳು, ಬಾಕಿ, ಚಂದಾದಾರಿಕೆಗಳು, ಮತ್ತು ಕೊಡಬೇಕಾದ/ಪಡೆಯಬೇಕಾದ ಹಣ, ಒಂದೇ ಕಡೆ." },
+  { view: "add", title: "Add", en: "Bank SMS are added automatically. Use this only to add something by hand.",
+    kn: "ಬ್ಯಾಂಕ್ SMS ತಾನಾಗಿಯೇ ಸೇರುತ್ತವೆ. ಕೈಯಾರೆ ಸೇರಿಸಲು ಮಾತ್ರ ಇದನ್ನು ಬಳಸಿ." },
+  { view: "settings", title: "Settings", en: "Language, budgets, categories, and family sync all live here. Tap ? anytime for help.",
+    kn: "ಭಾಷೆ, ಬಜೆಟ್, ವರ್ಗಗಳು ಮತ್ತು ಕುಟುಂಬ ಸಿಂಕ್ ಇಲ್ಲಿವೆ. ಸಹಾಯಕ್ಕೆ ಯಾವಾಗ ಬೇಕಾದರೂ ? ಒತ್ತಿ." }
+];
+let tourIdx = 0;
+function showTourStep(){
+  const step = TOUR[tourIdx], last = tourIdx === TOUR.length - 1;
+  view = step.view; render();
+  const scrim = document.createElement("div"); scrim.className = "scrim"; scrim.id = "tourSheet";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(step.title)}"><h2>${esc(step.title)}</h2>
+    <p class="help">${esc(LANG === "kn" ? step.kn : step.en)}</p>
+    <div class="tourdots">${TOUR.map((_,i)=>`<span class="${i===tourIdx?"on":""}"></span>`).join("")}</div>
+    <div class="row"><button class="btn primary" data-tour="next">${last ? "Got it" : "Next"}</button><button class="btn link" data-tour="skip">Skip</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    const b = e.target.closest("[data-tour]"); if(!b) return;
+    scrim.remove();
+    if(b.dataset.tour === "next" && !last){ tourIdx++; showTourStep(); return; }
+    finishTour();
+  });
+}
+function finishTour(){
+  state.tourDone = true; persist([], false);
+  view = "home"; render();
+  if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); }
+}
+
 /* ---------- Language choice ---------- */
 let rangeAfterLang = false;
 function setLanguage(lang){
@@ -2591,7 +2756,8 @@ function openLanguagePicker(){
     scrim.remove();
     applyLanguage(state.lang); render();
     if(window.Android && window.Android.languageChosen) window.Android.languageChosen();
-    if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); }
+    if(!state.tourDone){ tourIdx = 0; showTourStep(); }
+    else if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); }
   });
 }
 window.needsLanguage = function(){ return !state.lang; };
