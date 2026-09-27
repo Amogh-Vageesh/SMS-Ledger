@@ -75,6 +75,22 @@ Income vs expenses by month (amounts in lakh on each bar), a category donut, and
 5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
 its numbers. Dark or light follows your phone's setting.
 
+## NPS (Protean/NSDL format)
+Protean's wording differs from EPFO's: "Investment value in Tier I (PRANXX7290) as on
+30.06.2026 is Rs X" for the balance, and "PRAN XX7290: Units for (Mon-YYYY) contribution of
+Rs Y credited" for each contribution. Both are now read correctly (account "XX7290" merges
+into one NPS entry whether or not there's a space after "PRAN"), and a monthly contribution
+counts as income, the same reasoning as an EPFO contribution: it's money you've earned that
+never separately showed up as a bank debit, unlike a SIP confirmation (still excluded, since
+that debit was already counted when it happened).
+
+## More savings and investment balances
+Beyond EPFO and NPS, the app now recognises balance SMS for PPF, Sukanya Samriddhi, Fixed
+Deposits, Recurring Deposits and mutual fund value/folio updates, filing each under Accounts
+> Other accounts with its own label instead of lumping it in as a plain bank balance. It also
+fixed a gap where a balance message with a written-out date ("as on 31-Mar-26") could fail to
+be read at all, since month names like Mar/Apr weren't being skipped over correctly.
+
 ## Dual SIM (two numbers, one phone)
 If this phone has two SIMs each receiving bank SMS (yours and your spouse's, say), Settings
 shows a "Dual SIM" section once it's found SMS from both. Name each SIM and mark which is
@@ -112,6 +128,14 @@ A message like "EMI of Rs.68,946 for Axis Bank Loan A/c XX7441 is due on 10-09-2
 already treated as a bill, not an expense (it says "due on", which the app has recognised
 from the start). It now also gets a clearer name ("Axis loan ··7441") and an "EMI" label in
 the Bills list, the same as EMI notices worded as an upcoming auto-debit.
+
+## EPF passbook updates
+"Your passbook balance against <UAN> is Rs. 18,83,844. Contribution of Rs. 29,936 for due
+month Dec-24 has been received" states two very different figures — a large running total
+and this month's contribution. The app reads the contribution as income (money you've
+earned, even though it lands in your EPF account rather than your bank) and the running
+total separately as your EPFO balance under Accounts, instead of mistaking the running
+total for a huge transaction.
 
 ## Getting the right bank for each entry
 Bank names are read from the message text, which can occasionally mention a different bank
