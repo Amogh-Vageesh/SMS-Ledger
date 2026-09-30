@@ -66,13 +66,15 @@ class MainActivity : ComponentActivity() {
     // Google Sign-In Result Launcher
     private val googleSignInLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                firebaseAuthWithGoogle(account.idToken!!, account)
-            } catch (e: Exception) {
-                toastJs("Google Sign-In failed: ${e.message}")
-                web.evaluateJavascript("window.onGoogleSignInFailed && window.onGoogleSignInFailed('${e.message}')", null)
+            if (result.resultCode == RESULT_OK) {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                try {
+                    val account = task.getResult(ApiException::class.java)!!
+                    firebaseAuthWithGoogle(account.idToken!!, account)
+                } catch (e: Exception) {
+                    toastJs("Google Sign-In failed: ${e.message}")
+                    web.evaluateJavascript("window.onGoogleSignInFailed && window.onGoogleSignInFailed('${e.message}')", null)
+                }
             }
         }
 
@@ -349,11 +351,9 @@ class MainActivity : ComponentActivity() {
     private inner class Bridge {
         @JavascriptInterface
         fun triggerGoogleSignIn() = runOnUiThread {
-            val defaultWebClientId = try {
-                getString(R.string.default_web_client_id)
-            } catch (e: Exception) {
-                ""
-            }
+            val resId = resources.getIdentifier("default_web_client_id", "string", packageName)
+            val defaultWebClientId = if (resId != 0) getString(resId) else ""
+
             if (defaultWebClientId.isBlank()) {
                 toastJs("Missing default_web_client_id from google-services.json")
                 return@runOnUiThread
