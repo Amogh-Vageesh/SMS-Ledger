@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "255114822657",
+    "project_id": "sms-ledger-family",
+    "storage_bucket": "sms-ledger-family.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:255114822657:android:4fa82ee74a2fa05b202c00",
+        "android_client_info": {
+          "package_name": "in.vageesh.smsledger"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "255114822657-0rqhi0ktk95lgbpso0se0aj6olbkncu8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.vageesh.smsledger",
+            "certificate_hash": "9c5b3549e12d3dfe44f1b0eb8dac18fecf3b29d5"
+          }
+        },
+        {
+          "client_id": "255114822657-rqb3fvvpbi3iur2m3ee4cr594oqj1kkv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQAaoQDQABIeRs0tJMBBIPDl-WQlRJAgk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "255114822657-rqb3fvvpbi3iur2m3ee4cr594oqj1kkv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

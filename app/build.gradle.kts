@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -11,8 +12,8 @@ android {
         applicationId = "in.vageesh.smsledger"
         minSdk = 26
         targetSdk = 34
-        versionCode = 29
-        versionName = "1.28"
+        versionCode = 31
+        versionName = "1.30"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update

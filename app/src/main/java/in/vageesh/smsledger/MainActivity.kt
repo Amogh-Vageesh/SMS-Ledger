@@ -1,18 +1,18 @@
-package `in`.vageesh.smsledger
+package in.vageesh.smsledger
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.bluetooth.BluetoothManager
 import android.content.res.Configuration
-import android.location.LocationManager
-import android.telephony.SubscriptionManager
 import android.graphics.Color
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.telephony.SubscriptionManager
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -27,6 +27,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -39,18 +46,35 @@ class MainActivity : ComponentActivity() {
     private var pendingSave: String? = null
     private val prefs by lazy { getSharedPreferences("ledger", MODE_PRIVATE) }
 
+    // Firebase instances
+    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
             pushStatus()
             if (res[Manifest.permission.READ_SMS] == true) firstImportOrScan()
         }
 
-    // <input type="file"> in the page (restore backup, FinArt import) needs a native picker.
+    // Picker for <input type="file"> in WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         fileCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
         fileCallback = null
     }
+
+    // Google Sign-In Result Launcher
+    private val googleSignInLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                firebaseAuthWithGoogle(account.idToken!!, account)
+            } catch (e: Exception) {
+                toastJs("Google Sign-In failed: ${e.message}")
+                web.evaluateJavascript("window.onGoogleSignInFailed && window.onGoogleSignInFailed('${e.message}')", null)
+            }
+        }
 
     private val family by lazy {
         FamilySync(this, { msg -> runOnUiThread { toastJs(msg) } },
@@ -72,12 +96,6 @@ class MainActivity : ComponentActivity() {
         return p.toTypedArray()
     }
 
-    /**
-     * Nearby Connections needs Bluetooth switched on, and on Android 12 and below it also needs
-     * the phone's Location toggle on (the OS ties Bluetooth scanning to it), even though the app
-     * itself never reads your location. Checking first turns a silent 2-minute failure into a
-     * clear message telling the person exactly what to switch on.
-     */
     private fun familyPreflight(): String? {
         val bt = (getSystemService(BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
         if (bt == null || !bt.isEnabled) return Lang.t(this,
@@ -96,17 +114,14 @@ class MainActivity : ComponentActivity() {
     private fun isNight() =
         (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-    /** "system" (default), "light" or "dark" — the person's choice in Settings > Theme. */
     private fun themePref() = prefs.getString("theme", "system") ?: "system"
 
-    /** Whether the app should currently render dark, honouring an explicit choice over the phone's setting. */
     private fun resolvedNight() = when (themePref()) {
         "dark" -> true
         "light" -> false
         else -> isNight()
     }
 
-    /** Colours the status bar, navigation bar and WebView background to match [resolvedNight]. */
     private fun applyChrome() {
         val night = resolvedNight()
         window.statusBarColor = Color.parseColor(if (night) "#17140F" else "#F4EFE4")
@@ -132,7 +147,7 @@ class MainActivity : ComponentActivity() {
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true      // the ledger lives in the page's localStorage
+            settings.domStorageEnabled = true
             settings.allowFileAccess = false
             addJavascriptInterface(Bridge(), "Android")
             webChromeClient = object : WebChromeClient() {
@@ -192,10 +207,10 @@ class MainActivity : ComponentActivity() {
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
-        // On first launch the page asks for a language first; SMS permission comes after that.
         web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
             if (needs == "true") waitingForLanguage = true else startupSms()
         }
+        checkFirebaseCurrentUser()
     }
 
     private fun startupSms() {
@@ -205,7 +220,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** On the very first run, let the person pick how far back to read (3 months to 5 years). */
     private fun firstImportOrScan() {
         if (prefs.contains("lastScan")) scanInbox()
         else web.evaluateJavascript("window.chooseImportRange && window.chooseImportRange()", null)
@@ -224,12 +238,6 @@ class MainActivity : ComponentActivity() {
 
     @Volatile private var scanning = false
 
-    /**
-     * Reads bank SMS newer than [sinceOverride] (or since the last scan) and hands them to the
-     * page in batches, so a 5-year import of thousands of messages doesn't freeze the screen.
-     * [announce] shows progress and a summary; background top-ups on app open stay quiet
-     * unless they find something.
-     */
     private fun scanInbox(sinceOverride: Long? = null, announce: Boolean = false) {
         if (scanning) return
         scanning = true
@@ -266,12 +274,11 @@ class MainActivity : ComponentActivity() {
             val isLast = end == total
             val progress = if (announce && total > BATCH)
                 "window.importProgress && window.importProgress($end, $total);" else ""
-            // evaluateJavascript runs in order on the UI thread, so batches land sequentially.
             web.evaluateJavascript("${progress}window.ingestSms ? window.ingestSms($batch, true) : -1") { r ->
                 val n = r?.toIntOrNull() ?: -1
                 if (n < 0) accepted = false else added += n
                 if (isLast) {
-                    if (accepted) saveMark()   // move the mark only once the page has taken them
+                    if (accepted) saveMark()
                     scanning = false
                     if (announce || added > 0)
                         web.evaluateJavascript("window.importFinished && window.importFinished($added, $total)", null)
@@ -305,7 +312,107 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Google & Firebase Authentication Helpers
+    private fun checkFirebaseCurrentUser() {
+        val user = auth.currentUser
+        if (user != null) {
+            val jsonUser = JSONObject().apply {
+                put("uid", user.uid)
+                put("displayName", user.displayName ?: "")
+                put("email", user.email ?: "")
+                put("photoUrl", user.photoUrl?.toString() ?: "")
+            }
+            web.evaluateJavascript("window.onGoogleSignInSuccess && window.onGoogleSignInSuccess($jsonUser)", null)
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String, account: GoogleSignInAccount) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                val jsonUser = JSONObject().apply {
+                    put("uid", user?.uid)
+                    put("displayName", account.displayName ?: "")
+                    put("email", account.email ?: "")
+                    put("photoUrl", account.photoUrl?.toString() ?: "")
+                }
+                web.evaluateJavascript("window.onGoogleSignInSuccess && window.onGoogleSignInSuccess($jsonUser)", null)
+            } else {
+                val err = task.exception?.message ?: "Firebase authentication failed"
+                toastJs(err)
+                web.evaluateJavascript("window.onGoogleSignInFailed && window.onGoogleSignInFailed('$err')", null)
+            }
+        }
+    }
+
     private inner class Bridge {
+        @JavascriptInterface
+        fun triggerGoogleSignIn() = runOnUiThread {
+            val defaultWebClientId = try {
+                getString(R.string.default_web_client_id)
+            } catch (e: Exception) {
+                ""
+            }
+            if (defaultWebClientId.isBlank()) {
+                toastJs("Missing default_web_client_id from google-services.json")
+                return@runOnUiThread
+            }
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(defaultWebClientId)
+                .requestEmail()
+                .build()
+            val signInClient = GoogleSignIn.getClient(this@MainActivity, gso)
+            googleSignInLauncher.launch(signInClient.signInIntent)
+        }
+
+        @JavascriptInterface
+        fun signOutGoogle() = runOnUiThread {
+            auth.signOut()
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+            GoogleSignIn.getClient(this@MainActivity, gso).signOut().addOnCompleteListener {
+                web.evaluateJavascript("window.onGoogleSignOutSuccess && window.onGoogleSignOutSuccess()", null)
+            }
+        }
+
+        @JavascriptInterface
+        fun syncSharedEntryToCloud(groupId: String, entryJson: String) {
+            val user = auth.currentUser
+            if (user == null) {
+                toastJs("Please sign in with Google first.")
+                return
+            }
+            try {
+                val entryObj = JSONObject(entryJson)
+                val entryMap = hashMapOf(
+                    "title" to entryObj.optString("title"),
+                    "amount" to entryObj.optDouble("amount"),
+                    "category" to entryObj.optString("category"),
+                    "paidBy" to entryObj.optString("paidBy"),
+                    "recipient" to entryObj.optString("recipient"),
+                    "eventId" to entryObj.optString("eventId"),
+                    "date" to entryObj.optString("date"),
+                    "createdBy" to user.email
+                )
+
+                db.collection("familyGroups").document(groupId)
+                    .collection("sharedEntries")
+                    .add(entryMap)
+                    .addOnSuccessListener { ref ->
+                        runOnUiThread {
+                            web.evaluateJavascript("window.onEntrySynced && window.onEntrySynced('${ref.id}')", null)
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        runOnUiThread {
+                            toastJs("Sync failed: ${e.message}")
+                        }
+                    }
+            } catch (e: Exception) {
+                toastJs("Invalid entry JSON")
+            }
+        }
+
         @JavascriptInterface
         fun hasSmsAccess(): Boolean = hasSms()
 
@@ -314,22 +421,17 @@ class MainActivity : ComponentActivity() {
             val canAsk = !prefs.getBoolean("asked", false) ||
                 shouldShowRequestPermissionRationale(Manifest.permission.READ_SMS)
             if (canAsk) askPermissions()
-            else startActivity(   // permanently denied: open app settings instead
+            else startActivity(
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
             )
         }
 
-        /**
-         * Import (or re-import) bank SMS from the last [days]; 0 means every SMS on the phone.
-         * Entries already in the ledger are skipped by the page, so rescanning is safe.
-         */
         @JavascriptInterface
         fun importRange(days: Int) = runOnUiThread {
             val since = if (days <= 0) 0L else System.currentTimeMillis() - days.coerceAtMost(MAX_DAYS) * DAY
             if (hasSms()) scanInbox(since, announce = true) else requestSms()
         }
 
-        /** The ledger is kept in a private app file rather than WebView storage, so years of entries fit. */
         @JavascriptInterface
         fun saveState(json: String) {
             synchronized(stateLock) {
@@ -339,7 +441,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        /** Exchange rate for a currency on a date; answers through window.rateResult(id, rate). */
         @JavascriptInterface
         fun getRate(id: String, cur: String, date: String) {
             thread {
@@ -348,7 +449,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        /** Start a Bluetooth / nearby Wi-Fi sync, sending [json] (this phone's family data) as [name]. */
         @JavascriptInterface
         fun familySync(name: String, json: String) = runOnUiThread {
             val problem = familyPreflight()
@@ -360,23 +460,15 @@ class MainActivity : ComponentActivity() {
             else { pendingFamily = name to json; familyPerms.launch(need.toTypedArray()) }
         }
 
-        /** The language the person picked, kept for notifications and dialogs. */
         @JavascriptInterface
         fun setLanguage(lang: String) { prefs.edit().putString("lang", if (lang == "kn") "kn" else "en").apply() }
 
-        /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
         fun setTheme(theme: String) = runOnUiThread {
             prefs.edit().putString("theme", if (theme in listOf("light", "dark")) theme else "system").apply()
             applyChrome()
         }
 
-        /**
-         * The distinct SIMs bank SMS have actually arrived on, each with a best-effort label.
-         * Reads only the subscription id already visible via READ_SMS — no extra permission
-         * is requested just to name a SIM; if the carrier name isn't available it falls back
-         * to "SIM 1"/"SIM 2" and the person can rename it themselves in Settings.
-         */
         @JavascriptInterface
         fun getSimList(): String {
             val ids = linkedSetOf<Int>()
@@ -397,18 +489,16 @@ class MainActivity : ComponentActivity() {
                     (getSystemService(SubscriptionManager::class.java))
                         ?.getActiveSubscriptionInfo(id)?.displayName?.toString()?.takeIf { it.isNotBlank() }
                 } catch (e: Exception) { null } ?: "SIM $n"
-                arr.put(org.json.JSONObject().put("id", id).put("label", label))
+                arr.put(JSONObject().put("id", id).put("label", label))
             }
             return arr.toString()
         }
 
-        /** First-launch language picked: carry on with SMS permission. */
         @JavascriptInterface
         fun languageChosen() = runOnUiThread {
             if (waitingForLanguage) { waitingForLanguage = false; startupSms() }
         }
 
-        /** Hands the page the ledger received from the other phone, once. */
         @JavascriptInterface
         fun takeFamilyInbox(): String {
             val f = File(filesDir, "family-inbox.json")
@@ -416,7 +506,6 @@ class MainActivity : ComponentActivity() {
             val t = f.readText(); f.delete(); return t
         }
 
-        /** Bill-due and renewal reminders, as JSON [{id, at, title, text}]. */
         @JavascriptInterface
         fun setReminders(json: String) = Reminders.set(this@MainActivity, json)
 
@@ -436,7 +525,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val DAY = 24L * 60 * 60 * 1000
-        const val MAX_DAYS = 36500         // ranges are capped at 100 years; 0 means everything
+        const val MAX_DAYS = 36500
         const val BATCH = 400
     }
 }

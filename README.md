@@ -75,6 +75,14 @@ Income vs expenses by month (amounts in lakh on each bar), a category donut, and
 5 income sources and expense categories, for the last 3, 6 or 12 months. Tap a month to see
 its numbers. Dark or light follows your phone's setting.
 
+## More promotional messages excluded
+Loan-offer texts like "Congratulations! Loan up to Rs.20,000 may be credited to your bank
+account" were being read as real credits, since they use the same wording ("credited") as a
+genuine transaction. These are now recognised by their speculative phrasing ("may be
+credited", "instant loan", "loan up to Rs...") and skipped. Along the way, a genuine loan
+disbursement ("Rs.5,00,000 Personal Loan disbursed to your A/c...") that was being missed
+entirely is now correctly recorded as income.
+
 ## NPS (Protean/NSDL format)
 Protean's wording differs from EPFO's: "Investment value in Tier I (PRANXX7290) as on
 30.06.2026 is Rs X" for the balance, and "PRAN XX7290: Units for (Mon-YYYY) contribution of
@@ -136,6 +144,13 @@ and this month's contribution. The app reads the contribution as income (money y
 earned, even though it lands in your EPF account rather than your bank) and the running
 total separately as your EPFO balance under Accounts, instead of mistaking the running
 total for a huge transaction.
+
+## More ads and bill-reminder wording excluded
+- "Please clear your bill of Rs.X for your Airtel Black ID..." was being read as an expense
+  (the trailing "Ignore if already paid" disclaimer contains the word "paid", which looks like
+  a completed payment to the scanner). It's now filed as a proper bill instead.
+- Loan-offer ads phrased as "can be credited" or "Complete your application" (not just "may be
+  credited") are now recognised and skipped too, alongside the earlier fix.
 
 ## Getting the right bank for each entry
 Bank names are read from the message text, which can occasionally mention a different bank
