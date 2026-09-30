@@ -1,51 +1,36 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.gms.google-services")
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.gms.google-services'
 }
 
 android {
-    namespace = "in.vageesh.smsledger"
-    compileSdk = 35
+    namespace 'com.example.smsledger' // Replace with your actual package name
+    compileSdk 35
 
     defaultConfig {
-        applicationId = "in.vageesh.smsledger"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 31
-        versionName = "1.30"
+        applicationId "com.example.smsledger"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
     }
 
-    // A fixed key kept in this (private) repo, so every new build installs as an update
-    // over the previous one instead of needing an uninstall.
-    signingConfigs {
-        create("ledger") {
-            storeFile = file("release.keystore")
-            storePassword = "smsledger123"
-            keyAlias = "smsledger"
-            keyPassword = "smsledger123"
-        }
-    }
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("ledger")
-        }
-    }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
-    lint {
-        checkReleaseBuilds = false
-        abortOnError = false
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        compose true
     }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.webkit:webkit:1.12.1")
-    implementation("com.google.android.gms:play-services-nearby:19.3.0")
+    // Add your app dependencies here
 }
