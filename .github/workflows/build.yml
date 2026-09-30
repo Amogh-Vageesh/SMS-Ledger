@@ -32,9 +32,9 @@ jobs:
       - name: Build APK
         run: |
           if [ -f "./gradlew" ]; then
-            ./gradlew assembleRelease --no-daemon --stacktrace --info
+            ./gradlew assembleRelease --no-daemon --stacktrace --full-stacktrace
           else
-            gradle assembleRelease --no-daemon --stacktrace --info
+            gradle assembleRelease --no-daemon --stacktrace --full-stacktrace
           fi
 
       - name: Upload APK Artifact
