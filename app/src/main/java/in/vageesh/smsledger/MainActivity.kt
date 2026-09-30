@@ -38,6 +38,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import kotlin.concurrent.thread
+import in.vageesh.smsledger.R
 
 class MainActivity : ComponentActivity() {
 
