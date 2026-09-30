@@ -29,7 +29,6 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew || true
 
-      # Updated with --stacktrace --info flags to expose detailed Kotlin error logs
       - name: Build APK
         run: |
           if [ -f "./gradlew" ]; then
