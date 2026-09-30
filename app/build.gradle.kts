@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.smsledger"
+    namespace = "in.vageesh.smsledger"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.smsledger"
+        applicationId = "in.vageesh.smsledger"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
