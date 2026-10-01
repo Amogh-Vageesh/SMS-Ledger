@@ -460,3 +460,7 @@ The package name is `in.vageesh.smsledger`. If you build with a different signin
 ## SMS import in v1.47
 
 The first import now reads the complete SMS history available on the phone (not just 90 days). The ledger parser still converts only supported bank transaction SMS into entries; OTPs, promotional messages and unrelated SMS are ignored. Existing installations receive a one-time full-history migration after upgrading to v1.47.
+
+
+## v1.48 build fix
+The SHA fingerprint diagnostic no longer depends on BuildConfig and safely handles nullable SigningInfo/signatures, fixing the Kotlin release compilation errors reported by GitHub Actions.

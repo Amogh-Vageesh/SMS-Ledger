@@ -369,17 +369,25 @@ class MainActivity : ComponentActivity() {
                     @Suppress("DEPRECATION")
                     pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
                 }
-                val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.signingInfo.apkContentsSigners
+                val signatures: Array<android.content.pm.Signature>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.signingInfo?.apkContentsSigners
                 } else {
                     @Suppress("DEPRECATION")
                     packageInfo.signatures
                 }
-                val sig = signatures.firstOrNull() ?: return JSONObject().put("ok", false).put("error", "No signing certificate found").toString()
+                val sig = signatures?.firstOrNull()
+                    ?: return JSONObject().put("ok", false).put("error", "No signing certificate found").toString()
                 val sha1 = hex(MessageDigest.getInstance("SHA-1").digest(sig.toByteArray()))
                 val sha256 = hex(MessageDigest.getInstance("SHA-256").digest(sig.toByteArray()))
+                val versionName = packageInfo.versionName ?: "unknown"
+                val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode.toLong()
+                }
                 JSONObject().put("ok", true).put("package", packageName).put("sha1", sha1).put("sha256", sha256)
-                    .put("version", BuildConfig.VERSION_NAME).put("versionCode", BuildConfig.VERSION_CODE).toString()
+                    .put("version", versionName).put("versionCode", versionCode).toString()
             } catch (e: Exception) {
                 JSONObject().put("ok", false).put("error", e.message ?: e.javaClass.simpleName).toString()
             }
