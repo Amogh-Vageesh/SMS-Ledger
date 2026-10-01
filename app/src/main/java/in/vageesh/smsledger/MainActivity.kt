@@ -504,11 +504,16 @@ class MainActivity : ComponentActivity() {
                         web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
                         return@launch
                     }
-                    val error = result.exceptionOrNull()
-                    // Credential Manager can report cancellation when the device's Google
-                    // credential provider cannot complete the picker. Try the legacy Google
-                    // account picker before reporting cancellation to the user.
-                    legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())
+                    // Credential Manager gets 15 seconds to complete. If the device provider
+                    // hangs, use the Google Play services account picker instead of leaving the
+                    // user waiting indefinitely.
+                    try {
+                        legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())
+                    } catch (fallback: Throwable) {
+                        val json = JSONObject().put("ok", false).put("cancelled", false)
+                            .put("error", result.exceptionOrNull()?.message ?: fallback.message ?: "Google sign-in could not start").toString()
+                        web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
+                    }
                 } catch (e: Throwable) {
                     try {
                         legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())

@@ -15,7 +15,10 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 
 /**
  * Google Sign-In backed by Firebase Auth, using the modern Credential Manager API.
@@ -46,12 +49,12 @@ class CloudAuth(private val activity: ComponentActivity) {
         val option = GetSignInWithGoogleOption.Builder(webClientId).build()
         val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
         return try {
-            val result = credentialManager.getCredential(activity, request)
+            val result = withTimeout(15_000L) { credentialManager.getCredential(activity, request) }
             val credential = result.credential
             if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val google = GoogleIdTokenCredential.createFrom(credential.data)
                 val firebaseCredential = GoogleAuthProvider.getCredential(google.idToken, null)
-                val authResult = auth.signInWithCredential(firebaseCredential).await()
+                val authResult = withTimeout(15_000L) { auth.signInWithCredential(firebaseCredential).await() }
                 val u = authResult.user ?: return Result.failure(Exception("Signed in but no user returned"))
                 Result.success(JSONObject().put("uid", u.uid).put("name", u.displayName ?: "")
                     .put("email", u.email ?: "").put("photo", u.photoUrl?.toString() ?: ""))
@@ -110,14 +113,21 @@ class CloudAuth(private val activity: ComponentActivity) {
     suspend fun handleLegacyResult(data: android.content.Intent?): Result<JSONObject> {
         if (data == null) return Result.failure(Exception("Google sign-in was cancelled."))
         return try {
-            val account = GoogleSignIn.getSignedInAccountFromIntent(data).await()
+            val account = withTimeout(15_000L) { GoogleSignIn.getSignedInAccountFromIntent(data).await() }
             val token = account.idToken ?: return Result.failure(Exception("Google did not return an ID token. Check the Firebase Web OAuth client configuration."))
             val credential = GoogleAuthProvider.getCredential(token, null)
-            val authResult = auth.signInWithCredential(credential).await()
+            val authResult = withTimeout(15_000L) { auth.signInWithCredential(credential).await() }
             val u = authResult.user ?: return Result.failure(Exception("Signed in but Firebase returned no user."))
             Result.success(JSONObject().put("uid", u.uid).put("name", u.displayName ?: "").put("email", u.email ?: "").put("photo", u.photoUrl?.toString() ?: ""))
         } catch (e: Exception) {
-            Result.failure(e)
+            val message = if (e is ApiException) {
+                "Google sign-in failed (status ${e.statusCode}: ${GoogleSignInStatusCodes.getStatusCodeString(e.statusCode)}). ${e.localizedMessage ?: "Check Firebase SHA-1, OAuth clients and Google provider."}"
+            } else if (e is kotlinx.coroutines.TimeoutCancellationException) {
+                "Google sign-in timed out after 15 seconds. Check internet access, Google Play Services, Firebase Google provider, and the Android OAuth SHA-1."
+            } else {
+                e.localizedMessage ?: e.toString()
+            }
+            Result.failure(Exception(message, e))
         }
     }
 

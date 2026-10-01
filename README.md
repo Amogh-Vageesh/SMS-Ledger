@@ -464,3 +464,7 @@ The first import now reads the complete SMS history available on the phone (not 
 
 ## v1.48 build fix
 The SHA fingerprint diagnostic no longer depends on BuildConfig and safely handles nullable SigningInfo/signatures, fixing the Kotlin release compilation errors reported by GitHub Actions.
+
+### Google Sign-In troubleshooting (v1.49)
+
+If the APK's in-app SHA-1 differs from Firebase, add that SHA-1 under Firebase Console -> Project settings -> Your apps -> Android app. If you changed the SHA-1 or OAuth client configuration, download a fresh `google-services.json` from Firebase and replace `app/google-services.json` before rebuilding. Firebase's current Android guidance explicitly calls for updating the Firebase config file after Google sign-in OAuth configuration changes. The app now times out Credential Manager after 15 seconds and falls back to the Google Play services account picker; Firebase authentication is also given a 15-second timeout and reports the stage/status instead of hanging indefinitely.
