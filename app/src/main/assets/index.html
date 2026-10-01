@@ -161,6 +161,8 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 #v-settings .set-block{content-visibility:auto;contain-intrinsic-size:90px;}
 .home-top{display:flex;justify-content:space-between;align-items:center;margin:4px 0 16px}
 .home-top h1{font-family:var(--serif);font-weight:400;font-size:1.6rem;margin:0}
+.home-top #homeFamBtn{width:48px!important;height:48px!important}
+.home-top #homeFamBtn svg{width:26px;height:26px}
 .home-top .hi{color:var(--muted);font-size:.9rem}
 .seg{display:flex;gap:4px;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:4px}
 .seg button{border:0;background:none;color:var(--muted);border-radius:9px;min-width:44px;min-height:36px;font-weight:600;font-size:.9rem;padding:0 10px}
@@ -289,10 +291,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 
 <section id="v-home">
   <div class="home-top">
-    <div><div class="hi" id="homeHi">Your money at a glance</div><h1>Home</h1></div>
+    <div><div class="hi" id="homeHi">Your money at a glance</div><h1>Ledger</h1></div>
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="iconbtn" id="homeFamBtn" aria-label="Family" style="width:38px;height:38px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="6" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.8-4.5 4-4.8"/></svg>
+      <button class="iconbtn" id="homeFamBtn" aria-label="Family" style="width:48px;height:48px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="6" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.8-4.5 4-4.8"/></svg>
       </button>
       <div class="hi" id="homeMonth" style="text-align:right"></div>
     </div>
@@ -396,7 +398,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     <div class="row" style="margin:0 0 12px"><input id="newCat" placeholder="New category, e.g. Household" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="addCat">Add</button></div>
   </div>
   <h1 class="section-h">Monthly budgets</h1>
-  <div class="set-block" id="budgets"></div>
+  <div class="set-block" id="budgetBlock">
+    <p id="budgetSummary">No monthly budget set.</p>
+    <div class="row" style="margin:0 0 8px"><button class="btn primary" id="budgetOpen">Set monthly budget</button></div>
+  </div>
   <div id="smsBlock" class="hidden">
     <h1 class="section-h">Automatic SMS reading</h1>
     <div class="set-block">
@@ -433,22 +438,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
       <button class="btn primary" id="cloudSignIn">Sign in with Google</button>
       <button class="btn hidden" id="cloudSignOut">Sign out</button>
     </div>
-  </div>
-  <h1 class="section-h">People</h1>
-  <div class="set-block">
-    <p>Add anyone you tag spending to — family, or just yourself for now. This is local to this
-    phone; sharing comes later once family sync is set up.</p>
-    <div id="peopleList" class="ppl"></div>
-    <div class="row" style="margin:0 0 12px"><input id="newPerson" placeholder="Name, e.g. Aarav" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="addPerson">Add</button></div>
-  </div>
-  <h1 class="section-h">Family</h1>
-  <div class="set-block">
-    <label class="budget" style="grid-template-columns:1fr 160px"><span>Your name in Family view</span>
-      <input id="meName" placeholder="e.g. Vageesh" style="text-align:left"></label>
-    <div id="famList"></div>
-    <div class="row" style="margin:10px 0 8px"><input id="newFamilyMember" placeholder="Family member name, e.g. Wife" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="addFamilyMember">Add member</button></div>
-    <p id="famHelp">Each family member can link their own Google account. On their phone they sign in with their own Google account; this phone can store the account identity for the member. Family ledger sharing still uses the existing family sync.</p>
-    <div class="row" style="margin:0 0 12px"><button class="btn primary" id="famSync">Sync with family nearby</button></div>
+    <div class="row" style="margin:0 0 4px">
+      <button class="btn" id="showSigningFingerprint">Show app SHA-1 / SHA-256</button>
+    </div>
+    <p class="help" id="signingFingerprint" style="display:none;word-break:break-all"></p>
   </div>
   <h1 class="section-h">Currencies</h1>
   <div class="set-block">
@@ -459,6 +452,14 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   <div class="set-block" id="importedBlock">
     <p id="importedNote">Checking for entries, bills and accounts that came from an earlier import rather than your phone's SMS…</p>
     <div class="row" style="margin:0 0 12px"><button class="btn danger" id="removeImported" style="display:none">Remove them</button></div>
+  </div>
+  <h1 class="section-h">Automatic backup</h1>
+  <div class="set-block">
+    <p>Keep a rotating backup of your ledger automatically on this phone. The app keeps the latest 7 automatic backups.</p>
+    <div class="seg wide" id="backupSeg" role="group" aria-label="Automatic backup schedule" style="margin:12px 0">
+      <button data-backup="off">Off</button><button data-backup="daily">Daily</button><button data-backup="weekly">Weekly</button>
+    </div>
+    <div class="row"><button class="btn" id="backupNow">Back up now</button><span class="hint" id="backupStatus"></span></div>
   </div>
   <h1 class="section-h">Your data</h1>
   <p class="status" id="syncStatus">Stored on this device.</p>
@@ -485,7 +486,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 
 <div class="tabs">
   <nav aria-label="Sections">
-    <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Home</button>
+    <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Ledger</button>
     <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Summary</button>
     <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Accounts</button>
     <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
@@ -685,6 +686,14 @@ const KN = {
   "Budgets, your own categories, language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
   "Cleared. Reading your SMS again…":"ತೆರವುಗೊಳಿಸಲಾಗಿದೆ. SMS ಮತ್ತೆ ಓದಲಾಗುತ್ತಿದೆ…","Add a family member":"ಕುಟುಂಬ ಸದಸ್ಯರನ್ನು ಸೇರಿಸಿ"
 };
+Object.assign(KN, {
+  "Ledger":"ಲೆಡ್ಜರ್","Ledger home":"ಲೆಡ್ಜರ್ ಮುಖಪುಟ","Family Hub":"ಕುಟುಂಬ ಕೇಂದ್ರ","Family income":"ಕುಟುಂಬದ ಆದಾಯ","Family expenses":"ಕುಟುಂಬದ ಖರ್ಚು","Family data on this phone":"ಈ ಫೋನ್‌ನ ಕುಟುಂಬದ ಮಾಹಿತಿ","Google connected":"Google ಸಂಪರ್ಕಿಸಲಾಗಿದೆ",
+  "Create event":"ಸಂದರ್ಭ ರಚಿಸಿ","+ Create event":"+ ಸಂದರ್ಭ ರಚಿಸಿ","+ Shopping item":"+ ಶಾಪಿಂಗ್ ಐಟಂ","+ Calendar":"+ ಕ್ಯಾಲೆಂಡರ್","Events":"ಸಂದರ್ಭಗಳು","Calendar":"ಕ್ಯಾಲೆಂಡರ್","Shopping list":"ಶಾಪಿಂಗ್ ಪಟ್ಟಿ","No events yet.":"ಇನ್ನೂ ಸಂದರ್ಭಗಳಿಲ್ಲ.","No calendar items yet.":"ಇನ್ನೂ ಕ್ಯಾಲೆಂಡರ್ ನಮೂದುಗಳಿಲ್ಲ.","Shopping list is empty.":"ಶಾಪಿಂಗ್ ಪಟ್ಟಿ ಖಾಲಿಯಾಗಿದೆ.",
+  "Automatic backup":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್","Keep a rotating backup of your ledger automatically on this phone. The app keeps the latest 7 automatic backups.":"ಈ ಫೋನ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಲೆಡ್ಜರ್‌ನ ಬ್ಯಾಕಪ್ ಅನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಉಳಿಸಲಾಗುತ್ತದೆ. ಇತ್ತೀಚಿನ 7 ಬ್ಯಾಕಪ್‌ಗಳನ್ನು ಆ್ಯಪ್ ಇಟ್ಟುಕೊಳ್ಳುತ್ತದೆ.","Off":"ಆಫ್","Daily":"ದೈನಂದಿನ","Weekly":"ವಾರದ","Back up now":"ಈಗ ಬ್ಯಾಕಪ್ ಮಾಡಿ","Daily automatic backup enabled.":"ದೈನಂದಿನ ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆನ್ ಮಾಡಲಾಗಿದೆ.","Weekly automatic backup enabled.":"ವಾರದ ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆನ್ ಮಾಡಲಾಗಿದೆ.","Automatic backup turned off.":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆಫ್ ಮಾಡಲಾಗಿದೆ.","Latest backup saved on this phone.":"ಇತ್ತೀಚಿನ ಬ್ಯಾಕಪ್ ಈ ಫೋನ್‌ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ.","No ledger file to back up yet.":"ಬ್ಯಾಕಪ್ ಮಾಡಲು ಇನ್ನೂ ಲೆಡ್ಜರ್ ಫೈಲ್ ಇಲ್ಲ.",
+  "Monthly budgets":"ತಿಂಗಳ ಬಜೆಟ್‌ಗಳು","No monthly budget set.":"ತಿಂಗಳ ಬಜೆಟ್ ಹೊಂದಿಸಲಾಗಿಲ್ಲ.","Set monthly budget":"ತಿಂಗಳ ಬಜೆಟ್ ಹೊಂದಿಸಿ","Set a monthly limit for any category. Leave blank for none.":"ಯಾವುದೇ ವರ್ಗಕ್ಕೆ ತಿಂಗಳ ಮಿತಿಯನ್ನು ಹೊಂದಿಸಿ. ಬೇಡವಾದರೆ ಖಾಲಿ ಬಿಡಿ.","Category (optional)":"ವರ್ಗ (ಐಚ್ಛಿಕ)","Overall monthly budget":"ಒಟ್ಟು ತಿಂಗಳ ಬಜೆಟ್","Monthly limit":"ತಿಂಗಳ ಮಿತಿ","Budget saved.":"ಬಜೆಟ್ ಉಳಿಸಲಾಗಿದೆ.","Budget removed.":"ಬಜೆಟ್ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.",
+  "Choose your Google account":"ನಿಮ್ಮ Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Choose Google account":"Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Skip for now":"ಈಗ ಬೇಡ","Opening Google…":"Google ತೆರೆಯಲಾಗುತ್ತಿದೆ…","Google sign-in failed:":"Google ಸೈನ್ ಇನ್ ವಿಫಲವಾಗಿದೆ:",
+  "Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Categories":"ವರ್ಗಗಳು","Currencies":"ಕರೆನ್ಸಿಗಳು","Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Cloud account":"ಕ್ಲೌಡ್ ಖಾತೆ","Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign out":"ಸೈನ್ ಔಟ್","Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Allow SMS access":"SMS ಪ್ರವೇಶ ಅನುಮತಿಸಿ","Language · ಭಾಷೆ":"ಭಾಷೆ · Language","Month cycle":"ತಿಂಗಳ ಚಕ್ರ"
+});
 const KN_RX = [
   [/^Saved in the last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳ ಉಳಿತಾಯ`],
   [/^Family saved in the last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ`],
@@ -2170,7 +2179,7 @@ function renderHome(){
   const cal=(state.calendar||[]).concat(remoteMembers.flatMap(m=>m.calendar||[])).filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,5);
   const shopping=(state.shopping||[]).concat(remoteMembers.flatMap(m=>m.shopping||[])).slice(0,8);
   const signed=!!cloudUser;
-  const memberChips=t.people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("");
+  const memberChips=t.people.filter(p=>p.visible!==false && !String(p.name||"").startsWith("__SIM_")).map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("");
   const eventHtml=events.length?events.map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.shared?"<span>Shared</span>":"<span>Private</span>"}</span></button>`).join(""):"<p class=\"help\">No events yet.</p>";
   const calHtml=cal.length?cal.map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||"Calendar item")}</span><span>${esc(x.date)}</span><span class="w" style="grid-column:1/3">${esc(x.note||"")}</span></div>`).join(""):"<p class=\"help\">No calendar items yet.</p>";
   const shopHtml=shopping.length?shopping.map(x=>`<label class="due" style="cursor:pointer;${x.done?"opacity:.55;text-decoration:line-through":""}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?"checked":""} style="margin-right:8px">${esc(x.item)}</span><span>${x.shared?"Shared":"Private"}</span></label>`).join(""):"<p class=\"help\">Shopping list is empty.</p>";
@@ -2500,10 +2509,38 @@ function renderPreview(skipped){
   el.innerHTML = html;
 }
 
+function renderBudgetSummary(){
+  const el=document.getElementById("budgetSummary"); if(!el) return;
+  const entries=Object.entries(state.budgets||{}).filter(([c,v])=>Number(v)>0 && c!=="__overall__");
+  const overall=Number((state.budgets||{}).__overall__||0);
+  const parts=[];
+  if(overall) parts.push(`Overall: ${money(overall,true)}`);
+  entries.slice(0,4).forEach(([c,v])=>parts.push(`${c}: ${money(v,true)}`));
+  el.textContent=parts.length ? parts.join(" · ") + (entries.length>4 ? " · …" : "") : "No monthly budget set.";
+}
+function openBudgetSheet(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const cats=CATS.filter(([c])=>!["Income","Refunds","Transfers"].includes(c));
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Set monthly budget"><h2>Set monthly budget</h2>
+    <p class="help">Choose a category if you want a category-specific limit. Leave the category as Overall for one total monthly limit.</p>
+    <label class="field"><span>Category (optional)</span><select id="budgetCat"><option value="__overall__">Overall monthly budget</option>${cats.map(([c])=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Monthly limit</span><input id="budgetAmt" inputmode="decimal" placeholder="₹ amount"></label>
+    <div class="row"><button class="btn primary" id="budgetSave">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const cat=scrim.querySelector('#budgetCat'), amt=scrim.querySelector('#budgetAmt');
+  const refresh=()=>{ const k=cat.value; amt.value=state.budgets?.[k]||""; };
+  cat.onchange=refresh; refresh();
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='budgetSave'){
+      const k=cat.value, v=parseFloat(amt.value.replace(/[,₹\s]/g,''))||0;
+      state.budgets=state.budgets||{}; if(v>0) state.budgets[k]=v; else delete state.budgets[k];
+      persist([],true); scrim.remove(); render(); toast(v>0?"Budget saved.":"Budget removed.");
+    }
+  });
+}
 function renderSettings(){
-  const el = document.getElementById("budgets");
-  el.innerHTML = `<p>Set a monthly limit for any category. Leave blank for none.</p>` + CATS.filter(([c])=>!["Income","Refunds","Transfers"].includes(c)).map(([c,col])=>
-    `<label class="budget"><span class="dot" style="background:${col}"></span><span>${esc(c)}</span><input inputmode="numeric" data-b="${esc(c)}" placeholder="₹ —" value="${state.budgets[c]||""}" aria-label="${esc(c)} budget"></label>`).join("");
+  renderBudgetSummary();
   document.getElementById("ruleCount").textContent = inr.format(new Set([...Object.keys(state.rules), ...Object.keys(state.names)]).size);
   document.getElementById("monthStart").value = String(state.monthStart || 1);
   refreshImportedBlock();
@@ -2511,22 +2548,12 @@ function renderSettings(){
   document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.themePick === (state.theme || "system"))));
   refreshSimBlock();
   refreshCloudBlock();
-  document.getElementById("peopleList").innerHTML = peopleList().length
-    ? peopleList().map(p=>`<button type="button" class="pchip on" data-delp="${esc(p.id)}"><span class="av" style="background:${p.color}">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("")
-    : `<span class="hint" style="margin:0">No one added yet.</span>`;
   document.getElementById("fxPending").textContent = state.txns.filter(t=>isForeign(t) && !t.fxRate).length;
-  const fam = state.family || {};
-  const mn = document.getElementById("meName"); if(document.activeElement !== mn) mn.value = fam.me || "";
-  const ms = familyMembers();
-  document.getElementById("famList").innerHTML = ms.map(m=>{
-    const ga = m.googleEmail ? `Google: ${esc(m.googleEmail)}` : "Google account not linked";
-    return `<div class="due"><span class="n">${esc(m.name)}</span><span class="num" style="color:var(--muted);font-size:.85rem">${inr.format((m.txns||[]).length)} entries</span>
-      <span class="w" style="grid-column:1/3;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>${ga}</span><button class="mini" data-linkfam="${esc(m.id)}">${m.googleEmail?"Relink Google":"Link Google"}</button><button class="mini" data-unfam="${esc(m.id)}">Remove</button></span></div>`;
-  }).join("");
-  const nat = !!(window.Android && window.Android.familySync);
-  document.getElementById("famSync").classList.toggle("hidden", !nat);
-  if(!nat) document.getElementById("famHelp").textContent = "Family sync works in the Android app, phone to phone over Bluetooth.";
   document.getElementById("catList").innerHTML = CATS.map(([c,col])=>`<span class="chip" style="margin:0 12px 6px 0"><span class="dot" style="background:${col}"></span>${esc(c)}</span>`).join("");
+  renderBudgetSummary();
+  const bs=state.backupSchedule || (window.Android && window.Android.getBackupSchedule ? window.Android.getBackupSchedule() : "off");
+  state.backupSchedule=bs;
+  document.querySelectorAll("#backupSeg [data-backup]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.backup===bs)));
 }
 
 /* ---------- Edit sheet ---------- */
@@ -3051,93 +3078,27 @@ document.getElementById("preview").addEventListener("click", e=>{
   if(e.target.id === "discardBtn"){ pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; pendingSubs = []; renderPreview([]); }
 });
 
-document.getElementById("budgets").addEventListener("change", e=>{
-  const c = e.target.dataset.b; if(!c) return;
-  const v = parseFloat(e.target.value.replace(/[,₹\s]/g,""));
-  if(v > 0) state.budgets[c] = v; else delete state.budgets[c];
-  persist([], true); toast("Budget saved.");
-});
+
 (function(){
   const sel = document.getElementById("monthStart");
   sel.innerHTML = Array.from({length:28}, (_,i)=>`<option value="${i+1}">${i+1}${i===0?" (calendar month)":""}</option>`).join("");
   sel.addEventListener("change", ()=>{ state.monthStart = +sel.value; cursor = currentPK(); persist([], true); render(); toast("Month cycle updated."); });
 })();
 document.getElementById("fxConvert").onclick = ()=>{ toast("Getting exchange rates…"); convertPending(true); };
-document.getElementById("meName").addEventListener("change", e=>{ state.family = state.family || { members: {} }; state.family.me = e.target.value.trim(); persist([], false); toast("Name saved."); });
-document.getElementById("famList").addEventListener("click", e=>{
-  const link = e.target.closest("[data-linkfam]");
-  if(link){
-    if(!(window.Android && window.Android.signIn)){ toast("Google sign-in is available in the Android app."); return; }
-    const memberId = link.dataset.linkfam;
-    const member = (state.family && state.family.members && state.family.members[memberId]) || null;
-    if(member && !confirm(`This signs this phone into ${member.name}'s Google account and makes it the current app account. For normal family use, ask ${member.name} to sign in on their own phone. Continue?`)) return;
-    window.pendingFamilyGoogleMember = memberId;
-    link.textContent = "Opening…"; link.disabled = true;
-    try{ window.Android.signIn(); }catch(err){ link.textContent = "Link Google"; link.disabled = false; window.pendingFamilyGoogleMember = null; toast("Could not start Google sign-in: "+(err.message||err)); }
-    return;
-  }
-  const b = e.target.closest("[data-unfam]"); if(!b) return;
-  if(!confirm("Remove this person's data from your phone? They keep their own.")) return;
-  delete state.family.members[b.dataset.unfam]; persist([], false); render(); toast("Removed.");
-});
-document.getElementById("addFamilyMember").onclick = ()=>{
-  const inp=document.getElementById("newFamilyMember"), name=(inp.value||"").trim();
-  if(!name){ inp.focus(); return; }
-  state.family=state.family||{members:{}}; state.family.members=state.family.members||{};
-  const id=mkey(name)||uidGen();
-  if(state.family.members[id]){ toast("That family member already exists."); return; }
-  state.family.members[id]={name,txns:[],createdAt:new Date().toISOString()};
-  inp.value=""; persist([],true); render(); toast("Family member added. They can link their Google account from here or on their phone.");
-};
-document.getElementById("famSync").onclick = ()=>{
-  try{
-    if(!(window.Android && window.Android.familySync)){ toast("Family sync needs the Android app, not this browser view."); return; }
-    const fam = state.family = state.family || { members: {} };
-    if(!fam.me){ toast("Add your name first, so the other phone knows whose data it is."); document.getElementById("meName").focus(); return; }
-    fam.deviceId = fam.deviceId || uidGen();
-    // share only what Family view needs
-    const slim = state.txns.map(t=>({ date: t.date, amount: t.amount, type: t.type, category: t.category, merchant: t.merchant,
-      share: t.share, currency: t.currency, fxRate: t.fxRate }));
-    window.Android.familySync(fam.me, JSON.stringify({ app: "sms-ledger-family", v: 2, id: fam.deviceId, name: fam.me, sentAt: new Date().toISOString(), txns: slim, events: Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e})), calendar: (state.calendar||[]).filter(e=>e.shared), shopping: (state.shopping||[]).filter(e=>e.shared && !e.done) }));
-    toast("Starting…");
-  }catch(e){ toast("Couldn't start: " + (e && e.message ? e.message : "unknown error") + ". Screenshot this and send it over."); }
-};
-window.familyStatus = function(msg){ toast(msg); };
-window.familyArrived = function(){
-  let raw = ""; try{ raw = window.Android.takeFamilyInbox(); }catch(e){}
-  if(!raw) return;
-  try{
-    const d = JSON.parse(raw);
-    if(d.app !== "sms-ledger-family" || !Array.isArray(d.txns)) throw new Error();
-    const fam = state.family = state.family || { members: {} };
-    if(d.id === fam.deviceId) return;
-    fam.members = fam.members || {};
-    fam.members[d.id] = { name: d.name || "Family member", syncedAt: new Date().toISOString(), txns: d.txns, events: d.events || [], calendar: d.calendar || [], shopping: d.shopping || [] };
-    persist([], false); homeFamily = true; render();
-    toast(`Got ${inr.format(d.txns.length)} entries from ${d.name}. See them in Home → Family.`);
-  }catch(e){ toast("The data from the other phone couldn't be read."); }
-};
 document.getElementById("removeImported").onclick = ()=>{
   const s = importedSummary();
   if(!confirm(`Remove ${inr.format(s.txns.length)} entries, ${inr.format(s.bills.length)} bills, ${inr.format(s.accountKeys.length)} accounts and ${inr.format(s.subs.length)} subscriptions not confirmed by SMS? This can't be undone.`)) return;
   removeImportedData(); render(); toast("Removed. Only SMS-confirmed data remains.");
 };
-document.getElementById("addPerson").onclick = ()=>{
-  const inp = document.getElementById("newPerson"), name = inp.value.trim();
-  if(!name){ toast("Type a name first."); return; }
-  addPerson(name); inp.value = ""; persist([], true); render(); toast("Added.");
-};
-document.getElementById("peopleList").addEventListener("click", e=>{
-  const b = e.target.closest("[data-delp]"); if(!b) return;
-  if(!confirm("Remove this person? Entries already tagged to them keep the tag, but you won't be able to pick them again unless you re-add them.")) return;
-  delete state.people[b.dataset.delp]; persist([], true); render();
-});
 document.getElementById("addCat").onclick = ()=>{
   const inp = document.getElementById("newCat"), name = inp.value.trim();
   if(!name){ toast("Type a category name first."); return; }
   if(CAT_COLOR[name]){ toast("That category already exists."); return; }
   addCustomCat(name); inp.value = ""; persist([], true); render(); toast("Category added.");
 };
+document.getElementById("budgetOpen").onclick=openBudgetSheet;
+if(document.getElementById("backupSeg")) document.getElementById("backupSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-backup]"); if(!b)return; const f=b.dataset.backup; try{window.Android?.setBackupSchedule(f);}catch(err){}; state.backupSchedule=f; persist([],true); render(); toast(f==="off"?"Automatic backup turned off.":(f==="daily"?"Daily automatic backup enabled.":"Weekly automatic backup enabled.")); });
+document.getElementById("backupNow").onclick=()=>{ try{ const ok=window.Android?.backupNow ? window.Android.backupNow() : false; document.getElementById("backupStatus").textContent=ok?"Latest backup saved on this phone.":"No ledger file to back up yet."; }catch(e){ toast("Backup could not be created."); } };
 document.getElementById("expCsv").onclick = ()=>save("sms-ledger-" + todayISO() + ".csv", toCSV());
 document.getElementById("expJson").onclick = ()=>save("sms-ledger-backup-" + todayISO() + ".json", JSON.stringify({ app:"sms-ledger", version:1, ...state }, null, 1));
 document.getElementById("impFile").addEventListener("change", async e=>{
@@ -3261,6 +3222,7 @@ window.appStatus = function(granted){
 window.importFinished = function(added, scanned){
   const el = document.querySelector(".toast"); if(el) el.remove();
   state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal();
+  try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
   toast(added ? `Added ${inr.format(added)} ${added===1?"entry":"entries"} from ${inr.format(scanned)} bank SMS.` : `Checked ${inr.format(scanned)} bank SMS. Nothing new to add.`);
   render();
 };
@@ -3272,18 +3234,15 @@ window.importProgress = function(done, total){
 };
 function rangeButtons(){
   return `<div class="range">
-    <button class="btn" data-days="90">Last 3 months<small>Quickest. Good for a fresh start.</small></button>
-    <button class="btn" data-days="365">Last year<small>A full year of spending history.</small></button>
-    <button class="btn" data-days="1826">Last 5 years<small>Can take a minute.</small></button>
-    <button class="btn" data-days="0">All SMS on this phone<small>Every bank SMS, however old. Can take a few minutes.</small></button>
+    <button class="btn primary" data-days="0">Read all SMS history<small>Reads the complete history available on this phone. Only bank transaction messages are converted into ledger entries.</small></button>
   </div>`;
 }
 window.chooseImportRange = function(){
   if(document.getElementById("langSheet")){ rangeAfterLang = true; return; }
   if(document.querySelector(".scrim")) return;
   const scrim = document.createElement("div"); scrim.className = "scrim";
-  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Import SMS"><h2>How far back should I read?</h2>
-    <p class="help">Only bank transaction SMS are read. You can import further back later from Settings.</p>${rangeButtons()}</div>`;
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Import SMS"><h2>Read your SMS history</h2>
+    <p class="help">The app will read the complete SMS history available on this phone. Only bank transaction messages are parsed into your ledger; OTPs, offers and unrelated messages are ignored.</p>${rangeButtons()}</div>`;
   document.body.appendChild(scrim);
   scrim.addEventListener("click", e=>{
     const b = e.target.closest("[data-days]");
@@ -3404,6 +3363,16 @@ function refreshCloudBlock(){
     row.classList.add("hidden"); inBtn.classList.remove("hidden"); outBtn.classList.add("hidden");
   }
 }
+document.getElementById("showSigningFingerprint")?.addEventListener("click", ()=>{
+  const out = document.getElementById("signingFingerprint");
+  if(!(window.Android && window.Android.getSigningFingerprints)){ out.style.display="block"; out.textContent="This diagnostic is available in the Android app."; return; }
+  try{
+    const r=JSON.parse(window.Android.getSigningFingerprints());
+    out.style.display="block";
+    out.textContent = r.ok ? `Package: ${r.package} · Version: ${r.version} (${r.versionCode}) · SHA-1: ${r.sha1} · SHA-256: ${r.sha256}` : `Unable to read signing certificate: ${r.error||"Unknown error"}`;
+  }catch(e){ out.style.display="block"; out.textContent="Unable to read signing certificate."; }
+});
+
 let cloudSignInTimer = null;
 window.cloudSignInResult = function(json){
   clearTimeout(cloudSignInTimer);
@@ -3466,7 +3435,7 @@ document.getElementById("themeSeg").addEventListener("click", e=>{
 
 /* ---------- Screen help ---------- */
 const HELP = {
-  home: { title: "Home", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
+  home: { title: "Ledger", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
     kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ: ಉಳಿತಾಯ, ಆದಾಯ ಮತ್ತು ಖರ್ಚು, ಮತ್ತು ನಿಮ್ಮ ಪ್ರಮುಖ ವರ್ಗಗಳು ಮತ್ತು ಪಾವತಿಸುವವರು." },
   overview: { title: "Summary", en: "Switch between Month, Year, All years or Events to see how your income and spending change.",
     kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳ ನಡುವೆ ಬದಲಿಸಿ ಆದಾಯ-ಖರ್ಚು ಹೇಗೆ ಬದಲಾಗುತ್ತದೆ ಎಂದು ನೋಡಿ." },
@@ -3496,7 +3465,7 @@ document.getElementById("helpBtn").onclick = openScreenHelp;
 
 /* ---------- First-run tour ---------- */
 const TOUR = [
-  { view: "home", title: "Home", en: "Your money this month, at a glance: savings, income vs expenses, and top categories.",
+  { view: "home", title: "Ledger", en: "Your money this month, at a glance: savings, income vs expenses, and top categories.",
     kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ ಒಂದೇ ನೋಟದಲ್ಲಿ: ಉಳಿತಾಯ, ಆದಾಯ-ಖರ್ಚು ಮತ್ತು ಪ್ರಮುಖ ವರ್ಗಗಳು." },
   { view: "overview", title: "Summary", en: "Month, Year, All years or Events — see your income and spending trends.",
     kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳು — ನಿಮ್ಮ ಆದಾಯ-ಖರ್ಚಿನ ಪ್ರವೃತ್ತಿ ನೋಡಿ." },
@@ -3608,8 +3577,7 @@ function showSmsConsent(){
       state.smsPermissionConfirmed=true; state.smsDataReady=false; state.smsConsentUiVersion=2; state.onboardingComplete=true; persist([],true);
       if(window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
       scrim.remove();
-      if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
-      else window.Android.importRange(90);
+      if(window.Android && window.Android.importRange) window.Android.importRange(90);
     } else if(window.Android && window.Android.requestSms){
       window.Android.requestSms();
     }
@@ -3630,9 +3598,13 @@ function runOnboardingChecks(){
   });
 }
 window.smsPermissionGranted = function(){
-  // Android permissions have been granted; detect the active SIM slots before asking for the
-  // separate in-app consent to read existing SMS.
-  checkSimOnboarding(()=>showSmsConsent());
+  // After Android grants permission, finish SIM tagging (if needed) and immediately import
+  // the complete historical bank-SMS window.
+  checkSimOnboarding(()=>{
+    state.smsPermissionConfirmed=true; state.smsDataReady=false; state.smsConsentUiVersion=2; state.onboardingComplete=true; persist([],true);
+    if(window.Android && window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
+    if(window.Android && window.Android.importRange) window.Android.importRange(0);
+  });
 };
 // If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
 // rather than leaving it to be found later in Settings. Settings still has the same choices,

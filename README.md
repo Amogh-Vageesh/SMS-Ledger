@@ -432,3 +432,31 @@ The app's local SMS ledger remains local unless family transaction sharing is en
 - Recent Expenses has been removed from Home. Full expenses remain accessible through the floating expense window.
 - Completed shopping items remain visible instead of disappearing from the Home shopping list.
 - Event details include category totals and identify the top spender. Only the event creator can edit or delete an event.
+
+## v1.46 changes
+
+- Google sign-in uses the explicit Google account chooser (`GetSignInWithGoogleOption`) with the existing legacy picker as a fallback.
+- After Android SMS permission is granted, the app automatically starts the initial 90-day bank-SMS import. It does not read existing SMS before permission is granted.
+- Active SIM detection is based on current Android active subscription slots. Dual-SIM setup requires a name for at least one SIM; unnamed SIMs receive an internal hidden identifier and do not appear in the Family Hub until renamed.
+- The Home title is now **Ledger** and the family icon is larger.
+- Settings no longer contains People/Family management; family management remains on the Home/Family screen.
+- Monthly budgets use a category picker. Category is optional; selecting Overall creates a single monthly budget.
+- Automatic local backups can be scheduled daily or weekly; the latest 7 are retained inside the app's private storage.
+- Kannada translations were expanded for the new Home, Settings, backup, budget, SMS and family UI.
+
+### Google Sign-In Firebase requirement
+
+In Firebase Console, enable **Authentication → Sign-in method → Google** for the Firebase project used by this app. The Android OAuth client must use package `in.vageesh.smsledger` and the SHA-1 of the release signing key. The Web OAuth client from `google-services.json` is used as the server client ID for the Google ID token.
+
+## Google Sign-In certificate check (v1.47)
+
+In the Android app, open **Settings → Cloud account → Show app SHA-1 / SHA-256**. Compare the displayed SHA-1 with the Android OAuth client certificate fingerprint in Firebase Console → Project settings → Your apps → Android app → SHA certificate fingerprints.
+
+For the current release keystore shipped with this project, the release SHA-1 is:
+`9C:5B:35:49:E1:2D:3D:FE:44:F1:B0:EB:8D:AC:18:FE:CF:3B:29:D5`
+
+The package name is `in.vageesh.smsledger`. If you build with a different signing key, the SHA-1 will be different and that fingerprint must also be registered in Firebase.
+
+## SMS import in v1.47
+
+The first import now reads the complete SMS history available on the phone (not just 90 days). The ledger parser still converts only supported bank transaction SMS into entries; OTPs, promotional messages and unrelated SMS are ignored. Existing installations receive a one-time full-history migration after upgrading to v1.47.

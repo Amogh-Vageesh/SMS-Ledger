@@ -8,6 +8,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -39,11 +40,29 @@ class CloudAuth(private val activity: ComponentActivity) {
             .put("photo", (u.photoUrl?.toString() ?: ""))
     }
 
-    /** Tries accounts already used with this app first; if none, offers the full account picker. */
+    /** Explicit Google button flow. This uses the provider's dedicated Google sign-in option,
+     * which opens the account chooser instead of relying on an already-authorized credential. */
     suspend fun signIn(): Result<JSONObject> {
-        val quiet = trySignIn(filterByAuthorizedAccounts = true)
-        if (quiet.isSuccess) return quiet
-        return trySignIn(filterByAuthorizedAccounts = false)
+        val option = GetSignInWithGoogleOption.Builder(webClientId).build()
+        val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+        return try {
+            val result = credentialManager.getCredential(activity, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val google = GoogleIdTokenCredential.createFrom(credential.data)
+                val firebaseCredential = GoogleAuthProvider.getCredential(google.idToken, null)
+                val authResult = auth.signInWithCredential(firebaseCredential).await()
+                val u = authResult.user ?: return Result.failure(Exception("Signed in but no user returned"))
+                Result.success(JSONObject().put("uid", u.uid).put("name", u.displayName ?: "")
+                    .put("email", u.email ?: "").put("photo", u.photoUrl?.toString() ?: ""))
+            } else Result.failure(Exception("Google returned an unsupported credential type"))
+        } catch (e: GetCredentialCancellationException) {
+            Result.failure(e)
+        } catch (e: GetCredentialException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private suspend fun trySignIn(filterByAuthorizedAccounts: Boolean): Result<JSONObject> {

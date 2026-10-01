@@ -32,6 +32,7 @@ import androidx.webkit.WebViewClientCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
@@ -225,7 +226,15 @@ class MainActivity : ComponentActivity() {
             // Never scan SMS merely because Android reports the permission as granted.
             // First-run onboarding must complete before any SMS is read.
             val smsConsentConfirmed = prefs.getBoolean("smsConsentConfirmed", false)
-            if (smsConsentConfirmed && hasSms()) scanInbox()
+            if (smsConsentConfirmed && hasSms()) {
+                // v1.47: migrate existing installations from the old 90-day first import
+                // to a one-time full historical bank-SMS import.
+                if (!prefs.getBoolean("fullSmsImportV47Done", false)) {
+                    scanInbox(0L, announce = true)
+                } else if (prefs.getBoolean("initialImportDone", false)) {
+                    scanInbox()
+                }
+            }
             web.evaluateJavascript("window.appOnline && window.appOnline()", null)
         }
     }
@@ -246,10 +255,9 @@ class MainActivity : ComponentActivity() {
         else if (!hasSms()) askPermissions()
     }
 
-    /** On the very first run, let the person pick how far back to read (3 months to 5 years). */
+    /** First import reads the complete SMS history, with bank-transaction filtering in SmsReader. */
     private fun firstImportOrScan() {
-        if (prefs.contains("lastScan")) scanInbox()
-        else web.evaluateJavascript("window.chooseImportRange && window.chooseImportRange()", null)
+        scanInbox(0L, announce = true)
     }
 
     private fun hasSms() = ContextCompat.checkSelfPermission(
@@ -296,7 +304,7 @@ class MainActivity : ComponentActivity() {
             prefs.edit().putLong("lastScan", maxOf(newest, prefs.getLong("lastScan", 0L))).apply()
         }
         if (total == 0) {
-            saveMark(); prefs.edit().putBoolean("initialImportDone", true).apply(); scanning = false
+            saveMark(); prefs.edit().putBoolean("initialImportDone", true).putBoolean("fullSmsImportV47Done", true).apply(); scanning = false
             if (announce) web.evaluateJavascript("window.importFinished && window.importFinished(0, 0)", null)
             return
         }
@@ -315,7 +323,7 @@ class MainActivity : ComponentActivity() {
                 val n = r?.toIntOrNull() ?: -1
                 if (n < 0) accepted = false else added += n
                 if (isLast) {
-                    if (accepted) { saveMark(); prefs.edit().putBoolean("initialImportDone", true).apply() }   // move the mark only once the page has taken them
+                    if (accepted) { saveMark(); prefs.edit().putBoolean("initialImportDone", true).putBoolean("fullSmsImportV47Done", true).apply() }   // move the mark only once the page has taken them
                     scanning = false
                     if (announce || added > 0)
                         web.evaluateJavascript("window.importFinished && window.importFinished($added, $total)", null)
@@ -350,6 +358,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private inner class Bridge {
+        @JavascriptInterface
+        fun getSigningFingerprints(): String {
+            fun hex(bytes: ByteArray): String = bytes.joinToString(":") { "%02X".format(it) }
+            return try {
+                val pm = packageManager
+                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+                }
+                val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.signingInfo.apkContentsSigners
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.signatures
+                }
+                val sig = signatures.firstOrNull() ?: return JSONObject().put("ok", false).put("error", "No signing certificate found").toString()
+                val sha1 = hex(MessageDigest.getInstance("SHA-1").digest(sig.toByteArray()))
+                val sha256 = hex(MessageDigest.getInstance("SHA-256").digest(sig.toByteArray()))
+                JSONObject().put("ok", true).put("package", packageName).put("sha1", sha1).put("sha256", sha256)
+                    .put("version", BuildConfig.VERSION_NAME).put("versionCode", BuildConfig.VERSION_CODE).toString()
+            } catch (e: Exception) {
+                JSONObject().put("ok", false).put("error", e.message ?: e.javaClass.simpleName).toString()
+            }
+        }
+
         @JavascriptInterface
         fun hasSmsAccess(): Boolean = hasSms()
 
@@ -422,6 +457,18 @@ class MainActivity : ComponentActivity() {
         fun setSmsConsentConfirmed() {
             prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).putBoolean("initialImportDone", false).apply()
         }
+
+        @JavascriptInterface
+        fun setInitialImportDone() { prefs.edit().putBoolean("initialImportDone", true).apply() }
+
+        @JavascriptInterface
+        fun setBackupSchedule(frequency: String) { BackupScheduler.set(this@MainActivity, frequency) }
+
+        @JavascriptInterface
+        fun getBackupSchedule(): String = BackupScheduler.get(this@MainActivity)
+
+        @JavascriptInterface
+        fun backupNow(): Boolean = BackupScheduler.backupNow(this@MainActivity)
 
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
