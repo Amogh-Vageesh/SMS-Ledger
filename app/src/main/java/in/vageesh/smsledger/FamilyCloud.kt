@@ -60,8 +60,9 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
 
     private suspend fun replaceArray(col: com.google.firebase.firestore.CollectionReference, arr: JSONArray?, uid: String, now: Long) {
         val keep = mutableSetOf<String>()
-        for (i in 0 until (arr?.length() ?: 0)) {
-            val o = arr.optJSONObject(i) ?: continue
+        val count = arr?.length() ?: 0
+        for (i in 0 until count) {
+            val o = arr?.optJSONObject(i) ?: continue
             val id = o.optString("id").ifBlank { UUID.randomUUID().toString() }
             val map = mutableMapOf<String, Any>("ownerUid" to uid, "updatedAt" to now)
             o.keys().forEach { k ->
@@ -99,7 +100,12 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         val root = db.collection("families").document(familyId).get().await()
         if (!root.exists()) throw IllegalArgumentException("Family no longer exists.")
         val members = db.collection("families").document(familyId).collection("members").get().await()
-        val a=JSONArray(); members.documents.forEach { a.put(JSONObject(it.data ?: emptyMap())) }
+        val a = JSONArray()
+        members.documents.forEach { doc ->
+            val obj = JSONObject()
+            doc.data?.forEach { (key, value) -> obj.put(key, value) }
+            a.put(obj)
+        }
         return JSONObject().put("ok",true).put("familyId",familyId).put("inviteCode",root.getString("inviteCode") ?: "").put("name",root.getString("name") ?: "My Family").put("members",a)
     }
 
