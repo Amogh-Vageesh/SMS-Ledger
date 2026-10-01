@@ -44,7 +44,12 @@ class MainActivity : ComponentActivity() {
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
             pushStatus()
-            if (res[Manifest.permission.READ_SMS] == true) firstImportOrScan()
+            if (res[Manifest.permission.READ_SMS] == true) {
+                web.evaluateJavascript(
+                    "window.checkSimOnboarding ? window.checkSimOnboarding(function(){ window.chooseImportRange && window.chooseImportRange(); }) : (window.chooseImportRange && window.chooseImportRange())",
+                    null
+                )
+            }
         }
 
     // <input type="file"> in the page (restore backup, FinArt import) needs a native picker.
@@ -196,9 +201,10 @@ class MainActivity : ComponentActivity() {
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
-        // On first launch the page asks for a language first; SMS permission comes after that.
+        // The WebView owns first-run sequencing: language -> Google account -> SMS permission.
+        // Do not request SMS here, otherwise a returning page could bypass Google onboarding.
         web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
-            if (needs == "true") waitingForLanguage = true else startupSms()
+            if (needs != "true") web.evaluateJavascript("window.runOnboardingChecks && window.runOnboardingChecks()", null)
         }
     }
 
@@ -456,7 +462,7 @@ class MainActivity : ComponentActivity() {
         /** First-launch language picked: carry on with SMS permission. */
         @JavascriptInterface
         fun languageChosen() = runOnUiThread {
-            if (waitingForLanguage) { waitingForLanguage = false; startupSms() }
+            if (waitingForLanguage) { waitingForLanguage = false; web.evaluateJavascript("window.runOnboardingChecks && window.runOnboardingChecks()", null) }
         }
 
         /** Hands the page the ledger received from the other phone, once. */

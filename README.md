@@ -275,3 +275,13 @@ or your messages app auto-deletes old messages, older entries won't be there to 
 ## Backups
 Settings > Download backup saves a JSON file. Restore it on a new phone, or in the
 web version, to move your ledger.
+
+## v1.40 Family Hub update
+
+- First-run sequence is now **Language → Google account → SMS permission**.
+- The previous ledger Home dashboard is now available under **Summary**.
+- Home is now the **Family Hub**, with family income/expense totals, events, calendar items and shopping list.
+- Events can be created directly from Home.
+- Multiple-SIM handling no longer creates family members. A detected SIM is only tagged to the person who uses that SIM, and the tag can be changed in Settings.
+- Shared events, calendar items and shopping items are included in the existing Family Sync payload.
+- GitHub Actions builds the release APK with Gradle 8.7.
