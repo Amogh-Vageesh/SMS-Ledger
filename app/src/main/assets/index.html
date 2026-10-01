@@ -420,8 +420,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   </div>
   <h1 class="section-h">Cloud account</h1>
   <div class="set-block" id="cloudBlock">
-    <p id="cloudNote">Sign in with Google to turn on sharing later — events, trips and lists you
-    choose to share with family. Your own entries stay on this phone either way.</p>
+    <p id="cloudNote">Sign in with your own Google account. Each family member should use their own Google account on their own phone. In Settings → Family, you can also link a Google account to a family member record.</p>
     <div id="cloudUserRow" class="hidden" style="display:flex;align-items:center;gap:12px;margin:10px 0">
       <span id="cloudAvatar" style="width:42px;height:42px;border-radius:50%;background:var(--brass);color:var(--brass-ink);font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"></span>
       <div style="flex-grow:1;min-width:0">
@@ -446,7 +445,8 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     <label class="budget" style="grid-template-columns:1fr 160px"><span>Your name in Family view</span>
       <input id="meName" placeholder="e.g. Vageesh" style="text-align:left"></label>
     <div id="famList"></div>
-    <p id="famHelp">Bring your ledgers together over Bluetooth. Both phones need SMS Ledger open on this screen, close to each other.</p>
+    <div class="row" style="margin:10px 0 8px"><input id="newFamilyMember" placeholder="Family member name, e.g. Wife" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="addFamilyMember">Add member</button></div>
+    <p id="famHelp">Each family member can link their own Google account. On their phone they sign in with their own Google account; this phone can store the account identity for the member. Family ledger sharing still uses the existing family sync.</p>
     <div class="row" style="margin:0 0 12px"><button class="btn primary" id="famSync">Sync with family nearby</button></div>
   </div>
   <h1 class="section-h">Currencies</h1>
@@ -850,6 +850,7 @@ function persist(months, settings){
   (months||[]).forEach(m=>dirtyMonths.add(m));
   if(settings) settingsDirty = true;
   saveLocal();
+  scheduleFamilyCloudPublish();
   if(!db || !uid) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(flushDb, 600);
@@ -1576,7 +1577,14 @@ function findEventNudge(name, date, excludeId){
 // is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
 function renderFamily(){
   const people = peopleList(), events = eventList();
-  let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0">Create people and events here, tag spending to them, and mark what you'd like to share once family sync is turned on. Sharing isn't live yet — this gets it ready.</p></div>`;
+  const fam = state.family = state.family || { members: {} };
+  if(cloudUser && fam.cloudId && window.Android && window.Android.listenFamily && familyCloudListeningId !== fam.cloudId){ familyCloudListeningId=fam.cloudId; window.Android.listenFamily(fam.cloudId); }
+  const cloudReady = !!(window.Android && window.Android.createFamily && cloudUser);
+  let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0"><b>Family Cloud</b><br>Events, calendar, shopping lists and family-shared transactions sync through Firebase. Your private SMS ledger stays on this phone unless you choose to share it.</p>`;
+  if(!cloudUser){ html += `<p class="help">Sign in with Google in Settings first.</p>`; }
+  else if(!fam.cloudId){ html += `<div class="row"><button class="btn primary" id="famCreateCloud">Create family</button><button class="btn" id="famJoinCloud">Join with code</button></div>`; }
+  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><label class="check" style="margin-top:10px"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}> Share my SMS transactions with family</label>`; }
+  html += `</div>`;
 
   html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
 
@@ -1602,6 +1610,10 @@ function renderFamily(){
 document.getElementById("homeFamBtn").onclick = ()=>{ view = "family"; window.scrollTo(0,0); render(); };
 document.getElementById("famBack").onclick = ()=>{ view = "home"; window.scrollTo(0,0); render(); };
 document.getElementById("famBody").addEventListener("click", e=>{
+  if(e.target.id === "famCreateCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const name=(famPrompt("Family name", "My Family")||"").trim(); if(name && window.Android) window.Android.createFamily(name); return; }
+  if(e.target.id === "famJoinCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const code=(famPrompt("Enter family code", "")||"").trim(); if(!code)return; const name=(famPrompt("Your name in the family", cloudUser.name||"")||"").trim(); if(window.Android) window.Android.joinFamily(code,name); return; }
+  if(e.target.id === "famCopyCode"){ try{ navigator.clipboard.writeText((state.family||{}).cloudCode||""); toast("Family code copied."); }catch(_){ toast("Family code: "+((state.family||{}).cloudCode||"")); } return; }
+  if(e.target.id === "famSyncCloud"){ publishFamilyCloud(true); return; }
   if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
   if(e.target.id === "famAddPerson"){
     const inp = document.getElementById("famNewPerson"), name = inp.value.trim();
@@ -1621,6 +1633,32 @@ document.getElementById("famBody").addEventListener("click", e=>{
     delete state.people[dp.dataset.delp2]; persist([], true); render();
   }
 });
+document.getElementById("famBody").addEventListener("change", e=>{
+  if(e.target.id === "famShareTx"){ state.family=state.family||{members:{}}; state.family.shareTransactions=!!e.target.checked; persist([],true); publishFamilyCloud(true); }
+});
+function famPrompt(title, value){ return window.prompt(title, value||""); }
+
+let familyCloudTimer=null, familyCloudListeningId="";
+function scheduleFamilyCloudPublish(){ if(!(window.Android&&window.Android.publishFamily)) return; if(!(state.family&&state.family.cloudId)) return; clearTimeout(familyCloudTimer); familyCloudTimer=setTimeout(()=>publishFamilyCloud(false),900); }
+function publishFamilyCloud(force){
+  if(!(window.Android&&window.Android.publishFamily)) return; const fam=state.family||{}; if(!fam.cloudId||!cloudUser) return;
+  const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({id:t.id,date:t.date,amount:t.amount,type:t.type,category:t.category,merchant:t.merchant,currency:t.currency,fxRate:t.fxRate,person:t.person,event:t.event})) : [];
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e})),calendar:(state.calendar||[]).filter(e=>e.shared),shopping:(state.shopping||[]).filter(e=>e.shared&&!e.done),transactions:txns};
+  try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
+}
+window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
+window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){return}; if(!r.ok){toast(r.error||"Couldn't load family");return;} state.family=state.family||{members:{}}; state.family.cloudName=r.name||"My Family"; state.family.cloudCode=r.inviteCode||""; state.family.members=state.family.members||{}; (r.members||[]).forEach(m=>{const id=m.uid||uidGen(); state.family.members[id]={...(state.family.members[id]||{}),name:m.name||m.email||"Member",googleUid:m.uid||"",googleEmail:m.email||""};}); saveLocal(); render(); };
+window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
+window.familyCloudArrived=function(json){
+  let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
+  const kinds=["members","transactions","events","calendar","shopping"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
+  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
+  saveLocal(); render();
+};
+window.familyCloudError=function(msg){ if(msg) toast(msg); };
+
 function familyMembers(){
   return Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m, kind: "remote" }));
 }
@@ -1635,7 +1673,7 @@ async function refreshSimBlock(){
   if(!Object.values(state.simOwners).some(o=>o.isMe) && simListCache.length){ state.simOwners[simListCache[0].id] = { ...(state.simOwners[simListCache[0].id]||{}), isMe: true }; persist([], false); }
   document.getElementById("simList").innerHTML = simListCache.map((sim,i)=>{
     const o = state.simOwners[sim.id] || {};
-    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc(o.name || sim.label || ("SIM " + (i+1)))}" placeholder="${esc(sim.label || "SIM " + (i+1))}">
+    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc(o.name || "")}" placeholder="Enter person name (e.g. Vageesh)">
       <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
   }).join("");
 }
@@ -2383,8 +2421,11 @@ function renderSettings(){
   const fam = state.family || {};
   const mn = document.getElementById("meName"); if(document.activeElement !== mn) mn.value = fam.me || "";
   const ms = familyMembers();
-  document.getElementById("famList").innerHTML = ms.map(m=>`<div class="due"><span class="n">${esc(m.name)}</span><span class="num" style="color:var(--muted);font-size:.85rem">${inr.format((m.txns||[]).length)} entries</span>
-    <span class="w" style="grid-column:1/3"><span>Synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}</span><button class="mini" data-unfam="${esc(m.id)}">Remove</button></span></div>`).join("");
+  document.getElementById("famList").innerHTML = ms.map(m=>{
+    const ga = m.googleEmail ? `Google: ${esc(m.googleEmail)}` : "Google account not linked";
+    return `<div class="due"><span class="n">${esc(m.name)}</span><span class="num" style="color:var(--muted);font-size:.85rem">${inr.format((m.txns||[]).length)} entries</span>
+      <span class="w" style="grid-column:1/3;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>${ga}</span><button class="mini" data-linkfam="${esc(m.id)}">${m.googleEmail?"Relink Google":"Link Google"}</button><button class="mini" data-unfam="${esc(m.id)}">Remove</button></span></div>`;
+  }).join("");
   const nat = !!(window.Android && window.Android.familySync);
   document.getElementById("famSync").classList.toggle("hidden", !nat);
   if(!nat) document.getElementById("famHelp").textContent = "Family sync works in the Android app, phone to phone over Bluetooth.";
@@ -2922,10 +2963,30 @@ document.getElementById("budgets").addEventListener("change", e=>{
 document.getElementById("fxConvert").onclick = ()=>{ toast("Getting exchange rates…"); convertPending(true); };
 document.getElementById("meName").addEventListener("change", e=>{ state.family = state.family || { members: {} }; state.family.me = e.target.value.trim(); persist([], false); toast("Name saved."); });
 document.getElementById("famList").addEventListener("click", e=>{
+  const link = e.target.closest("[data-linkfam]");
+  if(link){
+    if(!(window.Android && window.Android.signIn)){ toast("Google sign-in is available in the Android app."); return; }
+    const memberId = link.dataset.linkfam;
+    const member = (state.family && state.family.members && state.family.members[memberId]) || null;
+    if(member && !confirm(`This signs this phone into ${member.name}'s Google account and makes it the current app account. For normal family use, ask ${member.name} to sign in on their own phone. Continue?`)) return;
+    window.pendingFamilyGoogleMember = memberId;
+    link.textContent = "Opening…"; link.disabled = true;
+    try{ window.Android.signIn(); }catch(err){ link.textContent = "Link Google"; link.disabled = false; window.pendingFamilyGoogleMember = null; toast("Could not start Google sign-in: "+(err.message||err)); }
+    return;
+  }
   const b = e.target.closest("[data-unfam]"); if(!b) return;
   if(!confirm("Remove this person's data from your phone? They keep their own.")) return;
   delete state.family.members[b.dataset.unfam]; persist([], false); render(); toast("Removed.");
 });
+document.getElementById("addFamilyMember").onclick = ()=>{
+  const inp=document.getElementById("newFamilyMember"), name=(inp.value||"").trim();
+  if(!name){ inp.focus(); return; }
+  state.family=state.family||{members:{}}; state.family.members=state.family.members||{};
+  const id=mkey(name)||uidGen();
+  if(state.family.members[id]){ toast("That family member already exists."); return; }
+  state.family.members[id]={name,txns:[],createdAt:new Date().toISOString()};
+  inp.value=""; persist([],true); render(); toast("Family member added. They can link their Google account from here or on their phone.");
+};
 document.getElementById("famSync").onclick = ()=>{
   try{
     if(!(window.Android && window.Android.familySync)){ toast("Family sync needs the Android app, not this browser view."); return; }
@@ -3136,7 +3197,7 @@ document.getElementById("smsRescan").addEventListener("click", e=>{
   const b = e.target.closest("[data-days]");
   if(!b || !window.Android) return;
   const days = +b.dataset.days;
-  const go = ()=>{ window.Android.importRange(days); toast(days === 0 ? "Reading every bank SMS on this phone…" : "Reading your SMS…"); };
+  const go = ()=>{ localStorage.setItem("smsledger.initialImportDone","1"); window.Android.importRange(days); toast(days === 0 ? "Reading every bank SMS on this phone…" : "Reading your SMS…"); };
   if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
 });
 function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
@@ -3224,7 +3285,7 @@ function refreshCloudBlock(){
     try{ const u = JSON.parse(window.Android.getCurrentUser()); if(u) cloudUser = u; }catch(e){}
   }
   if(cloudUser){
-    note.textContent = "Signed in. Sharing features arrive once family sync is built on top of this.";
+    note.textContent = "Signed in. Family Cloud is available from Home → Family.";
     document.getElementById("cloudName").textContent = cloudUser.name || cloudUser.email || "Signed in";
     document.getElementById("cloudEmail").textContent = cloudUser.email || "";
     document.getElementById("cloudAvatar").textContent = (cloudUser.name || cloudUser.email || "?").slice(0,1).toUpperCase();
@@ -3240,7 +3301,19 @@ window.cloudSignInResult = function(json){
   let r; try{ r = JSON.parse(json); }catch(e){ r = { ok:false, error:"Couldn't read the result." }; }
   document.getElementById("cloudSignIn").textContent = "Sign in with Google";
   document.getElementById("cloudSignIn").disabled = false;
-  if(r.ok){ cloudUser = r; refreshCloudBlock(); toast("Signed in."); return; }
+  if(r.ok){
+    cloudUser = r;
+    const targetId = window.pendingFamilyGoogleMember;
+    if(targetId){
+      state.family = state.family || {members:{}}; state.family.members = state.family.members || {};
+      const member = state.family.members[targetId];
+      if(member){ member.googleUid = r.uid || ""; member.googleEmail = r.email || ""; member.googleName = r.name || ""; member.googleLinkedAt = new Date().toISOString(); persist([], true); }
+      window.pendingFamilyGoogleMember = null;
+      refreshCloudBlock(); render(); toast("Google account linked to the family member.");
+      return;
+    }
+    refreshCloudBlock(); if(state.family&&state.family.cloudId&&window.Android&&window.Android.listenFamily&&familyCloudListeningId!==state.family.cloudId){ familyCloudListeningId=state.family.cloudId; window.Android.listenFamily(state.family.cloudId); } toast("Signed in."); return;
+  }
   cloudUser = null; refreshCloudBlock();
   if(r.signedOut){ toast("Signed out."); return; }
   if(r.cancelled) return; // they backed out of the picker; no need to announce that
@@ -3355,10 +3428,25 @@ function showFirstRunSignIn(){
   if(state.googleOnboardingDone || !(window.Android && window.Android.signIn)){ runOnboardingChecks(); return; }
   const normalHandler = window.cloudSignInResult;
   const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="firstGoogleSheet";
-  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose Google account"><h2>Choose your Google account</h2><p class="help">Sign in before SMS access so your family identity is set up correctly. Your Google password is never shared with this app.</p><div class="row"><button class="btn primary" id="fr-signin">Choose Google account</button></div></div>`;
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose Google account"><h2>Choose your Google account</h2><p class="help">Sign in to enable family sharing. You can skip this and use the ledger without a Google account. You can sign in later from Settings.</p><div class="row" style="display:grid;gap:10px"><button class="btn primary" id="fr-signin">Choose Google account</button><button class="btn" id="fr-skip">Skip for now</button></div><p class="hint" id="fr-google-error" style="display:none"></p></div>`;
   document.body.appendChild(scrim);
+  const finish=()=>{
+    state.googleOnboardingDone=true;
+    persist([],true);
+    if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
+    scrim.remove(); refreshCloudBlock(); runOnboardingChecks();
+  };
+  scrim.querySelector("#fr-skip").onclick=()=>{ state.googleSkipped=true; finish(); };
   const btn=scrim.querySelector("#fr-signin");
-  btn.onclick=()=>{ btn.textContent="Opening Google…"; btn.disabled=true; window.cloudSignInResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(r.ok){cloudUser=r;state.googleOnboardingDone=true;persist([],true);window.cloudSignInResult=normalHandler;scrim.remove();refreshCloudBlock();runOnboardingChecks();}else{btn.textContent="Choose Google account";btn.disabled=false;if(!r.cancelled)toast("Couldn't sign in: "+(r.error||"Try again."));} }; try{window.Android.signIn();}catch(e){btn.textContent="Choose Google account";btn.disabled=false;toast("Couldn't start Google sign-in.");} };
+  btn.onclick=()=>{
+    btn.textContent="Opening Google…"; btn.disabled=true;
+    window.cloudSignInResult=function(json){
+      let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid response from Google sign-in"}};
+      if(r.ok){ cloudUser=r; state.googleSkipped=false; state.googleOnboardingDone=true; persist([],true); if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete(); window.cloudSignInResult=normalHandler; scrim.remove(); refreshCloudBlock(); runOnboardingChecks(); }
+      else { btn.textContent="Choose Google account"; btn.disabled=false; const err=scrim.querySelector("#fr-google-error"); err.textContent=r.cancelled ? "Google sign-in was cancelled. Try again or skip for now." : ("Google sign-in failed: "+(r.error||"Please try again.")); err.style.display="block"; }
+    };
+    try{ window.Android.signIn(); }catch(e){ btn.textContent="Choose Google account"; btn.disabled=false; const err=scrim.querySelector("#fr-google-error"); err.textContent="Google sign-in could not start: "+(e.message||e); err.style.display="block"; }
+  };
 }
 
 /* ---------- Language choice ---------- */
@@ -3397,8 +3485,26 @@ window.needsLanguage = function(){ return !state.lang; };
 // having just been chosen in *this* session.
 function runOnboardingChecks(){
   if(window.Android && window.Android.signIn && !state.googleOnboardingDone){ showFirstRunSignIn(); return; }
-  checkSimOnboarding(()=>{ if(rangeAfterLang){ rangeAfterLang=false; window.chooseImportRange(); } else if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){ /* already granted */ } else if(window.Android && window.Android.requestSms){ window.Android.requestSms(); } });
+  checkSimOnboarding(()=>{
+    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
+      state.smsPermissionConfirmed = true;
+      state.onboardingComplete = true;
+      persist([], true);
+      if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
+      if(rangeAfterLang){ rangeAfterLang=false; window.chooseImportRange(); }
+      else if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
+      return;
+    }
+    if(window.Android && window.Android.requestSms) window.Android.requestSms();
+  });
 }
+window.smsPermissionGranted = function(){
+  state.smsPermissionConfirmed = true;
+  state.onboardingComplete = true;
+  persist([], true);
+  if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
+  if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
+};
 // If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
 // rather than leaving it to be found later in Settings. Settings still has the same choices,
 // to change it afterward (a SIM swap, a new family member, etc).
@@ -3417,7 +3523,7 @@ function checkSimOnboarding(next){
   const draw = ()=>{
     scrim.querySelector("#fr-simList").innerHTML = sims.map((sim,i)=>{
       const o = state.simOwners[sim.id] || {};
-      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc(o.name || sim.label || ("SIM " + (i+1)))}" placeholder="${esc(sim.label || "SIM " + (i+1))}">
+      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc(o.name || "")}" placeholder="Enter person name (e.g. Vageesh)">
         <label><input type="radio" name="frSimMe" data-frsimme="${sim.id}" ${o.isMe || (!Object.values(state.simOwners).some(x=>x.isMe) && i===0) ? "checked" : ""}>Mine</label></div>`;
     }).join("");
   };
@@ -3434,9 +3540,10 @@ function checkSimOnboarding(next){
       return;
     }
     if(e.target.id === "fr-simDone"){
+      const missing = sims.some(sim => !((state.simOwners[sim.id] || {}).name || "").trim());
+      if(missing){ toast("Please enter a name for every SIM before continuing."); return; }
       sims.forEach((sim,i)=>{
         if(!state.simOwners[sim.id]) state.simOwners[sim.id] = {};
-        if(!state.simOwners[sim.id].name) state.simOwners[sim.id].name = sim.label || ("SIM " + (i+1));
         if(!state.simOwners[sim.id].color) state.simOwners[sim.id].color = PALETTE[i % PALETTE.length];
       });
       if(!Object.values(state.simOwners).some(o=>o.isMe) && sims[0]) state.simOwners[sims[0].id].isMe = true;

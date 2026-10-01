@@ -45,10 +45,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
             pushStatus()
             if (res[Manifest.permission.READ_SMS] == true) {
-                web.evaluateJavascript(
-                    "window.checkSimOnboarding ? window.checkSimOnboarding(function(){ window.chooseImportRange && window.chooseImportRange(); }) : (window.chooseImportRange && window.chooseImportRange())",
-                    null
-                )
+                web.evaluateJavascript("window.smsPermissionGranted && window.smsPermissionGranted()", null)
             }
         }
 
@@ -60,6 +57,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private val cloudAuth by lazy { CloudAuth(this) }
+    private val familyCloud by lazy { FamilyCloud(this,
+        { json -> runOnUiThread { web.evaluateJavascript("window.familyCloudArrived && window.familyCloudArrived(${JSONObject.quote(json)})", null) } },
+        { msg -> runOnUiThread { web.evaluateJavascript("window.familyCloudError && window.familyCloudError(${JSONObject.quote(msg)})", null) } }
+    ) }
 
     private val family by lazy {
         FamilySync(this, { msg -> runOnUiThread { toastJs(msg) } },
@@ -183,6 +184,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         runCatching { family.stop() }
+        runCatching { familyCloud.stop() }
         super.onDestroy()
     }
 
@@ -191,7 +193,10 @@ class MainActivity : ComponentActivity() {
         NotificationManagerCompat.from(this).cancel(SmsReceiver.NOTIFY_ID)
         if (pageReady) {
             pushStatus()
-            if (hasSms()) scanInbox()
+            // Never scan SMS merely because Android reports the permission as granted.
+            // First-run onboarding must complete before any SMS is read.
+            val onboardingComplete = prefs.getBoolean("onboardingComplete", false)
+            if (onboardingComplete && hasSms()) scanInbox()
             web.evaluateJavascript("window.appOnline && window.appOnline()", null)
         }
     }
@@ -201,8 +206,7 @@ class MainActivity : ComponentActivity() {
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
-        // The WebView owns first-run sequencing: language -> Google account -> SMS permission.
-        // Do not request SMS here, otherwise a returning page could bypass Google onboarding.
+        // The WebView owns first-run sequencing: language -> Google account/skip -> SIM names -> SMS permission.
         web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
             if (needs != "true") web.evaluateJavascript("window.runOnboardingChecks && window.runOnboardingChecks()", null)
         }
@@ -321,12 +325,13 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun requestSms() = runOnUiThread {
-            val canAsk = !prefs.getBoolean("asked", false) ||
-                shouldShowRequestPermissionRationale(Manifest.permission.READ_SMS)
-            if (canAsk) askPermissions()
-            else startActivity(   // permanently denied: open app settings instead
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
-            )
+            // Do not silently read or scan here. Android must show the runtime permission prompt
+            // whenever the permission has not been granted.
+            if (!hasSms()) {
+                askPermissions()
+            } else {
+                web.evaluateJavascript("window.smsPermissionGranted && window.smsPermissionGranted()", null)
+            }
         }
 
         /**
@@ -374,6 +379,9 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun setLanguage(lang: String) { prefs.edit().putString("lang", if (lang == "kn") "kn" else "en").apply() }
 
+        @JavascriptInterface
+        fun setOnboardingComplete() { prefs.edit().putBoolean("onboardingComplete", true).apply() }
+
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
         fun setTheme(theme: String) = runOnUiThread {
@@ -415,6 +423,44 @@ class MainActivity : ComponentActivity() {
         }
 
         /** Signs out and notifies the page via window.cloudSignInResult({"ok":false,"signedOut":true}). */
+        @JavascriptInterface
+        fun createFamily(name: String) {
+            lifecycleScope.launch {
+                val json = try { familyCloud.createFamily(name).toString() } catch (e: Throwable) { JSONObject().put("ok", false).put("error", e.message ?: "Could not create family").toString() }
+                web.evaluateJavascript("window.familyCloudResult && window.familyCloudResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
+        @JavascriptInterface
+        fun joinFamily(code: String, name: String) {
+            lifecycleScope.launch {
+                val json = try { familyCloud.joinFamily(code, name).toString() } catch (e: Throwable) { JSONObject().put("ok", false).put("error", e.message ?: "Could not join family").toString() }
+                web.evaluateJavascript("window.familyCloudResult && window.familyCloudResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
+        @JavascriptInterface
+        fun publishFamily(familyId: String, payload: String) {
+            lifecycleScope.launch {
+                val json = try { familyCloud.publish(familyId, JSONObject(payload)); JSONObject().put("ok", true).toString() } catch (e: Throwable) { JSONObject().put("ok", false).put("error", e.message ?: "Could not sync family data").toString() }
+                web.evaluateJavascript("window.familyCloudPublishResult && window.familyCloudPublishResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
+        @JavascriptInterface
+        fun listenFamily(familyId: String) {
+            if (familyId.isBlank()) return
+            familyCloud.listen(familyId)
+        }
+
+        @JavascriptInterface
+        fun getFamilyInfo(familyId: String) {
+            lifecycleScope.launch {
+                val json = try { familyCloud.familyInfo(familyId).toString() } catch (e: Throwable) { JSONObject().put("ok", false).put("error", e.message ?: "Could not load family").toString() }
+                web.evaluateJavascript("window.familyInfoResult && window.familyInfoResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
         @JavascriptInterface
         fun signOutCloud() {
             lifecycleScope.launch {

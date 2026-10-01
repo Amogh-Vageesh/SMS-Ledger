@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function memberOf(familyId) {
+      return signedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    // A short invite code maps to a family. Anyone authenticated can resolve a code;
+    // joining still requires the caller to write their own member document.
+    match /familyInvites/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if signedIn();
+    }
+
+    match /families/{familyId} {
+      // Family creator may create the root; existing members may read it.
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if memberOf(familyId);
+      allow update: if memberOf(familyId) && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if memberOf(familyId);
+        allow create: if signedIn() && request.auth.uid == uid;
+        allow update: if memberOf(familyId) && request.auth.uid == uid;
+        allow delete: if memberOf(familyId) && (request.auth.uid == uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerUid == request.auth.uid);
+      }
+
+      match /events/{docId} {
+        allow read: if memberOf(familyId);
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+      }
+      match /calendar/{docId} {
+        allow read: if memberOf(familyId);
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+      }
+      match /shopping/{docId} {
+        allow read: if memberOf(familyId);
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+      }
+      match /transactions/{docId} {
+        allow read: if memberOf(familyId);
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+      }
+    }
+  }
+}

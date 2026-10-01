@@ -285,3 +285,109 @@ web version, to move your ledger.
 - Multiple-SIM handling no longer creates family members. A detected SIM is only tagged to the person who uses that SIM, and the tag can be changed in Settings.
 - Shared events, calendar items and shopping items are included in the existing Family Sync payload.
 - GitHub Actions builds the release APK with Gradle 8.7.
+
+## v1.41 startup fixes
+- First-run Google account step now has **Skip for now** and never blocks local ledger use.
+- SMS scanning is blocked until onboarding has completed and Android reports SMS permission granted.
+- SMS runtime permission is requested explicitly; the app no longer scans on resume just because a permission happens to exist.
+- Dual-SIM onboarding requires a **person name for every SIM**. SIM1/SIM2 are only placeholders and are not stored as family-member names.
+- The same SIM names remain editable later in Settings.
+- Google sign-in failures/cancellation are shown on-screen instead of leaving the onboarding sheet stuck.
+
+
+## Google Sign-In for family members
+
+Version 1.42 supports a Google identity for each family member record. The intended model is **one Google account per person, normally signed in on that person's own phone**. Firebase Auth maintains one active Google session per app installation; it does not support several people being simultaneously signed into one phone as separate Firebase users.
+
+### Enable Google Sign-In in Firebase
+
+1. Open the Firebase project shown in `app/google-services.json`: **sms-ledger-family**.
+2. Go to **Authentication → Sign-in method**.
+3. Enable **Google** as a provider and save.
+4. In **Project settings → Your apps → Android app**, confirm package name `in.vageesh.smsledger`.
+5. Add the SHA-1 certificate fingerprint for every signing certificate used to build the app. The supplied release keystore uses the certificate already represented in the current `google-services.json`; if you replace the keystore or use a different GitHub Actions signing key, add that key's SHA-1 too.
+6. Download the updated `google-services.json` if Firebase gives you a changed configuration, and replace `app/google-services.json`.
+7. In **Authentication → Users**, you should see a user appear after a family member completes Google sign-in.
+
+### How family members use it
+
+1. Install the same APK on each family member's phone.
+2. On first launch, choose the language.
+3. Choose that person's own Google account.
+4. Grant SMS permission when requested.
+5. If the phone has multiple SIMs, enter the person name for each SIM.
+6. Open **Settings → Family** and use the member name when sharing/syncing family data.
+7. The family member's Google email/UID can be stored against that member record.
+
+### Linking a member from Family settings
+
+In **Settings → Family**, add a family member and use **Link Google** next to that member. This launches Google account selection and records the selected account's UID/email on that member record. Because Firebase has one active user per app installation, this action changes the current signed-in account on that phone; it is therefore recommended to perform it on the relevant family member's own phone rather than switching accounts on the family owner's phone.
+
+### Important distinction
+
+- **Google account** identifies the person.
+- **SIM name** identifies which SIM produced an SMS transaction.
+- A SIM does **not** create a Firebase/Google family member.
+- Family sync can continue to use the existing nearby-device mechanism; Google identity is an identity layer, not a second SIM.
+
+## Family Cloud / Firestore setup (v1.43)
+
+Family Cloud uses Firebase Authentication + Cloud Firestore. Each family member signs in with their own Google account on their own phone. A family owner creates a family and shares the generated 8-character family code; another member signs in with Google and joins with that code.
+
+### 1. Enable Cloud Firestore
+
+In Firebase Console for the same project used by `app/google-services.json`:
+
+1. Open **Build / Firestore Database**.
+2. Click **Create database**.
+3. Use the default database and choose a production-oriented mode.
+4. Choose the region closest to your users.
+
+The app's `firebase.json` points to `firestore.rules`. Deploy the included rules with Firebase CLI if desired:
+
+```bash
+firebase login
+firebase use <your-project-id>
+firebase deploy --only firestore:rules
+```
+
+Or paste `firestore.rules` into **Firestore Database → Rules** and Publish.
+
+### 2. Authentication
+
+Under **Authentication → Sign-in method**, keep **Google** enabled. The Android app already uses Firebase Authentication for Google Sign-In.
+
+### 3. Android app configuration
+
+Keep the `app/google-services.json` generated for this Firebase project. If you change the Firebase Android app, download a fresh file and replace it.
+
+The Android package/application ID is:
+
+`in.vageesh.smsledger`
+
+### 4. Family workflow
+
+On phone A:
+
+1. Sign in with Google.
+2. Home → Family.
+3. Select **Create family**.
+4. Give the family a name.
+5. Share the displayed family code.
+
+On phone B:
+
+1. Install the same APK.
+2. Sign in with the second family member's Google account.
+3. Home → Family → **Join with code**.
+4. Enter the family code and the member's display name.
+
+After joining, Firestore listeners keep shared events, calendar entries, shopping items and shared transactions updated across phones.
+
+### 5. Privacy model
+
+The app does **not** upload the entire SMS inbox. Family Cloud publishes only the data selected for family sharing. The Family Hub contains a **Share my SMS transactions with family** toggle; when it is off, the local SMS ledger remains on the phone.
+
+### 6. Security
+
+The included rules require Firebase Authentication and verify family membership before allowing access to a family's shared collections. Do not replace them with Firestore "allow read, write: if true" rules in production.
