@@ -420,3 +420,15 @@ The included rules require Firebase Authentication and verify family membership 
 ### Important
 
 The app's local SMS ledger remains local unless family transaction sharing is enabled. Shared Family Hub objects are synchronized through Firestore.
+
+## v1.45 fixes
+
+- Google Sign-In now uses Firebase's generated `default_web_client_id` instead of a hard-coded OAuth client ID and falls back to the legacy Google account picker when Credential Manager cannot complete the picker, including cancellation/provider failures.
+- SMS-derived dashboard data is hidden until the user completes the new in-app SMS consent and an SMS import has completed. Upgrading from an earlier build forces this consent/import cycle once.
+- SIM detection uses current active subscription slots (`simSlotIndex`) and de-duplicates by slot, avoiding stale historical SMS subscription IDs. Android `READ_PHONE_STATE` is requested only as part of the required access flow so active SIM slots can be identified accurately.
+- Dual-SIM onboarding requires a name for at least one SIM. Other SIM names can be left blank; those SIMs receive an internal hidden placeholder and are not displayed in the Family Hub until renamed in Settings.
+- The bottom navigation uses the actual number of visible tabs; removing a tab no longer leaves an empty sixth column.
+- Settings blocks use content-visibility containment to reduce off-screen rendering work and improve scrolling performance.
+- Recent Expenses has been removed from Home. Full expenses remain accessible through the floating expense window.
+- Completed shopping items remain visible instead of disappearing from the Home shopping list.
+- Event details include category totals and identify the top spender. Only the event creator can edit or delete an event.

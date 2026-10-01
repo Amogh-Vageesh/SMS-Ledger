@@ -156,8 +156,9 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .check{display:flex;gap:8px;align-items:center;font-size:.9rem;margin-bottom:14px}
 .check input{accent-color:var(--brass);width:18px;height:18px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:20;max-width:90vw}
-.tabs nav{grid-template-columns:repeat(6,1fr)!important}
+.tabs nav{grid-template-columns:repeat(5,1fr)!important}
 .tabs button{font-size:.72rem!important}
+#v-settings .set-block{content-visibility:auto;contain-intrinsic-size:90px;}
 .home-top{display:flex;justify-content:space-between;align-items:center;margin:4px 0 16px}
 .home-top h1{font-family:var(--serif);font-weight:400;font-size:1.6rem;margin:0}
 .home-top .hi{color:var(--muted);font-size:.9rem}
@@ -819,7 +820,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {} }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
+function blankState(){ return { smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {} }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false;
@@ -835,6 +836,9 @@ function loadLocal(){
     let raw = NATIVE ? window.Android.loadState() : "";
     if(!raw) raw = localStorage.getItem(LS_KEY);
     if(raw){ const s = JSON.parse(raw); state = { ...blankState(), ...s }; }
+    // v1.45 deliberately requires a fresh in-app SMS consent/import cycle so old SMS-derived
+    // totals are not shown before the user has reviewed the new permission flow.
+    if(state.smsConsentUiVersion !== 2){ state.smsPermissionConfirmed = false; state.smsDataReady = false; state.smsConsentUiVersion = 0; }
   }catch(e){}
 }
 let nativeTimer = null;
@@ -1615,10 +1619,10 @@ function createEventForm(existingId){
   const ev=existingId ? state.events[existingId] : null; if(existingId&&!ev)return;
   const scrim=document.createElement('div'); scrim.className='scrim';
   const editable=!!ev;
-  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${editable?'Edit event':'Create event'}</h2><label class="field"><span>Event name</span><input id="nef-name" value="${esc(ev?.name||'')}" placeholder="Family trip, birthday…"></label><div class="two"><label class="field"><span>Date</span><input id="nef-date" type="date" value="${ev?.date||todayISO()}"></label><label class="field"><span>Budget</span><input id="nef-budget" inputmode="decimal" value="${ev?.budget||''}" placeholder="Optional"></label></div><label class="field"><span>Notes</span><input id="nef-note" value="${esc(ev?.note||'')}" placeholder="Optional"></label><div class="due"><span class="n">Sharing</span><span>${esc(shareLabel(ev))}</span><button class="mini" id="nef-share">${ev?.shared?'Change':'Choose'}</button></div><div class="row"><button class="btn primary" id="nef-save">${editable?'Save changes':'Create event'}</button><button class="btn" data-s="cancel">Cancel</button>${editable?'<button class="btn danger" id="nef-delete" style="margin-left:auto">Delete</button>':''}</div></div>`;
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${editable?'Edit event':'Create event'}</h2><label class="field"><span>Event name</span><input id="nef-name" value="${esc(ev?.name||'')}" placeholder="Family trip, birthday…"></label><div class="two"><label class="field"><span>Date</span><input id="nef-date" type="date" value="${ev?.date||todayISO()}"></label><label class="field"><span>Budget</span><input id="nef-budget" inputmode="decimal" value="${ev?.budget||''}" placeholder="Optional"></label></div><label class="field"><span>Notes</span><input id="nef-note" value="${esc(ev?.note||'')}" placeholder="Optional"></label><div class="due"><span class="n">Sharing</span><span id="nef-shareLabel">${esc(shareLabel(ev))}</span><button class="mini" id="nef-share">${ev?.shared?'Change':'Choose'}</button></div><div class="row"><button class="btn primary" id="nef-save">${editable?'Save changes':'Create event'}</button><button class="btn" data-s="cancel">Cancel</button>${editable?'<button class="btn danger" id="nef-delete" style="margin-left:auto">Delete</button>':''}</div></div>`;
   document.body.appendChild(scrim);
   let sharing=ev?{shared:!!ev.shared,shareWith:ev.shareWith||'all'}:{shared:false,shareWith:'all'};
-  const updateShare=()=>{scrim.querySelector('#nef-share').textContent=sharing.shared?(sharing.shareWith==='all'?'All family':'Specific members'):'Choose';}; updateShare();
+  const updateShare=()=>{scrim.querySelector('#nef-share').textContent=sharing.shared?(sharing.shareWith==='all'?'All family':'Specific members'):'Choose'; const lab=scrim.querySelector('#nef-shareLabel'); if(lab) lab.textContent=shareLabel(sharing);}; updateShare();
   scrim.querySelector('#nef-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;updateShare();});
   scrim.addEventListener('click',e=>{
     if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
@@ -1736,13 +1740,18 @@ async function refreshSimBlock(){
   if(!Object.values(state.simOwners).some(o=>o.isMe) && simListCache.length){ state.simOwners[simListCache[0].id] = { ...(state.simOwners[simListCache[0].id]||{}), isMe: true }; persist([], false); }
   document.getElementById("simList").innerHTML = simListCache.map((sim,i)=>{
     const o = state.simOwners[sim.id] || {};
-    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc(o.name || "")}" placeholder="Enter person name (e.g. Vageesh)">
+    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc((o.name||"").startsWith("__SIM_") ? "" : (o.name || ""))}" placeholder="Enter person name (e.g. Vageesh)">
       <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
   }).join("");
 }
 document.getElementById("simList").addEventListener("change", e=>{
   const nm = e.target.closest("[data-simname]");
-  if(nm){ state.simOwners[nm.dataset.simname] = { ...(state.simOwners[nm.dataset.simname]||{}), name: nm.value.trim() }; persist([], false); return; }
+  if(nm){
+    const v=nm.value.trim(); const cur=state.simOwners[nm.dataset.simname] || {};
+    cur.name = v || cur.name || `__SIM_${(simListCache.findIndex(s=>String(s.id)===String(nm.dataset.simname))+1)||1}__`;
+    cur.hidden = !v; if(v) delete cur.hidden;
+    state.simOwners[nm.dataset.simname]=cur; persist([], false); render(); return;
+  }
   const me = e.target.closest("[data-simme]");
   if(me){
     Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
@@ -1760,10 +1769,11 @@ function renderLedgerHome(){
   const [py, pm] = k.split("-").map(Number); const prevK = pm === 1 ? (py-1) + "-12" : py + "-" + String(pm-1).padStart(2,"0");
   const meName = (state.family && state.family.me) || "You";
   const simExcluded = new Set(members.filter(m=>m.kind === "sim").map(m=>m.simId));
-  const meTxns = simExcluded.size ? state.txns.filter(t=>!simExcluded.has(String(t.sim))) : state.txns;
+  const baseTxns = displayTxns();
+  const meTxns = simExcluded.size ? baseTxns.filter(t=>!simExcluded.has(String(t.sim))) : baseTxns;
   const people = [{ id: "me", name: meName, color: "var(--brass)", txns: meTxns }]
     .concat(fam ? members.map((m,i)=>({ id: m.id, name: m.name || "Member", color: m.color || (i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length]),
-      txns: m.kind === "sim" ? state.txns.filter(t=>String(t.sim) === m.simId) : (m.txns || []) })) : []);
+      txns: m.kind === "sim" ? baseTxns.filter(t=>String(t.sim) === m.simId) : (m.txns || []) })) : []);
   const tot = { inc: 0, exp: 0, prevExp: 0, refunds: 0 }, byCat = {}, bySrc = {}, byPerson = {};
   people.forEach(p=>{
     byPerson[p.id] = { inc: 0, exp: 0 };
@@ -2009,7 +2019,7 @@ function openEventDetail(id){
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(ev.name)}"><h2>${esc(ev.icon||"📌")} ${esc(ev.name)}</h2>
     <p class="help" style="margin-top:-8px">${ev.date?esc(niceDate(ev.date)):"No date"}${ev.budget?` · budget ${money(ev.budget,true)}`:""}</p>
     ${cats.length?`<div class="donut-row"><div class="donut" style="background:${conic}" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(total)}</b></div></div>
-    <div class="dleg">${cats.map(([c,v])=>`<div><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span><span class="n">${esc(c)}</span><span class="p num">${total?Math.round(v/total*100):0}%</span></div>`).join("")}</div></div><h3 class="section-h" style="margin-top:14px;font-size:1rem">Who spent</h3><div class="dleg">${Object.entries(byPerson).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div><span class="n">${esc(n)}</span><span class="p num">${money(v,true)}${total?` · ${Math.round(v/total*100)}%`:''}</span></div>`).join("")}</div>`
+    <div class="dleg">${cats.map(([c,v])=>`<div><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span><span class="n">${esc(c)}</span><span class="p num">${total?Math.round(v/total*100):0}%</span></div>`).join("")}</div></div><h3 class="section-h" style="margin-top:14px;font-size:1rem">Who spent</h3><div class="dleg">${Object.entries(byPerson).sort((a,b)=>b[1]-a[1]).map(([n,v],i)=>`<div><span class="n">${i===0?'★ ':''}${esc(n)}${i===0?' · Top spender':''}</span><span class="p num">${money(v,true)}${total?` · ${Math.round(v/total*100)}%`:''}</span></div>`).join("")}</div>`
     : `<p class="help">No spending tagged to this yet.</p>`}
     <h2 class="section-h" style="margin-top:16px">Entries</h2>
     ${rows.length ? rows.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<button class="trow" data-id="${t.id}"><div class="l1 num"><span>${esc(t.merchant)}</span><b>${money(t.amount,true,t.currency)}</b></div>
@@ -2020,6 +2030,8 @@ function openEventDetail(id){
     if(e.target === scrim || e.target.closest("[data-s=cancel]")){ scrim.remove(); return; }
     const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx && !tx.remote){ scrim.remove(); openSheet(tx, false); } else if(tx){ toast("This expense belongs to another family member and can be viewed here but edited on their phone."); } return; }
     const ed=e.target.closest('[data-editeventdetail]'); if(ed){scrim.remove();createEventForm(ed.dataset.editeventdetail);return;}
+    const edit = e.target.closest("[data-edetail]");
+    if(edit){ scrim.remove(); createEventForm(edit.dataset.edetail); return; }
     const del = e.target.closest("[data-delev]");
     if(del){
       if(!confirm("Delete this event? Tagged entries keep their amounts and categories, just untagged from it.")) return;
@@ -2092,7 +2104,7 @@ async function convertPending(announce){
 function dupKey(x){ return [x.amount.toFixed(2), x.date, x.type, x.account, x.ref || mkey(x.merchant)].join("|"); }
 
 /* ---------- Rendering ---------- */
-function monthTx(m){ return state.txns.filter(t=>pk(t.date) === m); }
+function monthTx(m){ return displayTxns().filter(t=>pk(t.date) === m); }
 function monthLabel(m){
   const [y,mo] = m.split("-").map(Number);
   if((state.monthStart||1) === 1) return MONTH_NAMES[mo-1] + " " + y;
@@ -2113,28 +2125,38 @@ function familyLocalPeople(){
 function homeFamilyTotals(){
   const people = [];
   const owners = state.simOwners || {};
+  const localTxns = displayTxns();
   const ownerIds = Object.keys(owners);
   if(ownerIds.length){
     ownerIds.forEach((sid,i)=>{
       const o=owners[sid]||{};
-      people.push({id:"sim:"+sid,name:o.name||("SIM "+(i+1)),color:o.color||PALETTE[i%PALETTE.length],txns:state.txns.filter(t=>String(t.sim||"")===String(sid))});
+      const name=String(o.name||"").trim();
+      if(!name || name.startsWith("__SIM_")) return; // unnamed SIMs remain internal only until the user names them in Settings.
+      people.push({id:"sim:"+sid,name,color:o.color||PALETTE[i%PALETTE.length],txns:localTxns.filter(t=>String(t.sim||"")===String(sid))});
     });
-    const noSim=state.txns.filter(t=>t.sim==null || t.sim<0);
-    if(noSim.length) people.push({id:"nosim",name:"Other / unknown",color:"var(--muted)",txns:noSim});
-  } else people.push({id:"me",name:(state.family&&state.family.me)||"You",color:"var(--brass)",txns:state.txns});
-  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m])=>people.push({id:"remote:"+id,name:m.name||"Family member",color:m.color||PALETTE[people.length%PALETTE.length],txns:m.txns||[]}));
+    const namedSimIds=new Set(people.filter(p=>p.simId).map(p=>p.simId));
+  } else {
+    people.push({id:"me",name:(state.family&&state.family.me)||"You",color:"var(--brass)",txns:localTxns});
+  }
+  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m])=>{
+    if(m && m.name) people.push({id:"remote:"+id,name:m.name,color:m.color||PALETTE[people.length%PALETTE.length],txns:m.txns||[]});
+  });
+  if(!people.length) people.push({id:"me",name:(state.family&&state.family.me)||"You",color:"var(--brass)",txns:localTxns});
+  // Totals include all transactions already available on this phone, including transactions
+  // arriving from an unnamed SIM; only the person label is hidden until that SIM is named.
   let income=0, expense=0;
-  people.forEach(p=>p.txns.forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); }));
+  localTxns.forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); });
+  Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); }));
   return {people,income,expense,balance:income-expense};
 }
 function renderRecentExpenses(){
-  const tx=state.txns.filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
+  const tx=displayTxns().filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
   if(!tx.length) return '<p class="help">No expenses yet.</p>';
   return tx.map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('');
 }
 function openEntriesSheet(){
   const scrim=document.createElement("div"); scrim.className="scrim";
-  const tx=state.txns.filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
+  const tx=displayTxns().filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
   document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
 }
@@ -2146,7 +2168,7 @@ function renderHome(){
   const remoteEvents=remoteMembers.flatMap(m=>(m.events||[]).map(e=>({...e,remote:true})));
   const events=localEvents.concat(remoteEvents).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).slice(0,5);
   const cal=(state.calendar||[]).concat(remoteMembers.flatMap(m=>m.calendar||[])).filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,5);
-  const shopping=(state.shopping||[]).concat(remoteMembers.flatMap(m=>m.shopping||[])).filter(x=>!x.done).slice(0,8);
+  const shopping=(state.shopping||[]).concat(remoteMembers.flatMap(m=>m.shopping||[])).slice(0,8);
   const signed=!!cloudUser;
   const memberChips=t.people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("");
   const eventHtml=events.length?events.map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.shared?"<span>Shared</span>":"<span>Private</span>"}</span></button>`).join(""):"<p class=\"help\">No events yet.</p>";
@@ -2162,7 +2184,6 @@ function renderHome(){
     <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
     <div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>
     <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-    <div class="card"><div class="card-h"><h2>Recent expenses</h2><button class="mini" id="homeSeeExpenses">See all</button></div>${renderRecentExpenses()}</div>
     <div class="card"><p class="hint">Items marked <b>Shared</b> are visible to the selected family members after cloud sync.</p></div>`;
 }
 function addHomeCalendar(){
@@ -2321,7 +2342,7 @@ function renderPeriodSummary(){
   document.getElementById("monthName").textContent = yr ? String(yr) : (years[0] === years[years.length-1] ? String(years[0]) : years[0] + " – " + years[years.length-1]);
   document.getElementById("prevM").disabled = !yr || yr <= years[0];
   document.getElementById("nextM").disabled = !yr || yr >= years[years.length-1];
-  const tx = state.txns.filter(t=>!yr || +pk(t.date).slice(0,4) === yr);
+  const tx = displayTxns().filter(t=>!yr || +pk(t.date).slice(0,4) === yr);
   const buckets = yr ? Array.from({length:12},(_,i)=>yr + "-" + String(i+1).padStart(2,"0")).filter(k=>k <= currentPK()) : years.map(String);
   const per = {}; buckets.forEach(k=>per[k] = { inc: 0, exp: 0 });
   const byCat = {}, byM = {}; let inc = 0, exp = 0, refunds = 0;
@@ -2368,7 +2389,7 @@ function openMerchant(name, from){
 }
 function renderMerchant(){
   const mk = mkey(merchantFocus);
-  const entries = state.txns.filter(t=>mkey(t.merchant) === mk).sort((a,b)=>b.date.localeCompare(a.date) || (b.added||0)-(a.added||0));
+  const entries = displayTxns().filter(t=>mkey(t.merchant) === mk).sort((a,b)=>b.date.localeCompare(a.date) || (b.added||0)-(a.added||0));
   document.getElementById("mTitle").textContent = merchantFocus;
   const el = document.getElementById("mBody");
   if(!entries.length){ el.innerHTML = `<p class="empty">No entries from ${esc(merchantFocus)} yet.</p>`; return; }
@@ -2841,8 +2862,6 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   if(e.target.closest("#homeAddShopping")){ addHomeShopping(); return; }
   if(e.target.closest("#homeAddCalendar")){ addHomeCalendar(); return; }
   if(e.target.closest("#homeSeeEvents")){ view="overview"; ovMode="events"; render(); return; }
-  if(e.target.closest("#homeSeeExpenses")){ openEntriesSheet(); return; }
-  const hee=e.target.closest("[data-home-entry]"); if(hee){ const t=state.txns.find(x=>x.id===hee.dataset.homeEntry); if(t) openSheet(t,false); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
   const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
@@ -3241,7 +3260,9 @@ window.appStatus = function(granted){
 };
 window.importFinished = function(added, scanned){
   const el = document.querySelector(".toast"); if(el) el.remove();
+  state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal();
   toast(added ? `Added ${inr.format(added)} ${added===1?"entry":"entries"} from ${inr.format(scanned)} bank SMS.` : `Checked ${inr.format(scanned)} bank SMS. Nothing new to add.`);
+  render();
 };
 window.importProgress = function(done, total){
   let el = document.getElementById("importToast");
@@ -3284,6 +3305,11 @@ document.getElementById("smsRescan").addEventListener("click", e=>{
   if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
 });
 function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
+function displayTxns(){
+  // Before the user grants Android SMS access and confirms the in-app consent, do not expose
+  // previously stored SMS-derived entries in dashboards. Hand-entered entries remain usable.
+  return (state.smsPermissionConfirmed && state.smsDataReady) ? state.txns : state.txns.filter(t=>!fromSms(t));
+}
 // An account is treated as SMS-confirmed once any SMS-read transaction names the same bank and account.
 function smsConfirmedAccounts(){
   const seen = new Set();
@@ -3568,16 +3594,18 @@ window.needsLanguage = function(){ return !state.lang; };
 function showSmsConsent(){
   if(document.getElementById("smsConsentSheet")) return;
   const already = !!(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess());
+  const phoneReady = !!(window.Android && window.Android.hasPhoneStateAccess && window.Android.hasPhoneStateAccess());
+  const nativeAccessReady = already && phoneReady;
   const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="smsConsentSheet";
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="SMS access"><h2>Allow SMS reading</h2>
     <p class="help">SMS Ledger will read bank transaction messages to build your ledger. It will not start reading your existing SMS until you confirm below.</p>
-    ${already ? `<p class="hint">Android says SMS access is already granted on this phone. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">First, Android will show its SMS permission prompt. After you allow it, return here to confirm that you want the app to read your SMS.</p>`}
-    <div class="row"><button class="btn primary" id="smsConsentContinue">${already ? "Continue and read SMS" : "Request SMS permission"}</button><button class="btn" id="smsConsentLater">Not now</button></div></div>`;
+    ${nativeAccessReady ? `<p class="hint">Android access is already granted. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">Android will request the SMS access and the phone-state access needed to identify the active SIM slots. After you allow them, return here to confirm that you want the app to read your SMS.</p>`}
+    <div class="row"><button class="btn primary" id="smsConsentContinue">${nativeAccessReady ? "Continue and read SMS" : "Allow required access"}</button><button class="btn" id="smsConsentLater">Not now</button></div></div>`;
   document.body.appendChild(scrim);
   scrim.querySelector("#smsConsentLater").onclick=()=>{ scrim.remove(); toast("SMS reading is paused. You can allow it later in Settings."); };
   scrim.querySelector("#smsConsentContinue").onclick=()=>{
-    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
-      state.smsPermissionConfirmed=true; state.onboardingComplete=true; persist([],true);
+    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess() && (!window.Android.hasPhoneStateAccess || window.Android.hasPhoneStateAccess())){
+      state.smsPermissionConfirmed=true; state.smsDataReady=false; state.smsConsentUiVersion=2; state.onboardingComplete=true; persist([],true);
       if(window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
       scrim.remove();
       if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
@@ -3589,27 +3617,31 @@ function showSmsConsent(){
 }
 function runOnboardingChecks(){
   if(window.Android && window.Android.signIn && !state.googleOnboardingDone){ showFirstRunSignIn(); return; }
+  const smsReady = !!(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess());
+  const phoneReady = !!(window.Android && (!window.Android.hasPhoneStateAccess || window.Android.hasPhoneStateAccess()));
+  if(!smsReady || !phoneReady){ showSmsConsent(); return; }
   checkSimOnboarding(()=>{
     if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
       if(state.smsPermissionConfirmed) return;
       showSmsConsent();
       return;
     }
-    if(window.Android && window.Android.requestSms) showSmsConsent();
+    showSmsConsent();
   });
 }
 window.smsPermissionGranted = function(){
-  // Android permission has been granted; do not read yet. Ask for explicit in-app consent.
-  showSmsConsent();
+  // Android permissions have been granted; detect the active SIM slots before asking for the
+  // separate in-app consent to read existing SMS.
+  checkSimOnboarding(()=>showSmsConsent());
 };
 // If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
 // rather than leaving it to be found later in Settings. Settings still has the same choices,
 // to change it afterward (a SIM swap, a new family member, etc).
 function checkSimOnboarding(next){
-  if(state.simOnboardingShown || !(window.Android && window.Android.getSimList)){ next(); return; }
+  if(state.simOnboardingVersion === 2 || !(window.Android && window.Android.getSimList)){ next(); return; }
   let sims; try{ sims = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ sims = []; }
   if(sims.length < 2){ next(); return; }
-  state.simOnboardingShown = true; persist([], false);
+  state.simOnboardingShown = true; state.simOnboardingVersion = 2; persist([], false);
   state.simOwners = state.simOwners || {};
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Whose SIM is whose"><h2>This phone has ${sims.length} SIMs</h2>
@@ -3620,7 +3652,7 @@ function checkSimOnboarding(next){
   const draw = ()=>{
     scrim.querySelector("#fr-simList").innerHTML = sims.map((sim,i)=>{
       const o = state.simOwners[sim.id] || {};
-      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc(o.name || "")}" placeholder="Enter person name (e.g. Vageesh)">
+      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc((o.name||"").startsWith("__SIM_") ? "" : (o.name || ""))}" placeholder="Enter person name (e.g. Vageesh)">
         <label><input type="radio" name="frSimMe" data-frsimme="${sim.id}" ${o.isMe || (!Object.values(state.simOwners).some(x=>x.isMe) && i===0) ? "checked" : ""}>Mine</label></div>`;
     }).join("");
   };
@@ -3646,7 +3678,7 @@ function checkSimOnboarding(next){
       }
       sims.forEach((sim,i)=>{
         if(!state.simOwners[sim.id]) state.simOwners[sim.id] = {};
-        if(!String(state.simOwners[sim.id].name||"").trim()) state.simOwners[sim.id].name = `SIM ${i+1}`;
+        if(!String(state.simOwners[sim.id].name||"").trim()) state.simOwners[sim.id].name = `__SIM_${i+1}__`; state.simOwners[sim.id].hidden = true;
         if(!state.simOwners[sim.id].color) state.simOwners[sim.id].color = PALETTE[i % PALETTE.length];
       });
       if(!Object.values(state.simOwners).some(o=>o.isMe) && sims[0]) state.simOwners[sims[0].id].isMe = true;

@@ -156,6 +156,15 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // v1.45 resets the SMS flow once so an upgrade cannot scan or display old SMS-derived
+        // data before the user sees the new explicit consent/import flow.
+        if (prefs.getInt("smsFlowVersion", 0) < 2) {
+            prefs.edit().putInt("smsFlowVersion", 2)
+                .putBoolean("smsConsentConfirmed", false)
+                .putBoolean("onboardingComplete", false)
+                .putBoolean("initialImportDone", false)
+                .apply()
+        }
         val assets = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
@@ -248,9 +257,13 @@ class MainActivity : ComponentActivity() {
     ) == PackageManager.PERMISSION_GRANTED
 
     private fun askPermissions() {
-        val perms = mutableListOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
-        if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
-        permLauncher.launch(perms.toTypedArray())
+        val requested = mutableListOf<String>()
+        listOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_PHONE_STATE).forEach {
+            if (ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED) requested += it
+        }
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requested += Manifest.permission.POST_NOTIFICATIONS
+        if (requested.isNotEmpty()) permLauncher.launch(requested.toTypedArray())
+        else web.evaluateJavascript("window.smsPermissionGranted && window.smsPermissionGranted()", null)
     }
 
     @Volatile private var scanning = false
@@ -283,7 +296,7 @@ class MainActivity : ComponentActivity() {
             prefs.edit().putLong("lastScan", maxOf(newest, prefs.getLong("lastScan", 0L))).apply()
         }
         if (total == 0) {
-            saveMark(); scanning = false
+            saveMark(); prefs.edit().putBoolean("initialImportDone", true).apply(); scanning = false
             if (announce) web.evaluateJavascript("window.importFinished && window.importFinished(0, 0)", null)
             return
         }
@@ -302,7 +315,7 @@ class MainActivity : ComponentActivity() {
                 val n = r?.toIntOrNull() ?: -1
                 if (n < 0) accepted = false else added += n
                 if (isLast) {
-                    if (accepted) saveMark()   // move the mark only once the page has taken them
+                    if (accepted) { saveMark(); prefs.edit().putBoolean("initialImportDone", true).apply() }   // move the mark only once the page has taken them
                     scanning = false
                     if (announce || added > 0)
                         web.evaluateJavascript("window.importFinished && window.importFinished($added, $total)", null)
@@ -341,10 +354,15 @@ class MainActivity : ComponentActivity() {
         fun hasSmsAccess(): Boolean = hasSms()
 
         @JavascriptInterface
+        fun hasPhoneStateAccess(): Boolean = ContextCompat.checkSelfPermission(
+            this@MainActivity, Manifest.permission.READ_PHONE_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+
+        @JavascriptInterface
         fun requestSms() = runOnUiThread {
             // Do not silently read or scan here. Android must show the runtime permission prompt
             // whenever the permission has not been granted.
-            if (!hasSms()) {
+            if (!hasSms() || !hasPhoneStateAccess()) {
                 askPermissions()
             } else {
                 web.evaluateJavascript("window.smsPermissionGranted && window.smsPermissionGranted()", null)
@@ -358,6 +376,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun importRange(days: Int) = runOnUiThread {
             val since = if (days <= 0) 0L else System.currentTimeMillis() - days.coerceAtMost(MAX_DAYS) * DAY
+            prefs.edit().putBoolean("initialImportStarted", true).putBoolean("initialImportDone", false).apply()
             if (hasSms()) scanInbox(since, announce = true) else requestSms()
         }
 
@@ -401,7 +420,7 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun setSmsConsentConfirmed() {
-            prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).apply()
+            prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).putBoolean("initialImportDone", false).apply()
         }
 
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
@@ -431,14 +450,9 @@ class MainActivity : ComponentActivity() {
                         return@launch
                     }
                     val error = result.exceptionOrNull()
-                    if (error is androidx.credentials.exceptions.GetCredentialCancellationException) {
-                        val json = JSONObject().put("ok", false).put("cancelled", true).put("error", "Google sign-in was cancelled").toString()
-                        web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
-                        return@launch
-                    }
-                    // Credential Manager can fail on devices with older/limited Google Play
-                    // services. Fall back to the standard Google Sign-In intent instead of leaving
-                    // the user stuck on the same page.
+                    // Credential Manager can report cancellation when the device's Google
+                    // credential provider cannot complete the picker. Try the legacy Google
+                    // account picker before reporting cancellation to the user.
                     legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())
                 } catch (e: Throwable) {
                     try {
@@ -515,10 +529,14 @@ class MainActivity : ComponentActivity() {
             val arr = JSONArray()
             try {
                 val sm = getSystemService(SubscriptionManager::class.java)
-                val active = sm?.activeSubscriptionInfoList ?: emptyList()
-                active.distinctBy { it.subscriptionId }.forEachIndexed { index, info ->
+                val active = sm?.activeSubscriptionInfoList.orEmpty()
+                    .filter { it.simSlotIndex >= 0 }
+                    .sortedBy { it.simSlotIndex }
+                    .distinctBy { it.simSlotIndex }
+                active.forEachIndexed { index, info ->
+                    val slot = info.simSlotIndex
                     val label = info.displayName?.toString()?.takeIf { it.isNotBlank() } ?: "SIM ${index + 1}"
-                    arr.put(JSONObject().put("id", info.subscriptionId).put("label", label))
+                    arr.put(JSONObject().put("id", info.subscriptionId).put("slot", slot).put("label", label))
                 }
             } catch (_: SecurityException) {
                 // Do not infer SIM count from historical SMS. If Android withholds active

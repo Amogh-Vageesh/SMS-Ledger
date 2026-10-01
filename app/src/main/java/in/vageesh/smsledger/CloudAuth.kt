@@ -28,7 +28,7 @@ class CloudAuth(private val activity: ComponentActivity) {
 
     // The "web" OAuth client from google-services.json — Credential Manager needs this specific
     // one (not the Android client) to hand back a verifiable ID token.
-    private val webClientId = "255114822657-rqb3fvvpbi3iur2m3ee4cr594oqj1kkv.apps.googleusercontent.com"
+    private val webClientId: String by lazy { activity.getString(R.string.default_web_client_id) }
 
     fun userJson(): JSONObject? {
         val u = auth.currentUser ?: return null
