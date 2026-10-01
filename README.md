@@ -465,10 +465,10 @@ The first import now reads the complete SMS history available on the phone (not 
 ## v1.48 build fix
 The SHA fingerprint diagnostic no longer depends on BuildConfig and safely handles nullable SigningInfo/signatures, fixing the Kotlin release compilation errors reported by GitHub Actions.
 
-### Google Sign-In troubleshooting (v1.50)
+### Google Sign-In troubleshooting (v1.51)
 
 If the APK's in-app SHA-1 differs from Firebase, add that SHA-1 under Firebase Console -> Project settings -> Your apps -> Android app. If you changed the SHA-1 or OAuth client configuration, download a fresh `google-services.json` from Firebase and replace `app/google-services.json` before rebuilding. Firebase's current Android guidance explicitly calls for updating the Firebase config file after Google sign-in OAuth configuration changes. The app now times out Credential Manager after 15 seconds and falls back to the Google Play services account picker; Firebase authentication is also given a 15-second timeout and reports the stage/status instead of hanging indefinitely.
 
 
-## Build note
-Firebase BoM 34.x no longer provides the deprecated `firebase-auth-ktx` and `firebase-firestore-ktx` modules. This project uses the main Firebase Auth and Firestore artifacts instead.
+## v1.51 build compatibility
+This release keeps Kotlin 2.0.21 and uses Firebase Android BoM 33.12.0 with the main `firebase-auth` and `firebase-firestore` modules, plus Google Identity `googleid:1.1.1`. This avoids the Kotlin metadata mismatch introduced by newer dependencies while retaining Firebase Authentication and Firestore cloud functionality.

@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 45
-        versionName = "1.50"
+        versionName = "1.51"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update
@@ -52,7 +52,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // Firebase: Auth now, Firestore joins in the next step once sign-in is confirmed working.
-    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
@@ -60,6 +60,6 @@ dependencies {
     // GoogleSignInClient). This is what talks to google-services.json's "web" OAuth client.
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 }
