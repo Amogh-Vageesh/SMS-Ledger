@@ -29,23 +29,23 @@ service cloud.firestore {
       }
 
       match /events/{docId} {
-        allow read: if memberOf(familyId);
-        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
       match /calendar/{docId} {
-        allow read: if memberOf(familyId);
-        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
       match /shopping/{docId} {
-        allow read: if memberOf(familyId);
-        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
       match /transactions/{docId} {
-        allow read: if memberOf(familyId);
-        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
+        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
     }

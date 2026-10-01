@@ -11,6 +11,8 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 
@@ -72,6 +74,29 @@ class CloudAuth(private val activity: ComponentActivity) {
             Result.failure(e) // person backed out of the picker
         } catch (e: GetCredentialException) {
             Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** Fallback for devices where Credential Manager cannot complete the Google account picker. */
+    fun legacySignInIntent(): android.content.Intent {
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .build()
+        return GoogleSignIn.getClient(activity, options).signInIntent
+    }
+
+    suspend fun handleLegacyResult(data: android.content.Intent?): Result<JSONObject> {
+        if (data == null) return Result.failure(Exception("Google sign-in was cancelled."))
+        return try {
+            val account = GoogleSignIn.getSignedInAccountFromIntent(data).await()
+            val token = account.idToken ?: return Result.failure(Exception("Google did not return an ID token. Check the Firebase Web OAuth client configuration."))
+            val credential = GoogleAuthProvider.getCredential(token, null)
+            val authResult = auth.signInWithCredential(credential).await()
+            val u = authResult.user ?: return Result.failure(Exception("Signed in but Firebase returned no user."))
+            Result.success(JSONObject().put("uid", u.uid).put("name", u.displayName ?: "").put("email", u.email ?: "").put("photo", u.photoUrl?.toString() ?: ""))
         } catch (e: Exception) {
             Result.failure(e)
         }

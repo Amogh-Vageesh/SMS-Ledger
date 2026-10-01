@@ -57,6 +57,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private val cloudAuth by lazy { CloudAuth(this) }
+
+    private val legacyGoogleLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        lifecycleScope.launch {
+            val json = try {
+                cloudAuth.handleLegacyResult(result.data).fold(
+                    onSuccess = { it.put("ok", true).toString() },
+                    onFailure = { e ->
+                        JSONObject().put("ok", false).put("cancelled", result.resultCode != RESULT_OK)
+                            .put("error", e.message ?: e.javaClass.simpleName).toString()
+                    }
+                )
+            } catch (e: Throwable) {
+                JSONObject().put("ok", false).put("cancelled", result.resultCode != RESULT_OK)
+                    .put("error", e.message ?: e.javaClass.simpleName).toString()
+            }
+            web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
+        }
+    }
     private val familyCloud by lazy { FamilyCloud(this,
         { json -> runOnUiThread { web.evaluateJavascript("window.familyCloudArrived && window.familyCloudArrived(${JSONObject.quote(json)})", null) } },
         { msg -> runOnUiThread { web.evaluateJavascript("window.familyCloudError && window.familyCloudError(${JSONObject.quote(msg)})", null) } }
@@ -195,8 +215,8 @@ class MainActivity : ComponentActivity() {
             pushStatus()
             // Never scan SMS merely because Android reports the permission as granted.
             // First-run onboarding must complete before any SMS is read.
-            val onboardingComplete = prefs.getBoolean("onboardingComplete", false)
-            if (onboardingComplete && hasSms()) scanInbox()
+            val smsConsentConfirmed = prefs.getBoolean("smsConsentConfirmed", false)
+            if (smsConsentConfirmed && hasSms()) scanInbox()
             web.evaluateJavascript("window.appOnline && window.appOnline()", null)
         }
     }
@@ -213,10 +233,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startupSms() {
-        when {
-            hasSms() -> firstImportOrScan()
-            !prefs.getBoolean("asked", false) -> askPermissions()
-        }
+        if (prefs.getBoolean("smsConsentConfirmed", false) && hasSms()) firstImportOrScan()
+        else if (!hasSms()) askPermissions()
     }
 
     /** On the very first run, let the person pick how far back to read (3 months to 5 years). */
@@ -230,7 +248,6 @@ class MainActivity : ComponentActivity() {
     ) == PackageManager.PERMISSION_GRANTED
 
     private fun askPermissions() {
-        prefs.edit().putBoolean("asked", true).apply()
         val perms = mutableListOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
         if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
         permLauncher.launch(perms.toTypedArray())
@@ -382,6 +399,11 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun setOnboardingComplete() { prefs.edit().putBoolean("onboardingComplete", true).apply() }
 
+        @JavascriptInterface
+        fun setSmsConsentConfirmed() {
+            prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).apply()
+        }
+
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
         fun setTheme(theme: String) = runOnUiThread {
@@ -401,24 +423,32 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun signIn() {
             lifecycleScope.launch {
-                // Wrapped around the whole block, not just cloudAuth.signIn() itself: accessing
-                // "cloudAuth" for the first time here can throw too (e.g. Firebase not ready),
-                // and that must still reach the page as a loud error, never a silently stuck button.
-                val json: String = try {
+                try {
                     val result = cloudAuth.signIn()
-                    result.fold(
-                        onSuccess = { it.put("ok", true).toString() },
-                        onFailure = { e ->
-                            val cancelled = e is androidx.credentials.exceptions.GetCredentialCancellationException
-                            org.json.JSONObject().put("ok", false).put("cancelled", cancelled)
-                                .put("error", e.message ?: e.javaClass.simpleName).toString()
-                        }
-                    )
+                    if (result.isSuccess) {
+                        val json = result.getOrThrow().put("ok", true).toString()
+                        web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
+                        return@launch
+                    }
+                    val error = result.exceptionOrNull()
+                    if (error is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                        val json = JSONObject().put("ok", false).put("cancelled", true).put("error", "Google sign-in was cancelled").toString()
+                        web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
+                        return@launch
+                    }
+                    // Credential Manager can fail on devices with older/limited Google Play
+                    // services. Fall back to the standard Google Sign-In intent instead of leaving
+                    // the user stuck on the same page.
+                    legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())
                 } catch (e: Throwable) {
-                    org.json.JSONObject().put("ok", false).put("cancelled", false)
-                        .put("error", (e.message ?: e.javaClass.simpleName) ?: "Unknown sign-in error").toString()
+                    try {
+                        legacyGoogleLauncher.launch(cloudAuth.legacySignInIntent())
+                    } catch (fallback: Throwable) {
+                        val json = JSONObject().put("ok", false).put("cancelled", false)
+                            .put("error", fallback.message ?: e.message ?: "Google sign-in could not start").toString()
+                        web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
+                    }
                 }
-                web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
             }
         }
 
@@ -482,26 +512,18 @@ class MainActivity : ComponentActivity() {
          */
         @JavascriptInterface
         fun getSimList(): String {
-            val ids = linkedSetOf<Int>()
-            try {
-                contentResolver.query(
-                    android.provider.Telephony.Sms.Inbox.CONTENT_URI,
-                    arrayOf(android.provider.Telephony.Sms.SUBSCRIPTION_ID), null, null, null
-                )?.use { c ->
-                    val i = c.getColumnIndex(android.provider.Telephony.Sms.SUBSCRIPTION_ID)
-                    if (i >= 0) while (c.moveToNext()) { val v = c.getInt(i); if (v >= 0) ids.add(v) }
-                }
-            } catch (e: Exception) { }
             val arr = JSONArray()
-            var n = 0
-            ids.forEach { id ->
-                n++
-                val label = try {
-                    (getSystemService(SubscriptionManager::class.java))
-                        ?.getActiveSubscriptionInfo(id)?.displayName?.toString()?.takeIf { it.isNotBlank() }
-                } catch (e: Exception) { null } ?: "SIM $n"
-                arr.put(org.json.JSONObject().put("id", id).put("label", label))
-            }
+            try {
+                val sm = getSystemService(SubscriptionManager::class.java)
+                val active = sm?.activeSubscriptionInfoList ?: emptyList()
+                active.distinctBy { it.subscriptionId }.forEachIndexed { index, info ->
+                    val label = info.displayName?.toString()?.takeIf { it.isNotBlank() } ?: "SIM ${index + 1}"
+                    arr.put(JSONObject().put("id", info.subscriptionId).put("label", label))
+                }
+            } catch (_: SecurityException) {
+                // Do not infer SIM count from historical SMS. If Android withholds active
+                // subscription details, report none rather than inventing stale SIMs.
+            } catch (_: Exception) { }
             return arr.toString()
         }
 

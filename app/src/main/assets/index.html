@@ -486,7 +486,6 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   <nav aria-label="Sections">
     <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Home</button>
     <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Summary</button>
-    <button data-v="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Entries</button>
     <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Accounts</button>
     <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
     <button data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
@@ -646,7 +645,7 @@ const KN = {
   "Marked to share once sync is on.":"ಸಿಂಕ್ ಆನ್ ಆದ ನಂತರ ಹಂಚಲು ಗುರುತಿಸಲಾಗಿದೆ.","Made private.":"ಖಾಸಗಿ ಮಾಡಲಾಗಿದೆ.",
   "Remove this person? Entries already tagged to them keep the tag.":"ಈ ವ್ಯಕ್ತಿಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಈಗಾಗಲೇ ಟ್ಯಾಗ್ ಆಗಿರುವ ನಮೂದುಗಳಲ್ಲಿ ಟ್ಯಾಗ್ ಉಳಿಯುತ್ತದೆ.",
   "You can tag each SIM to the person who uses it. Update the tag here any time if a SIM changes hands.":"ಮೊದಲ ಬಾರಿ ಆ್ಯಪ್ ತೆರೆದಾಗ ನೀವು ಇದನ್ನು ಆರಿಸಿದ್ದೀರಿ. ಇಲ್ಲಿ ಯಾವಾಗ ಬೇಕಾದರೂ ಬದಲಿಸಿ — SIM ಬದಲಾವಣೆ, ಅಥವಾ ಈ ಫೋನ್ ಹಂಚಿಕೊಳ್ಳುವ ಹೊಸ ಕುಟುಂಬ ಸದಸ್ಯ.",
-  "This phone has 2 SIMs":"ಈ ಫೋನ್‌ನಲ್ಲಿ 2 SIM ಗಳಿವೆ","Looks like more than one SIM is active on this phone. Tag each SIM to the person who uses it. This only identifies the source of SMS transactions; it does not create a family member or link a SIM to an account.":"ಈ ಫೋನ್‌ಗೆ ಒಬ್ಬರಿಗಿಂತ ಹೆಚ್ಚು ಜನರ ಬ್ಯಾಂಕ್ SMS ಬರುತ್ತಿರುವಂತಿದೆ. ಪ್ರತಿ SIM ಗೆ ಹೆಸರಿಡಿ, ಯಾವುದು ನಿಮ್ಮದು ಎಂದು ಗುರುತಿಸಿ — ಇನ್ನೊಬ್ಬರ ನಮೂದುಗಳು ಅವರ ಸ್ವಂತ ಫೋನ್ ಇಲ್ಲದೆಯೇ ಕುಟುಂಬದ ಅಡಿಯಲ್ಲಿ ಪ್ರತ್ಯೇಕವಾಗಿ ಕಾಣಿಸುತ್ತವೆ.",
+  "This phone has 2 SIMs":"ಈ ಫೋನ್‌ನಲ್ಲಿ 2 SIM ಗಳಿವೆ","More than one active SIM was detected. Enter a person name for at least one SIM. Names for the remaining SIMs are optional; if left blank, the app will use an internal SIM label until you rename it in Settings.":"ಈ ಫೋನ್‌ಗೆ ಒಬ್ಬರಿಗಿಂತ ಹೆಚ್ಚು ಜನರ ಬ್ಯಾಂಕ್ SMS ಬರುತ್ತಿರುವಂತಿದೆ. ಪ್ರತಿ SIM ಗೆ ಹೆಸರಿಡಿ, ಯಾವುದು ನಿಮ್ಮದು ಎಂದು ಗುರುತಿಸಿ — ಇನ್ನೊಬ್ಬರ ನಮೂದುಗಳು ಅವರ ಸ್ವಂತ ಫೋನ್ ಇಲ್ಲದೆಯೇ ಕುಟುಂಬದ ಅಡಿಯಲ್ಲಿ ಪ್ರತ್ಯೇಕವಾಗಿ ಕಾಣಿಸುತ್ತವೆ.",
   "Mine":"ನನ್ನದು","Continue":"ಮುಂದುವರಿಸಿ",
   "Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign in":"ಸೈನ್ ಇನ್","Not now":"ಈಗ ಬೇಡ","Signing in…":"ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…",
   "Not required — your SMS reading and your own entries work fully without this. Signing in is only the first step toward sharing events, trips and lists with family later.":"ಅಗತ್ಯವಿಲ್ಲ — ನಿಮ್ಮ SMS ಓದುವಿಕೆ ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ನಮೂದುಗಳು ಇದಿಲ್ಲದೆಯೂ ಪೂರ್ಣವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತವೆ. ಸೈನ್ ಇನ್ ಎಂಬುದು ಮುಂದೆ ಕುಟುಂಬದೊಂದಿಗೆ ಸಂದರ್ಭಗಳು, ಪ್ರವಾಸಗಳು ಮತ್ತು ಪಟ್ಟಿಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳುವ ಮೊದಲ ಹೆಜ್ಜೆ ಮಾತ್ರ.",
@@ -1547,10 +1546,18 @@ function addPerson(name){
 }
 
 // -------- Events (local; the tagging target for "who's this for" style totals per occasion) --------
-function eventList(){ return Object.entries(state.events||{}).map(([id,e])=>({ id, ...e })).sort((a,b)=>(b.date||"").localeCompare(a.date||"")); }
-function eventSpend(id){
-  return state.txns.filter(t=>t.event === id && t.type === "debit" && counts(t)).reduce((a,t)=>a+spendAmt(t),0);
+function eventList(){
+  const local=Object.entries(state.events||{}).map(([id,e])=>({id,...e}));
+  const remote=Object.values((state.family&&state.family.members)||{}).flatMap(m=>(m.events||[]).map(e=>({...e,remote:true})));
+  const seen=new Set(), out=[]; [...local,...remote].forEach(e=>{if(!seen.has(e.id)){seen.add(e.id);out.push(e);}});
+  return out.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
 }
+function eventTransactions(id){
+  const out=state.txns.filter(t=>t.event===id);
+  Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t.event===id) out.push({...t,remote:true,ownerUid:t.ownerUid||m.googleUid});}));
+  return out;
+}
+function eventSpend(id){ return eventTransactions(id).filter(t=>t.type === "debit" && counts(t)).reduce((a,t)=>a+spendAmt(t),0); }
 // A simple 0..1 closeness score used for the near-duplicate nudge: name similarity plus same/near date.
 function eventMatchScore(name, date, ev){
   const a = mkey(name), b = mkey(ev.name);
@@ -1571,6 +1578,59 @@ function findEventNudge(name, date, excludeId){
   let best = null, bestScore = 0;
   cands.forEach(e=>{ const s = eventMatchScore(name, date, e); if(s > bestScore){ bestScore = s; best = e; } });
   return bestScore >= 0.55 ? best : null;
+}
+function familyShareMembers(){
+  const fam=state.family||{}; const out=[];
+  if(cloudUser) out.push({id:cloudUser.uid,name:cloudUser.name||cloudUser.email||"You"});
+  Object.entries(fam.members||{}).forEach(([id,m])=>{ if(id!==cloudUser?.uid) out.push({id,name:m.name||m.googleEmail||"Family member"}); });
+  return out;
+}
+function shareLabel(item){
+  if(!item || !item.shared) return "Private";
+  const a=item.shareWith;
+  if(a==="all" || !a || (Array.isArray(a)&&a.length>=familyShareMembers().length)) return "Shared with all";
+  const names=(Array.isArray(a)?a:[]).map(id=>{const m=familyShareMembers().find(x=>x.id===id);return m?m.name:id;});
+  return names.length?"Shared with "+names.join(", "):"Private";
+}
+function chooseShareAudience(item, done){
+  const members=familyShareMembers();
+  if(!members.length){ toast("Sign in and connect to a family first."); return; }
+  const current=item&&item.shareWith; const all=current==="all" || !current;
+  const selected=new Set(Array.isArray(current)?current:members.map(m=>m.id));
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>Share with family</h2><p class="help">Choose everyone or only specific members. The creator always keeps access.</p><label class="check"><input id="share-all" type="radio" name="shareMode" ${all?"checked":""}> All family members</label><label class="check"><input id="share-some" type="radio" name="shareMode" ${all?"":"checked"}> Specific members</label><div id="share-members" style="margin:8px 0 14px">${members.map(m=>`<label class="check"><input type="checkbox" data-shareuid="${esc(m.id)}" ${selected.has(m.id)?"checked":""}>${esc(m.name)}</label>`).join("")}</div><div class="row"><button class="btn primary" id="share-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const redraw=()=>{scrim.querySelector('#share-members').style.opacity=scrim.querySelector('#share-some').checked?'1':'.45';}; redraw();
+  scrim.querySelectorAll('input[name=shareMode]').forEach(x=>x.onchange=redraw);
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='share-save'){
+      if(scrim.querySelector('#share-all').checked) done({shared:true,shareWith:'all'});
+      else {const ids=[...scrim.querySelectorAll('[data-shareuid]:checked')].map(x=>x.dataset.shareuid); if(!ids.length){toast('Select at least one family member.');return;} done({shared:true,shareWith:ids});}
+      scrim.remove();
+    }
+  });
+}
+function createEventForm(existingId){
+  const ev=existingId ? state.events[existingId] : null; if(existingId&&!ev)return;
+  const scrim=document.createElement('div'); scrim.className='scrim';
+  const editable=!!ev;
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${editable?'Edit event':'Create event'}</h2><label class="field"><span>Event name</span><input id="nef-name" value="${esc(ev?.name||'')}" placeholder="Family trip, birthday…"></label><div class="two"><label class="field"><span>Date</span><input id="nef-date" type="date" value="${ev?.date||todayISO()}"></label><label class="field"><span>Budget</span><input id="nef-budget" inputmode="decimal" value="${ev?.budget||''}" placeholder="Optional"></label></div><label class="field"><span>Notes</span><input id="nef-note" value="${esc(ev?.note||'')}" placeholder="Optional"></label><div class="due"><span class="n">Sharing</span><span>${esc(shareLabel(ev))}</span><button class="mini" id="nef-share">${ev?.shared?'Change':'Choose'}</button></div><div class="row"><button class="btn primary" id="nef-save">${editable?'Save changes':'Create event'}</button><button class="btn" data-s="cancel">Cancel</button>${editable?'<button class="btn danger" id="nef-delete" style="margin-left:auto">Delete</button>':''}</div></div>`;
+  document.body.appendChild(scrim);
+  let sharing=ev?{shared:!!ev.shared,shareWith:ev.shareWith||'all'}:{shared:false,shareWith:'all'};
+  const updateShare=()=>{scrim.querySelector('#nef-share').textContent=sharing.shared?(sharing.shareWith==='all'?'All family':'Specific members'):'Choose';}; updateShare();
+  scrim.querySelector('#nef-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;updateShare();});
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='nef-save'){
+      const name=scrim.querySelector('#nef-name').value.trim(); if(!name){toast('Enter an event name.');return;}
+      const budget=parseFloat(scrim.querySelector('#nef-budget').value.replace(/[,₹\s]/g,''))||0;
+      const id=existingId||mkey(name)||uidGen(); state.events=state.events||{};
+      state.events[id]={...(state.events[id]||{}),id,name,date:scrim.querySelector('#nef-date').value||todayISO(),budget:budget||undefined,note:scrim.querySelector('#nef-note').value.trim(),icon:(ev&&ev.icon)||'📌',createdAt:(ev&&ev.createdAt)||todayISO(),ownerUid:ev?.ownerUid||cloudUser?.uid||'',createdBy:ev?.createdBy||cloudUser?.uid||'',...sharing};
+      persist([],true); scrim.remove(); render();
+    }
+    if(e.target.id==='nef-delete' && existingId){ if(!confirm('Delete this event? Tagged expenses will remain but become untagged.'))return; const months=new Set();state.txns.forEach(t=>{if(t.event===existingId){delete t.event;months.add(t.date.slice(0,7));}});delete state.events[existingId];persist([...months],true);scrim.remove();render(); }
+  });
 }
 // -------- Family Hub: one place to manage people, events, and add a tagged expense --------
 // "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
@@ -1601,7 +1661,7 @@ function renderFamily(){
   html += events.length ? events.map(e=>{
     const shared = !!e.shared, spent = eventSpend(e.id);
     return `<div class="due"><button data-openevfam="${esc(e.id)}" style="all:unset;cursor:pointer;grid-column:1/2"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span></button><span class="num" style="font-weight:600">${money(spent,true)}</span>
-      <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span><span style="color:var(--muted)">${shared?"Shared":"Private"}</span><button class="mini" data-sharee="${esc(e.id)}">${shared?"Make private":"Share"}</button></span></div>`;
+      <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span><span style="color:var(--muted)">${esc(shareLabel(e))}</span><button class="mini" data-editev="${esc(e.id)}">Edit</button><button class="mini" data-sharee="${esc(e.id)}">Share</button></span></div>`;
   }).join("") : `<p class="help">No events yet.</p>`;
   html += `<div class="row"><button class="btn" id="famAddEvent">+ Add an event</button></div>`;
 
@@ -1621,12 +1681,13 @@ document.getElementById("famBody").addEventListener("click", e=>{
     addPerson(name); inp.value = ""; persist([], true); render(); toast("Added.");
     return;
   }
-  if(e.target.id === "famAddEvent"){ openEventPicker("", "", todayISO(), ()=>render()); return; }
+  if(e.target.id === "famAddEvent"){ createEventForm(); return; }
   const oev = e.target.closest("[data-openevfam]"); if(oev){ openEventDetail(oev.dataset.openevfam); return; }
   const sp = e.target.closest("[data-sharep]");
   if(sp){ const p = state.people[sp.dataset.sharep]; if(p){ p.shared = !p.shared; persist([], true); render(); toast(p.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  const ee=e.target.closest("[data-editev]"); if(ee){ const ev=state.events[ee.dataset.editev]; if(ev && (!ev.ownerUid || !cloudUser || ev.ownerUid===cloudUser.uid)) createEventForm(ee.dataset.editev); else toast("Only the person who created this event can modify it."); return; }
   const se = e.target.closest("[data-sharee]");
-  if(se){ const ev = state.events[se.dataset.sharee]; if(ev){ ev.shared = !ev.shared; persist([], true); render(); toast(ev.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  if(se){ const ev = state.events[se.dataset.sharee]; if(ev){ chooseShareAudience(ev,r=>{Object.assign(ev,r);persist([],true);render();}); } return; }
   const dp = e.target.closest("[data-delp2]");
   if(dp){
     if(!confirm("Remove this person? Entries already tagged to them keep the tag.")) return;
@@ -1642,8 +1703,10 @@ let familyCloudTimer=null, familyCloudListeningId="";
 function scheduleFamilyCloudPublish(){ if(!(window.Android&&window.Android.publishFamily)) return; if(!(state.family&&state.family.cloudId)) return; clearTimeout(familyCloudTimer); familyCloudTimer=setTimeout(()=>publishFamilyCloud(false),900); }
 function publishFamilyCloud(force){
   if(!(window.Android&&window.Android.publishFamily)) return; const fam=state.family||{}; if(!fam.cloudId||!cloudUser) return;
-  const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({id:t.id,date:t.date,amount:t.amount,type:t.type,category:t.category,merchant:t.merchant,currency:t.currency,fxRate:t.fxRate,person:t.person,event:t.event})) : [];
-  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e})),calendar:(state.calendar||[]).filter(e=>e.shared),shopping:(state.shopping||[]).filter(e=>e.shared&&!e.done),transactions:txns};
+  const memberIds=familyShareMembers().map(m=>m.id);
+  const audience=e=>e.shareWith==='all'||!Array.isArray(e.shareWith)?memberIds:[...new Set([cloudUser.uid,...e.shareWith])];
+  const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
@@ -1930,14 +1993,14 @@ function renderAccounts(){
   el.innerHTML = html;
 }
 function eventCatBreakdown(id){
-  const rows = state.txns.filter(t=>t.event === id && t.type === "debit" && counts(t));
-  const byCat = {};
-  rows.forEach(t=>{ byCat[t.category] = (byCat[t.category]||0) + spendAmt(t); });
-  return { rows, byCat, total: Object.values(byCat).reduce((a,v)=>a+v,0) };
+  const rows = eventTransactions(id).filter(t=>t.type === "debit" && counts(t));
+  const byCat = {}, byPerson = {};
+  rows.forEach(t=>{ const v=spendAmt(t); byCat[t.category] = (byCat[t.category]||0) + v; const pid=t.person||"self"; let name="You"; const local=peopleList().find(p=>p.id===pid); if(local) name=local.name; else if(pid.startsWith("remote:")&&state.family?.members?.[pid.slice(7)]) name=state.family.members[pid.slice(7)].name; else if(t.ownerUid&&state.family?.members?.[t.ownerUid]) name=state.family.members[t.ownerUid].name; byPerson[name]=(byPerson[name]||0)+v; });
+  return { rows, byCat, byPerson, total: Object.values(byCat).reduce((a,v)=>a+v,0) };
 }
 function openEventDetail(id){
-  const ev = state.events[id]; if(!ev) return;
-  const { rows, byCat, total } = eventCatBreakdown(id);
+  const ev = state.events[id] || eventList().find(e=>e.id===id); if(!ev) return;
+  const { rows, byCat, byPerson, total } = eventCatBreakdown(id);
   const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   let acc = 0;
   const stops = cats.map(([c,v])=>{ const a = acc; acc += (total ? v/total : 0) * 360; return `${CAT_COLOR[c]||"#8a8272"} ${(a+0.6).toFixed(1)}deg ${acc.toFixed(1)}deg`; });
@@ -1946,16 +2009,17 @@ function openEventDetail(id){
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(ev.name)}"><h2>${esc(ev.icon||"📌")} ${esc(ev.name)}</h2>
     <p class="help" style="margin-top:-8px">${ev.date?esc(niceDate(ev.date)):"No date"}${ev.budget?` · budget ${money(ev.budget,true)}`:""}</p>
     ${cats.length?`<div class="donut-row"><div class="donut" style="background:${conic}" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(total)}</b></div></div>
-    <div class="dleg">${cats.map(([c,v])=>`<div><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span><span class="n">${esc(c)}</span><span class="p num">${total?Math.round(v/total*100):0}%</span></div>`).join("")}</div></div>`
-    : `<p class="help">No spending tagged to this yet. Tag an entry to it from Entries.</p>`}
+    <div class="dleg">${cats.map(([c,v])=>`<div><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span><span class="n">${esc(c)}</span><span class="p num">${total?Math.round(v/total*100):0}%</span></div>`).join("")}</div></div><h3 class="section-h" style="margin-top:14px;font-size:1rem">Who spent</h3><div class="dleg">${Object.entries(byPerson).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div><span class="n">${esc(n)}</span><span class="p num">${money(v,true)}${total?` · ${Math.round(v/total*100)}%`:''}</span></div>`).join("")}</div>`
+    : `<p class="help">No spending tagged to this yet.</p>`}
     <h2 class="section-h" style="margin-top:16px">Entries</h2>
     ${rows.length ? rows.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<button class="trow" data-id="${t.id}"><div class="l1 num"><span>${esc(t.merchant)}</span><b>${money(t.amount,true,t.currency)}</b></div>
       <div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join("") : ""}
-    <div class="row" style="margin-top:14px"><button class="btn" data-s="cancel">Close</button><button class="btn danger" data-delev="${esc(id)}" style="margin-left:auto">Delete event</button></div></div>`;
+    <div class="row" style="margin-top:14px"><button class="btn" data-s="cancel">Close</button>${(!ev.ownerUid||!cloudUser||ev.ownerUid===cloudUser.uid)?`<button class="btn" data-editeventdetail="${esc(id)}">Edit</button><button class="btn danger" data-delev="${esc(id)}" style="margin-left:auto">Delete event</button>`:''}</div></div>`;
   document.body.appendChild(scrim);
   scrim.addEventListener("click", e=>{
     if(e.target === scrim || e.target.closest("[data-s=cancel]")){ scrim.remove(); return; }
-    const row = e.target.closest("[data-id]"); if(row){ const tx = state.txns.find(x=>x.id === row.dataset.id); if(tx){ scrim.remove(); openSheet(tx, false); } return; }
+    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx && !tx.remote){ scrim.remove(); openSheet(tx, false); } else if(tx){ toast("This expense belongs to another family member and can be viewed here but edited on their phone."); } return; }
+    const ed=e.target.closest('[data-editeventdetail]'); if(ed){scrim.remove();createEventForm(ed.dataset.editeventdetail);return;}
     const del = e.target.closest("[data-delev]");
     if(del){
       if(!confirm("Delete this event? Tagged entries keep their amounts and categories, just untagged from it.")) return;
@@ -2063,6 +2127,17 @@ function homeFamilyTotals(){
   people.forEach(p=>p.txns.forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); }));
   return {people,income,expense,balance:income-expense};
 }
+function renderRecentExpenses(){
+  const tx=state.txns.filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
+  if(!tx.length) return '<p class="help">No expenses yet.</p>';
+  return tx.map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('');
+}
+function openEntriesSheet(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const tx=state.txns.filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
+  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
+}
 function renderHome(){
   const body=document.getElementById("homeBody");
   const t=homeFamilyTotals();
@@ -2076,7 +2151,7 @@ function renderHome(){
   const memberChips=t.people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("");
   const eventHtml=events.length?events.map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.shared?"<span>Shared</span>":"<span>Private</span>"}</span></button>`).join(""):"<p class=\"help\">No events yet.</p>";
   const calHtml=cal.length?cal.map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||"Calendar item")}</span><span>${esc(x.date)}</span><span class="w" style="grid-column:1/3">${esc(x.note||"")}</span></div>`).join(""):"<p class=\"help\">No calendar items yet.</p>";
-  const shopHtml=shopping.length?shopping.map(x=>`<label class="due" style="cursor:pointer"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" style="margin-right:8px">${esc(x.item)}</span><span>${x.shared?"Shared":"Private"}</span></label>`).join(""):"<p class=\"help\">Shopping list is empty.</p>";
+  const shopHtml=shopping.length?shopping.map(x=>`<label class="due" style="cursor:pointer;${x.done?"opacity:.55;text-decoration:line-through":""}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?"checked":""} style="margin-right:8px">${esc(x.item)}</span><span>${x.shared?"Shared":"Private"}</span></label>`).join(""):"<p class=\"help\">Shopping list is empty.</p>";
   body.innerHTML=`
     <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${signed?"Google connected":"Family data on this phone"}</span></div>
       <div class="members" style="margin-bottom:14px">${memberChips}</div>
@@ -2087,19 +2162,20 @@ function renderHome(){
     <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
     <div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>
     <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-    <div class="card"><p class="hint">Items marked <b>Shared</b> are intended for family members. Use Settings → Family sync to send shared family data to another phone.</p></div>`;
+    <div class="card"><div class="card-h"><h2>Recent expenses</h2><button class="mini" id="homeSeeExpenses">See all</button></div>${renderRecentExpenses()}</div>
+    <div class="card"><p class="hint">Items marked <b>Shared</b> are visible to the selected family members after cloud sync.</p></div>`;
 }
 function addHomeCalendar(){
   const scrim=document.createElement("div"); scrim.className="scrim";
-  scrim.innerHTML=`<div class="sheet"><h2>Add calendar item</h2><label class="field"><span>Title</span><input id="hc-title"></label><label class="field"><span>Date</span><input id="hc-date" type="date" value="${todayISO()}"></label><label class="field"><span>Note</span><input id="hc-note"></label><label class="check"><input id="hc-shared" type="checkbox" checked> Share with family</label><div class="row"><button class="btn primary" id="hc-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
-  document.body.appendChild(scrim); scrim.querySelector("#hc-title").focus();
-  scrim.addEventListener("click",e=>{ if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} if(e.target.id==="hc-save"){const title=scrim.querySelector("#hc-title").value.trim();if(!title){toast("Enter a title.");return;} state.calendar=state.calendar||[];state.calendar.push({id:uidGen(),title,date:scrim.querySelector("#hc-date").value,note:scrim.querySelector("#hc-note").value.trim(),shared:scrim.querySelector("#hc-shared").checked,createdAt:todayISO()});persist([],true);scrim.remove();render();}});
+  scrim.innerHTML=`<div class="sheet"><h2>Add calendar item</h2><label class="field"><span>Title</span><input id="hc-title"></label><label class="field"><span>Date</span><input id="hc-date" type="date" value="${todayISO()}"></label><label class="field"><span>Note</span><input id="hc-note"></label><div class="due"><span class="n">Sharing</span><span id="hc-shareLabel">Private</span><button class="mini" id="hc-share">Choose</button></div><div class="row"><button class="btn primary" id="hc-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hc-title").focus(); scrim.querySelector('#hc-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hc-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{ if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} if(e.target.id==="hc-save"){const title=scrim.querySelector("#hc-title").value.trim();if(!title){toast("Enter a title.");return;} state.calendar=state.calendar||[];state.calendar.push({id:uidGen(),title,date:scrim.querySelector("#hc-date").value,note:scrim.querySelector("#hc-note").value.trim(),createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
 }
 function addHomeShopping(){
   const scrim=document.createElement("div"); scrim.className="scrim";
-  scrim.innerHTML=`<div class="sheet"><h2>Add shopping item</h2><label class="field"><span>Item</span><input id="hs-item" placeholder="Milk, rice, detergent…"></label><label class="check"><input id="hs-shared" type="checkbox" checked> Share with family</label><div class="row"><button class="btn primary" id="hs-save">Add</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
-  document.body.appendChild(scrim); scrim.querySelector("#hs-item").focus();
-  scrim.addEventListener("click",e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}if(e.target.id==="hs-save"){const item=scrim.querySelector("#hs-item").value.trim();if(!item){toast("Enter an item.");return;}state.shopping=state.shopping||[];state.shopping.push({id:uidGen(),item,done:false,shared:scrim.querySelector("#hs-shared").checked,createdAt:todayISO()});persist([],true);scrim.remove();render();}});
+  scrim.innerHTML=`<div class="sheet"><h2>Add shopping item</h2><label class="field"><span>Item</span><input id="hs-item" placeholder="Milk, rice, detergent…"></label><div class="due"><span class="n">Sharing</span><span id="hs-shareLabel">Private</span><button class="mini" id="hs-share">Choose</button></div><div class="row"><button class="btn primary" id="hs-save">Add</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hs-item").focus(); scrim.querySelector('#hs-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hs-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}if(e.target.id==="hs-save"){const item=scrim.querySelector("#hs-item").value.trim();if(!item){toast("Enter an item.");return;}state.shopping=state.shopping||[];state.shopping.push({id:uidGen(),item,done:false,createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
 }
 function render(){
   document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + (view === "merchant" ? "merchant" : view)));
@@ -2512,6 +2588,7 @@ function openSheet(t, isNew){
       <span id="e-evLabel" style="flex-grow:1;text-align:left;font-weight:600">${t.event && state.events[t.event] ? esc(state.events[t.event].name) : "None — tap to tag"}</span>
       <span style="color:var(--muted)">›</span>
     </button>
+    ${cloudUser && state.family?.cloudId ? `<div class="due"><span class="n">Family sharing</span><span id="e-shareLabel">${esc(shareLabel(t))}</span><button type="button" class="mini" id="e-shareBtn">Choose</button></div>` : ""}
     ${loanMatch?`<label class="check"><input type="checkbox" id="e-loan">This looks like ${loanMatch.splitWith?esc(loanMatch.splitWith)+" ":""}paying back the ${money(loanMatch.amount-loanMatch.share,true)} you lent on ${esc(niceDate(loanMatch.date))}. Mark it as a repayment (not income) and settle it?</label>`:""}
     <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
     <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
@@ -2542,6 +2619,9 @@ function openSheet(t, isNew){
   scrim.querySelector("#e-amt").focus();
   let selPerson = t.person || "";
   let selEvent = t.event || "";
+  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
+  const shareBtn = scrim.querySelector("#e-shareBtn");
+  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
   const evBtn = scrim.querySelector("#e-evBtn");
   const refreshEvBtn = ()=>{
     const ev = selEvent && state.events[selEvent];
@@ -2608,6 +2688,7 @@ function openSheet(t, isNew){
     if(!upd.reimb){ delete upd.reimb; delete upd.reimbDone; }
     if(selPerson) upd.person = selPerson; else delete upd.person;
     if(selEvent) upd.event = selEvent; else delete upd.event;
+    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;} else {delete upd.shared;delete upd.shareWith;} }
     if(scrim.querySelector("#e-split").checked && upd.type === "debit"){
       const share = parseFloat(shareIn.value.replace(/[,₹\s]/g,""));
       if(!(share >= 0) || share > amount){ toast("Your share should be between ₹0 and the full amount."); return; }
@@ -2756,20 +2837,22 @@ function shift(n){
 
 
 document.getElementById("homeBody").addEventListener("click", e=>{
-  if(e.target.closest("#homeCreateEvent")){ openEventPicker("", "", todayISO(), id=>{ if(state.events[id]) state.events[id].shared=true; persist([],true); render(); }); return; }
+  if(e.target.closest("#homeCreateEvent")){ createEventForm(); return; }
   if(e.target.closest("#homeAddShopping")){ addHomeShopping(); return; }
   if(e.target.closest("#homeAddCalendar")){ addHomeCalendar(); return; }
   if(e.target.closest("#homeSeeEvents")){ view="overview"; ovMode="events"; render(); return; }
+  if(e.target.closest("#homeSeeExpenses")){ openEntriesSheet(); return; }
+  const hee=e.target.closest("[data-home-entry]"); if(hee){ const t=state.txns.find(x=>x.id===hee.dataset.homeEntry); if(t) openSheet(t,false); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
-  const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=true;persist([],true);render();} return; }
+  const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
   const f = e.target.closest("[data-f]"); if(f){ homeFamily = f.dataset.f === "1"; render(); return; }
   const k = e.target.closest("[data-k]"); if(k){ homeSel = k.dataset.k; render(); return; }
   const o = e.target.closest("[data-open]"); if(o){ cursor = o.dataset.open; view = "overview"; window.scrollTo(0,0); render(); return; }
   if(e.target.closest("[data-trends]")){ ovMode = "year"; ovYear = +currentPK().slice(0,4); view = "overview"; window.scrollTo(0,0); render(); return; }
-  const see = e.target.closest("[data-see]"); if(see){ listCat = see.dataset.see; cursor = currentPK(); view = "list"; window.scrollTo(0,0); render(); return; }
-  const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; window.scrollTo(0,0); render(); }
+  const see = e.target.closest("[data-see]"); if(see){ openEntriesSheet(); return; }
+  const c = e.target.closest("[data-cat]"); if(c){ openEntriesSheet(); return; }
 });
 document.getElementById("overviewBody").addEventListener("click", e=>{
   const oev = e.target.closest("[data-openevov]"); if(oev){ openEventDetail(oev.dataset.openevov); return; }
@@ -3433,7 +3516,6 @@ function showFirstRunSignIn(){
   const finish=()=>{
     state.googleOnboardingDone=true;
     persist([],true);
-    if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
     scrim.remove(); refreshCloudBlock(); runOnboardingChecks();
   };
   scrim.querySelector("#fr-skip").onclick=()=>{ state.googleSkipped=true; finish(); };
@@ -3483,27 +3565,42 @@ window.needsLanguage = function(){ return !state.lang; };
 // is a brand-new install (reached via the language picker) or an existing install opening a
 // version that added a new step (reached directly at boot) — nothing here depends on language
 // having just been chosen in *this* session.
+function showSmsConsent(){
+  if(document.getElementById("smsConsentSheet")) return;
+  const already = !!(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess());
+  const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="smsConsentSheet";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="SMS access"><h2>Allow SMS reading</h2>
+    <p class="help">SMS Ledger will read bank transaction messages to build your ledger. It will not start reading your existing SMS until you confirm below.</p>
+    ${already ? `<p class="hint">Android says SMS access is already granted on this phone. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">First, Android will show its SMS permission prompt. After you allow it, return here to confirm that you want the app to read your SMS.</p>`}
+    <div class="row"><button class="btn primary" id="smsConsentContinue">${already ? "Continue and read SMS" : "Request SMS permission"}</button><button class="btn" id="smsConsentLater">Not now</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.querySelector("#smsConsentLater").onclick=()=>{ scrim.remove(); toast("SMS reading is paused. You can allow it later in Settings."); };
+  scrim.querySelector("#smsConsentContinue").onclick=()=>{
+    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
+      state.smsPermissionConfirmed=true; state.onboardingComplete=true; persist([],true);
+      if(window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
+      scrim.remove();
+      if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
+      else window.Android.importRange(90);
+    } else if(window.Android && window.Android.requestSms){
+      window.Android.requestSms();
+    }
+  };
+}
 function runOnboardingChecks(){
   if(window.Android && window.Android.signIn && !state.googleOnboardingDone){ showFirstRunSignIn(); return; }
   checkSimOnboarding(()=>{
     if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
-      state.smsPermissionConfirmed = true;
-      state.onboardingComplete = true;
-      persist([], true);
-      if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
-      if(rangeAfterLang){ rangeAfterLang=false; window.chooseImportRange(); }
-      else if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
+      if(state.smsPermissionConfirmed) return;
+      showSmsConsent();
       return;
     }
-    if(window.Android && window.Android.requestSms) window.Android.requestSms();
+    if(window.Android && window.Android.requestSms) showSmsConsent();
   });
 }
 window.smsPermissionGranted = function(){
-  state.smsPermissionConfirmed = true;
-  state.onboardingComplete = true;
-  persist([], true);
-  if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete();
-  if(!localStorage.getItem("smsledger.initialImportDone")) window.chooseImportRange();
+  // Android permission has been granted; do not read yet. Ask for explicit in-app consent.
+  showSmsConsent();
 };
 // If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
 // rather than leaving it to be found later in Settings. Settings still has the same choices,
@@ -3516,7 +3613,7 @@ function checkSimOnboarding(next){
   state.simOwners = state.simOwners || {};
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Whose SIM is whose"><h2>This phone has ${sims.length} SIMs</h2>
-    <p class="help">Looks like more than one SIM is active on this phone. Tag each SIM to the person who uses it. This only identifies the source of SMS transactions; it does not create a family member or link a SIM to an account.</p>
+    <p class="help">More than one active SIM was detected. Enter a person name for at least one SIM. Names for the remaining SIMs are optional; if left blank, the app will use an internal SIM label until you rename it in Settings.</p>
     <div id="fr-simList"></div>
     <div class="row"><button class="btn primary" id="fr-simDone">Continue</button></div></div>`;
   document.body.appendChild(scrim);
@@ -3540,10 +3637,16 @@ function checkSimOnboarding(next){
       return;
     }
     if(e.target.id === "fr-simDone"){
-      const missing = sims.some(sim => !((state.simOwners[sim.id] || {}).name || "").trim());
-      if(missing){ toast("Please enter a name for every SIM before continuing."); return; }
+      const named = sims.filter(sim => ((state.simOwners[sim.id] || {}).name || "").trim());
+      if(!named.length){ toast("Enter a name for at least one SIM."); return; }
+      const missing = sims.filter(sim => !((state.simOwners[sim.id] || {}).name || "").trim());
+      if(missing.length){
+        const ok = confirm(`${missing.length} SIM${missing.length===1?"":"s"} has no name. The app will temporarily use an internal name for its transactions; you can rename it later in Settings. Continue?`);
+        if(!ok) return;
+      }
       sims.forEach((sim,i)=>{
         if(!state.simOwners[sim.id]) state.simOwners[sim.id] = {};
+        if(!String(state.simOwners[sim.id].name||"").trim()) state.simOwners[sim.id].name = `SIM ${i+1}`;
         if(!state.simOwners[sim.id].color) state.simOwners[sim.id].color = PALETTE[i % PALETTE.length];
       });
       if(!Object.values(state.simOwners).some(o=>o.isMe) && sims[0]) state.simOwners[sims[0].id].isMe = true;

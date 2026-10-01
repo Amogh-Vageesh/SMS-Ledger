@@ -391,3 +391,32 @@ The app does **not** upload the entire SMS inbox. Family Cloud publishes only th
 ### 6. Security
 
 The included rules require Firebase Authentication and verify family membership before allowing access to a family's shared collections. Do not replace them with Firestore "allow read, write: if true" rules in production.
+
+
+## v1.44 Family Hub fixes
+
+- Google Sign-In uses Credential Manager with a Google Play services fallback.
+- SMS reading is gated by explicit in-app consent. Android permission being granted is not treated as permission to scan until the user confirms.
+- Dual-SIM detection uses Android's active subscription list, not historical SMS subscription IDs. At least one SIM name is required; remaining SIMs may be left blank and receive an internal temporary label that can be renamed later.
+- Family Hub sharing supports All family members or selected members for events, calendar items, shopping items, and explicitly shared transactions.
+- Firestore sharing rules use `shareWith: "all"` or `audienceUids` so selected-member data is restricted at the database-rule level.
+- Event creators can edit/delete their events.
+- Event details show category breakdown and who spent the most.
+- Shopping items remain visible when checked off instead of disappearing from the active list.
+- The standalone Entries tab is removed; Home now has a Recent expenses card and a floating searchable expense window. Tapping an expense still opens the existing full edit/detail sheet.
+
+### Firebase / Google setup
+
+1. In Firebase Console, open the project used by `app/google-services.json`.
+2. Authentication -> Sign-in method -> enable Google.
+3. Authentication -> Settings / Google configuration: confirm the Web OAuth client used by the app exists.
+4. Firebase Project settings -> Your apps -> Android app `in.vageesh.smsledger`: ensure the SHA-1 for the release key is registered. The included release keystore is configured by the project build; if you replace it, register the SHA-1 of your replacement key instead.
+5. Download the current `google-services.json` after changing OAuth settings and replace `app/google-services.json` if Firebase provides a new file.
+6. Create/enable Cloud Firestore in the same project.
+7. Publish the included `firestore.rules`. With Firebase CLI: `firebase login`, `firebase use <project-id>`, `firebase deploy --only firestore:rules`.
+8. Build the release APK with the included GitHub Actions workflow.
+9. Install the same release build on each family member's phone. Each member signs in with their own Google account and joins the family using the family code.
+
+### Important
+
+The app's local SMS ledger remains local unless family transaction sharing is enabled. Shared Family Hub objects are synchronized through Firestore.

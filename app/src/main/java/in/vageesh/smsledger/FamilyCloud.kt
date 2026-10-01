@@ -66,7 +66,11 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
             val id = o.optString("id").ifBlank { UUID.randomUUID().toString() }
             val map = mutableMapOf<String, Any>("ownerUid" to uid, "updatedAt" to now)
             o.keys().forEach { k ->
-                val v = o.opt(k); if (v != null && v != JSONObject.NULL) map[k] = when (v) { is Number, is Boolean, is String -> v; else -> v.toString() }
+                val v = o.opt(k); if (v != null && v != JSONObject.NULL) map[k] = when (v) {
+                    is Number, is Boolean, is String -> v
+                    is JSONArray -> (0 until v.length()).mapNotNull { v.optString(it, null) }
+                    else -> v.toString()
+                }
             }
             keep += id
             col.document(id).set(map, SetOptions.merge()).await()
@@ -80,18 +84,25 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         val root = db.collection("families").document(familyId)
         val buckets = mutableMapOf<String, MutableMap<String, JSONObject>>()
         fun watch(kind: String) {
-            val reg = root.collection(kind).addSnapshotListener { snap, e ->
-                if (e != null) { onError(e.message ?: "Family sync error"); return@addSnapshotListener }
-                val b = buckets.getOrPut(kind) { mutableMapOf() }
-                snap?.documentChanges?.forEach { ch ->
-                    val id = ch.document.id
-                    if (ch.type.name == "REMOVED") b.remove(id) else b[id] = JSONObject(ch.document.data)
+            val collection = root.collection(kind)
+            val queries = if (kind == "members") listOf(collection) else listOf(
+                collection.whereEqualTo("shareWith", "all"),
+                collection.whereArrayContains("audienceUids", auth.currentUser?.uid ?: "")
+            )
+            queries.forEach { query ->
+                val reg = query.addSnapshotListener { snap, e ->
+                    if (e != null) { onError(e.message ?: "Family sync error"); return@addSnapshotListener }
+                    val b = buckets.getOrPut(kind) { mutableMapOf() }
+                    snap?.documentChanges?.forEach { ch ->
+                        val id = ch.document.id
+                        if (ch.type.name == "REMOVED") b.remove(id) else b[id] = JSONObject(ch.document.data)
+                    }
+                    val out = JSONObject()
+                    buckets.forEach { (k,v) -> val a=JSONArray(); v.values.forEach { a.put(it) }; out.put(k,a) }
+                    onData(out.toString())
                 }
-                val out = JSONObject()
-                buckets.forEach { (k,v) -> val a=JSONArray(); v.values.forEach { a.put(it) }; out.put(k,a) }
-                onData(out.toString())
+                listeners += reg
             }
-            listeners += reg
         }
         listOf("events","calendar","shopping","transactions","members").forEach(::watch)
     }

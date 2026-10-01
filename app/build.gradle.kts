@@ -12,8 +12,8 @@ android {
         applicationId = "in.vageesh.smsledger"
         minSdk = 26
         targetSdk = 34
-        versionCode = 38
-        versionName = "1.43"
+        versionCode = 39
+        versionName = "1.44"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update
@@ -49,6 +49,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.google.android.gms:play-services-nearby:19.3.0")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // Firebase: Auth now, Firestore joins in the next step once sign-in is confirmed working.
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
