@@ -289,14 +289,27 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 <section id="v-home">
   <div class="home-top">
     <div><div class="hi" id="homeHi">Your money at a glance</div><h1>Home</h1></div>
-    <div class="hi" id="homeMonth" style="text-align:right"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="iconbtn" id="homeFamBtn" aria-label="Family" style="width:38px;height:38px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="6" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.8-4.5 4-4.8"/></svg>
+      </button>
+      <div class="hi" id="homeMonth" style="text-align:right"></div>
+    </div>
   </div>
   <div id="homeBody"></div>
 </section>
 
+<section id="v-family" class="hidden">
+  <div class="mtop">
+    <button class="iconbtn" id="famBack" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 style="font-family:var(--serif);font-weight:400;font-size:1.3rem;margin:0">Family</h1>
+  </div>
+  <div id="famBody"></div>
+</section>
+
 <section id="v-overview" class="hidden">
   <div class="seg wide" id="ovMode" role="group" aria-label="View" style="margin-top:4px">
-    <button data-m="month">Month</button><button data-m="year">Year</button><button data-m="all">All years</button>
+    <button data-m="month">Month</button><button data-m="year">Year</button><button data-m="all">All years</button><button data-m="events">Events</button>
   </div>
   <div class="month">
     <button class="iconbtn" id="prevM" aria-label="Previous month"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -402,7 +415,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   </div>
   <h1 class="section-h" id="simHeading" style="display:none">Dual SIM</h1>
   <div class="set-block" id="simBlock" style="display:none">
-    <p>This phone has more than one SIM receiving bank SMS. Name each one, and mark which is yours — the other's entries then show separately under Family view.</p>
+    <p>You chose this when you first opened the app. Update it here any time — a SIM swap, or a new family member sharing this phone.</p>
     <div id="simList"></div>
   </div>
   <h1 class="section-h">Cloud account</h1>
@@ -472,7 +485,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 <div class="tabs">
   <nav aria-label="Sections">
     <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Home</button>
-    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Details</button>
+    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>Summary</button>
     <button data-v="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Entries</button>
     <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Accounts</button>
     <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
@@ -546,7 +559,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 // Stored data stays in English (category keys etc.); only what's shown on screen is translated.
 let LANG = "en";
 const KN = {
-  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Details":"ವಿವರಗಳು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
+  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Summary":"ಸಾರಾಂಶ","Tagged to events":"ಸಂದರ್ಭಗಳಿಗೆ ಟ್ಯಾಗ್ ಆಗಿರುವುದು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
   "Your money at a glance":"ನಿಮ್ಮ ಹಣದ ಒಂದು ನೋಟ","Your family's money at a glance":"ನಿಮ್ಮ ಕುಟುಂಬದ ಹಣದ ಒಂದು ನೋಟ","Period":"ಅವಧಿ",
   "Just me":"ನಾನು ಮಾತ್ರ","Family":"ಕುಟುಂಬ","Whose money":"ಯಾರ ಹಣ",
   "Money in":"ಬಂದ ಹಣ","Money out":"ಹೋದ ಹಣ","In":"ಬಂದದ್ದು","Out":"ಹೋದದ್ದು","in":"ಬಂದದ್ದು","out":"ಹೋದದ್ದು","in ·":"ಬಂದದ್ದು ·",
@@ -627,7 +640,14 @@ const KN = {
   "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
   "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
   "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Starting…":"ಪ್ರಾರಂಭಿಸಲಾಗುತ್ತಿದೆ…","Family sync needs the Android app, not this browser view.":"ಕುಟುಂಬ ಸಿಂಕ್‌ಗೆ Android ಆ್ಯಪ್ ಬೇಕು, ಈ ಬ್ರೌಸರ್ ನೋಟದಲ್ಲಿ ಅಲ್ಲ.","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
-  "Import SMS":"SMS ಆಮದು","EPF contribution":"EPF ಕೊಡುಗೆ","NPS contribution":"NPS ಕೊಡುಗೆ","Pension contribution":"ಪಿಂಚಣಿ ಕೊಡುಗೆ","EPF passbook update without a contribution amount":"ಕೊಡುಗೆ ಮೊತ್ತವಿಲ್ಲದ EPF ಪಾಸ್‌ಬುಕ್ ಅಪ್‌ಡೇಟ್","Standing instruction / mandate notice without an amount":"ಮೊತ್ತವಿಲ್ಲದ ಸ್ಟ್ಯಾಂಡಿಂಗ್ ಇನ್‌ಸ್ಟ್ರಕ್ಷನ್/ಮ್ಯಾಂಡೇಟ್ ಸೂಚನೆ","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Theme updated.":"ಥೀಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ.",
+  "Import SMS":"SMS ಆಮದು","EPF contribution":"EPF ಕೊಡುಗೆ","NPS contribution":"NPS ಕೊಡುಗೆ","Pension contribution":"ಪಿಂಚಣಿ ಕೊಡುಗೆ","EPF passbook update without a contribution amount":"ಕೊಡುಗೆ ಮೊತ್ತವಿಲ್ಲದ EPF ಪಾಸ್‌ಬುಕ್ ಅಪ್‌ಡೇಟ್","Standing instruction / mandate notice without an amount":"ಮೊತ್ತವಿಲ್ಲದ ಸ್ಟ್ಯಾಂಡಿಂಗ್ ಇನ್‌ಸ್ಟ್ರಕ್ಷನ್/ಮ್ಯಾಂಡೇಟ್ ಸೂಚನೆ","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Theme updated.":"ಥೀಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ.","+ Add an expense":"+ ಖರ್ಚು ಸೇರಿಸಿ","Shared":"ಹಂಚಲಾಗಿದೆ","Private":"ಖಾಸಗಿ",
+  "Share":"ಹಂಚಿ","Make private":"ಖಾಸಗಿ ಮಾಡಿ","+ Add an event":"+ ಸಂದರ್ಭ ಸೇರಿಸಿ",
+  "Create people and events here, tag spending to them, and mark what you'd like to share once family sync is turned on. Sharing isn't live yet — this gets it ready.":"ಇಲ್ಲಿ ಜನರು ಮತ್ತು ಸಂದರ್ಭಗಳನ್ನು ರಚಿಸಿ, ಅವರಿಗೆ ಖರ್ಚು ಟ್ಯಾಗ್ ಮಾಡಿ, ಮತ್ತು ಕುಟುಂಬ ಸಿಂಕ್ ಆನ್ ಆದ ನಂತರ ಏನು ಹಂಚಿಕೊಳ್ಳಬೇಕು ಎಂದು ಗುರುತಿಸಿ. ಹಂಚಿಕೆ ಇನ್ನೂ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿಲ್ಲ — ಇದು ಅದಕ್ಕೆ ಸಿದ್ಧಪಡಿಸುತ್ತದೆ.",
+  "Marked to share once sync is on.":"ಸಿಂಕ್ ಆನ್ ಆದ ನಂತರ ಹಂಚಲು ಗುರುತಿಸಲಾಗಿದೆ.","Made private.":"ಖಾಸಗಿ ಮಾಡಲಾಗಿದೆ.",
+  "Remove this person? Entries already tagged to them keep the tag.":"ಈ ವ್ಯಕ್ತಿಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಈಗಾಗಲೇ ಟ್ಯಾಗ್ ಆಗಿರುವ ನಮೂದುಗಳಲ್ಲಿ ಟ್ಯಾಗ್ ಉಳಿಯುತ್ತದೆ.",
+  "You chose this when you first opened the app. Update it here any time — a SIM swap, or a new family member sharing this phone.":"ಮೊದಲ ಬಾರಿ ಆ್ಯಪ್ ತೆರೆದಾಗ ನೀವು ಇದನ್ನು ಆರಿಸಿದ್ದೀರಿ. ಇಲ್ಲಿ ಯಾವಾಗ ಬೇಕಾದರೂ ಬದಲಿಸಿ — SIM ಬದಲಾವಣೆ, ಅಥವಾ ಈ ಫೋನ್ ಹಂಚಿಕೊಳ್ಳುವ ಹೊಸ ಕುಟುಂಬ ಸದಸ್ಯ.",
+  "This phone has 2 SIMs":"ಈ ಫೋನ್‌ನಲ್ಲಿ 2 SIM ಗಳಿವೆ","Looks like more than one person's bank SMS land on this phone. Name each SIM and mark which is yours — the other's entries show up separately under Family, without needing their own phone.":"ಈ ಫೋನ್‌ಗೆ ಒಬ್ಬರಿಗಿಂತ ಹೆಚ್ಚು ಜನರ ಬ್ಯಾಂಕ್ SMS ಬರುತ್ತಿರುವಂತಿದೆ. ಪ್ರತಿ SIM ಗೆ ಹೆಸರಿಡಿ, ಯಾವುದು ನಿಮ್ಮದು ಎಂದು ಗುರುತಿಸಿ — ಇನ್ನೊಬ್ಬರ ನಮೂದುಗಳು ಅವರ ಸ್ವಂತ ಫೋನ್ ಇಲ್ಲದೆಯೇ ಕುಟುಂಬದ ಅಡಿಯಲ್ಲಿ ಪ್ರತ್ಯೇಕವಾಗಿ ಕಾಣಿಸುತ್ತವೆ.",
+  "Mine":"ನನ್ನದು","Continue":"ಮುಂದುವರಿಸಿ",
   "Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign in":"ಸೈನ್ ಇನ್","Not now":"ಈಗ ಬೇಡ","Signing in…":"ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…",
   "Not required — your SMS reading and your own entries work fully without this. Signing in is only the first step toward sharing events, trips and lists with family later.":"ಅಗತ್ಯವಿಲ್ಲ — ನಿಮ್ಮ SMS ಓದುವಿಕೆ ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ನಮೂದುಗಳು ಇದಿಲ್ಲದೆಯೂ ಪೂರ್ಣವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತವೆ. ಸೈನ್ ಇನ್ ಎಂಬುದು ಮುಂದೆ ಕುಟುಂಬದೊಂದಿಗೆ ಸಂದರ್ಭಗಳು, ಪ್ರವಾಸಗಳು ಮತ್ತು ಪಟ್ಟಿಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳುವ ಮೊದಲ ಹೆಜ್ಜೆ ಮಾತ್ರ.",
   "Couldn't start sign-in.":"ಸೈನ್ ಇನ್ ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ.","Signed in.":"ಸೈನ್ ಇನ್ ಆಗಿದೆ.","Signed out.":"ಸೈನ್ ಔಟ್ ಆಗಿದೆ.",
@@ -639,7 +659,7 @@ const KN = {
   "Remove this person? Entries already tagged to them keep the tag, but you won't be able to pick them again unless you re-add them.":"ಈ ವ್ಯಕ್ತಿಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಈಗಾಗಲೇ ಟ್ಯಾಗ್ ಆಗಿರುವ ನಮೂದುಗಳಲ್ಲಿ ಟ್ಯಾಗ್ ಉಳಿಯುತ್ತದೆ, ಆದರೆ ಮತ್ತೆ ಸೇರಿಸುವವರೆಗೆ ಅವರನ್ನು ಮತ್ತೆ ಆರಿಸಲು ಆಗುವುದಿಲ್ಲ.",
   "Who's this for":"ಇದು ಯಾರಿಗೆ","Tag to an event":"ಒಂದು ಸಂದರ್ಭಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ","None — tap to tag":"ಯಾವುದೂ ಇಲ್ಲ — ಟ್ಯಾಗ್ ಮಾಡಲು ಒತ್ತಿ",
   "Choose an event":"ಒಂದು ಸಂದರ್ಭ ಆರಿಸಿ","Search or name a new one…":"ಹುಡುಕಿ ಅಥವಾ ಹೊಸದಕ್ಕೆ ಹೆಸರಿಡಿ…","No date":"ದಿನಾಂಕವಿಲ್ಲ",
-  "No events yet. Create one below.":"ಇನ್ನೂ ಯಾವುದೇ ಸಂದರ್ಭಗಳಿಲ್ಲ. ಕೆಳಗೆ ಒಂದನ್ನು ರಚಿಸಿ.","+ Create a new event":"+ ಹೊಸ ಸಂದರ್ಭ ರಚಿಸಿ",
+  "No events yet. Create one below.":"ಇನ್ನೂ ಯಾವುದೇ ಸಂದರ್ಭಗಳಿಲ್ಲ. ಕೆಳಗೆ ಒಂದನ್ನು ರಚಿಸಿ.","No events yet.":"ಇನ್ನೂ ಯಾವುದೇ ಸಂದರ್ಭಗಳಿಲ್ಲ.","Tag an entry to one from Entries, or add one from Accounts.":"ನಮೂದುಗಳಿಂದ ಒಂದಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ, ಅಥವಾ ಖಾತೆಗಳಿಂದ ಒಂದನ್ನು ಸೇರಿಸಿ.","+ Create a new event":"+ ಹೊಸ ಸಂದರ್ಭ ರಚಿಸಿ",
   "Events":"ಸಂದರ್ಭಗಳು","Add an event":"ಸಂದರ್ಭ ಸೇರಿಸಿ",
   "Tag an entry to an event — a trip, a festival, a function, anything — and it'll show up here with what you spent on it.":"ಒಂದು ನಮೂದನ್ನು ಸಂದರ್ಭಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ — ಪ್ರವಾಸ, ಹಬ್ಬ, ಕಾರ್ಯಕ್ರಮ, ಏನಾದರೂ — ಅದು ಇಲ್ಲಿ ನೀವು ಖರ್ಚು ಮಾಡಿದ್ದರೊಂದಿಗೆ ಕಾಣಿಸುತ್ತದೆ.",
   "No spending tagged to this yet. Tag an entry to it from Entries.":"ಇನ್ನೂ ಇದಕ್ಕೆ ಯಾವುದೇ ಖರ್ಚು ಟ್ಯಾಗ್ ಆಗಿಲ್ಲ. ನಮೂದುಗಳಿಂದ ಒಂದನ್ನು ಟ್ಯಾಗ್ ಮಾಡಿ.",
@@ -1551,6 +1571,56 @@ function findEventNudge(name, date, excludeId){
   cands.forEach(e=>{ const s = eventMatchScore(name, date, e); if(s > bestScore){ bestScore = s; best = e; } });
   return bestScore >= 0.55 ? best : null;
 }
+// -------- Family Hub: one place to manage people, events, and add a tagged expense --------
+// "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
+// is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
+function renderFamily(){
+  const people = peopleList(), events = eventList();
+  let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0">Create people and events here, tag spending to them, and mark what you'd like to share once family sync is turned on. Sharing isn't live yet — this gets it ready.</p></div>`;
+
+  html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
+
+  html += `<h2 class="section-h" style="margin-top:4px">People</h2>`;
+  html += people.length ? people.map(p=>{
+    const shared = !!p.shared;
+    return `<div class="due"><span class="n"><span class="av" style="background:${p.color};width:26px;height:26px;border-radius:50%;color:var(--brass-ink);font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;vertical-align:middle">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>
+      <span class="num" style="font-size:.78rem;color:var(--muted)">${shared?"Shared":"Private"}</span>
+      <span class="w" style="grid-column:1/3"><button class="mini" data-sharep="${esc(p.id)}">${shared?"Make private":"Share"}</button><button class="mini" data-delp2="${esc(p.id)}">Remove</button></span></div>`;
+  }).join("") : `<p class="help">No one added yet.</p>`;
+  html += `<div class="row"><input id="famNewPerson" placeholder="Name, e.g. Aarav" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="famAddPerson">Add</button></div>`;
+
+  html += `<h2 class="section-h">Events</h2>`;
+  html += events.length ? events.map(e=>{
+    const shared = !!e.shared, spent = eventSpend(e.id);
+    return `<div class="due"><button data-openevfam="${esc(e.id)}" style="all:unset;cursor:pointer;grid-column:1/2"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span></button><span class="num" style="font-weight:600">${money(spent,true)}</span>
+      <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span><span style="color:var(--muted)">${shared?"Shared":"Private"}</span><button class="mini" data-sharee="${esc(e.id)}">${shared?"Make private":"Share"}</button></span></div>`;
+  }).join("") : `<p class="help">No events yet.</p>`;
+  html += `<div class="row"><button class="btn" id="famAddEvent">+ Add an event</button></div>`;
+
+  document.getElementById("famBody").innerHTML = html;
+}
+document.getElementById("homeFamBtn").onclick = ()=>{ view = "family"; window.scrollTo(0,0); render(); };
+document.getElementById("famBack").onclick = ()=>{ view = "home"; window.scrollTo(0,0); render(); };
+document.getElementById("famBody").addEventListener("click", e=>{
+  if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
+  if(e.target.id === "famAddPerson"){
+    const inp = document.getElementById("famNewPerson"), name = inp.value.trim();
+    if(!name){ toast("Type a name first."); return; }
+    addPerson(name); inp.value = ""; persist([], true); render(); toast("Added.");
+    return;
+  }
+  if(e.target.id === "famAddEvent"){ openEventPicker("", "", todayISO(), ()=>render()); return; }
+  const oev = e.target.closest("[data-openevfam]"); if(oev){ openEventDetail(oev.dataset.openevfam); return; }
+  const sp = e.target.closest("[data-sharep]");
+  if(sp){ const p = state.people[sp.dataset.sharep]; if(p){ p.shared = !p.shared; persist([], true); render(); toast(p.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  const se = e.target.closest("[data-sharee]");
+  if(se){ const ev = state.events[se.dataset.sharee]; if(ev){ ev.shared = !ev.shared; persist([], true); render(); toast(ev.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  const dp = e.target.closest("[data-delp2]");
+  if(dp){
+    if(!confirm("Remove this person? Entries already tagged to them keep the tag.")) return;
+    delete state.people[dp.dataset.delp2]; persist([], true); render();
+  }
+});
 function familyMembers(){
   const remote = Object.entries((state.family && state.family.members) || {}).map(([id,m])=>({ id, ...m, kind: "remote" }));
   const simFam = simOwnerList().filter(o=>!o.isMe).map(o=>({ id: "sim:" + o.id, name: o.name || "Family", color: o.color, kind: "sim", simId: o.id }));
@@ -1944,6 +2014,7 @@ function render(){
   if(view === "settings") renderSettings();
   if(view === "accounts") renderAccounts();
   if(view === "merchant") renderMerchant();
+  if(view === "family") renderFamily();
   if(LANG === "kn") trNode(document.querySelector("main"));
   scheduleReminders();
 }
@@ -1951,6 +2022,7 @@ function render(){
 function renderOverview(){
   document.querySelectorAll("#ovMode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m === ovMode)));
   document.getElementById("monthName").classList.toggle("nopick", ovMode !== "month");
+  if(ovMode === "events") return renderEventsSummary();
   if(ovMode !== "month") return renderPeriodSummary();
   document.querySelector(".spent-label").textContent = tr("Spent this month");
   document.getElementById("prevM").disabled = false;
@@ -2042,6 +2114,29 @@ function lineChart(labels, a, b, aLabel, bLabel){
     ${b.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--brass)"><title>${esc(labels[i])}: ${money(v)} out</title></circle>`).join("")}
     ${labels.map((l,i)=>(i % every === 0 || i === n-1) ? `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(l)}</text>` : "").join("")}
   </svg>`;
+}
+function renderEventsSummary(){
+  document.getElementById("monthName").textContent = tr("Events");
+  document.getElementById("prevM").disabled = true;
+  document.getElementById("nextM").disabled = true;
+  const evs = eventList();
+  const total = evs.reduce((a,e)=>a+eventSpend(e.id),0);
+  document.querySelector(".spent-label").textContent = tr("Tagged to events");
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(total));
+  document.getElementById("income").textContent = money(0);
+  document.getElementById("net").textContent = "";
+  document.getElementById("count").textContent = inr.format(evs.length);
+  document.getElementById("band").innerHTML = "";
+  const fxEl = document.getElementById("fxLine"); if(fxEl) fxEl.innerHTML = "";
+  const exclEl = document.getElementById("exclLine"); if(exclEl) exclEl.textContent = "";
+  document.getElementById("overviewBody").innerHTML = evs.length
+    ? evs.map(e=>{
+        const spent = eventSpend(e.id);
+        return `<button class="due" data-openevov="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0">
+          <span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(spent,true)}</span>
+          <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):tr("No date")}</span></span></button>`;
+      }).join("")
+    : `<div class="empty"><p>${tr("No events yet.")}<br>${tr("Tag an entry to one from Entries, or add one from Accounts.")}</p></div>`;
 }
 function renderPeriodSummary(){
   // Year or All years view
@@ -2547,7 +2642,7 @@ document.querySelector(".tabs nav").addEventListener("click", e=>{
 });
 function shift(n){
   if(view === "overview" && ovMode === "year"){ const ys = yearsWithData(); const ny = ovYear + n; if(ny >= ys[0] && ny <= ys[ys.length-1]){ ovYear = ny; render(); } return; }
-  if(view === "overview" && ovMode === "all") return;
+  if(view === "overview" && (ovMode === "all" || ovMode === "events")) return;
   const [y,m] = cursor.split("-").map(Number);
   const d = new Date(y, m-1+n, 1); const k = monthKey(d);
   if(k > currentPK()) return;
@@ -2568,6 +2663,7 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; window.scrollTo(0,0); render(); }
 });
 document.getElementById("overviewBody").addEventListener("click", e=>{
+  const oev = e.target.closest("[data-openevov]"); if(oev){ openEventDetail(oev.dataset.openevov); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; window.scrollTo(0,0); render(); return; }
   const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
   const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
@@ -3122,8 +3218,8 @@ document.getElementById("themeSeg").addEventListener("click", e=>{
 const HELP = {
   home: { title: "Home", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
     kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ: ಉಳಿತಾಯ, ಆದಾಯ ಮತ್ತು ಖರ್ಚು, ಮತ್ತು ನಿಮ್ಮ ಪ್ರಮುಖ ವರ್ಗಗಳು ಮತ್ತು ಪಾವತಿಸುವವರು." },
-  overview: { title: "Details", en: "Switch between Month, Year and All years to see how your income and spending change over time.",
-    kn: "ನಿಮ್ಮ ಆದಾಯ ಮತ್ತು ಖರ್ಚು ಕಾಲಕ್ರಮೇಣ ಹೇಗೆ ಬದಲಾಗುತ್ತದೆ ಎಂದು ನೋಡಲು ತಿಂಗಳು, ವರ್ಷ ಮತ್ತು ಎಲ್ಲಾ ವರ್ಷಗಳ ನಡುವೆ ಬದಲಿಸಿ." },
+  overview: { title: "Summary", en: "Switch between Month, Year, All years or Events to see how your income and spending change.",
+    kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳ ನಡುವೆ ಬದಲಿಸಿ ಆದಾಯ-ಖರ್ಚು ಹೇಗೆ ಬದಲಾಗುತ್ತದೆ ಎಂದು ನೋಡಿ." },
   list: { title: "Entries", en: "Every entry from your SMS or added by hand. Search, filter by category, or tap a name for its full history.",
     kn: "ನಿಮ್ಮ SMS ಅಥವಾ ಕೈಯಾರೆ ಸೇರಿಸಿದ ಎಲ್ಲಾ ನಮೂದುಗಳು. ಹುಡುಕಿ, ವರ್ಗದ ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಿ, ಅಥವಾ ಹೆಸರನ್ನು ಒತ್ತಿ ಪೂರ್ಣ ಇತಿಹಾಸ ನೋಡಿ." },
   accounts: { title: "Accounts", en: "Bills due, account balances, subscriptions, and money owed to or by you.",
@@ -3152,8 +3248,8 @@ document.getElementById("helpBtn").onclick = openScreenHelp;
 const TOUR = [
   { view: "home", title: "Home", en: "Your money this month, at a glance: savings, income vs expenses, and top categories.",
     kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ ಒಂದೇ ನೋಟದಲ್ಲಿ: ಉಳಿತಾಯ, ಆದಾಯ-ಖರ್ಚು ಮತ್ತು ಪ್ರಮುಖ ವರ್ಗಗಳು." },
-  { view: "overview", title: "Details", en: "Month, Year or All years — see your income and spending trends over time.",
-    kn: "ತಿಂಗಳು, ವರ್ಷ ಅಥವಾ ಎಲ್ಲಾ ವರ್ಷಗಳು — ಕಾಲಕ್ರಮೇಣ ನಿಮ್ಮ ಆದಾಯ-ಖರ್ಚಿನ ಪ್ರವೃತ್ತಿ ನೋಡಿ." },
+  { view: "overview", title: "Summary", en: "Month, Year, All years or Events — see your income and spending trends.",
+    kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳು — ನಿಮ್ಮ ಆದಾಯ-ಖರ್ಚಿನ ಪ್ರವೃತ್ತಿ ನೋಡಿ." },
   { view: "list", title: "Entries", en: "Every entry, searchable. Tap a name to see everything from that person or merchant.",
     kn: "ಎಲ್ಲಾ ನಮೂದುಗಳು, ಹುಡುಕಬಹುದು. ಒಬ್ಬ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲವನ್ನೂ ನೋಡಲು ಹೆಸರನ್ನು ಒತ್ತಿ." },
   { view: "accounts", title: "Accounts", en: "Bills, balances, subscriptions, and money owed to or by you, in one place.",
@@ -3183,12 +3279,12 @@ function showTourStep(){
 function finishTour(){
   state.tourDone = true; persist([], false);
   view = "home"; render();
-  showFirstRunSignIn();
+  runOnboardingChecks();
 }
 // First-run only: a quick, skippable sign-in prompt between the tour and asking for SMS access.
 // Skipping is a real, supported choice — nothing here blocks reading SMS or using the app locally.
 function showFirstRunSignIn(){
-  if(state.signInPromptShown || !(window.Android && window.Android.signIn)){ afterSignInPrompt(); return; }
+  if(state.signInPromptShown || !(window.Android && window.Android.signIn)){ runOnboardingChecks(); return; }
   state.signInPromptShown = true; persist([], false);
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Sign in"><h2>Sign in with Google</h2>
@@ -3198,7 +3294,7 @@ function showFirstRunSignIn(){
   document.body.appendChild(scrim);
   let prevHandler = null, pending = false;
   const restore = ()=>{ if(pending){ window.cloudSignInResult = prevHandler; pending = false; } };
-  const done = ()=>{ restore(); scrim.remove(); afterSignInPrompt(); };
+  const done = ()=>{ restore(); scrim.remove(); runOnboardingChecks(); };
   scrim.addEventListener("click", e=>{
     if(e.target === scrim || e.target.id === "fr-skip"){ done(); return; }
     if(e.target.id === "fr-signin"){
@@ -3214,9 +3310,6 @@ function showFirstRunSignIn(){
       try{ window.Android.signIn(); }catch(err){ restore(); btn.textContent = "Sign in with Google"; btn.disabled = false; toast("Couldn't start sign-in."); }
     }
   });
-}
-function afterSignInPrompt(){
-  if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); }
 }
 
 /* ---------- Language choice ---------- */
@@ -3245,11 +3338,64 @@ function openLanguagePicker(){
     scrim.remove();
     applyLanguage(state.lang); render();
     if(window.Android && window.Android.languageChosen) window.Android.languageChosen();
-    if(!state.tourDone){ tourIdx = 0; showTourStep(); }
-    else if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); }
+    runOnboardingChecks();
   });
 }
 window.needsLanguage = function(){ return !state.lang; };
+// Walks whatever first-run steps haven't been seen yet, in order, regardless of whether this
+// is a brand-new install (reached via the language picker) or an existing install opening a
+// version that added a new step (reached directly at boot) — nothing here depends on language
+// having just been chosen in *this* session.
+function runOnboardingChecks(){
+  if(!state.tourDone){ tourIdx = 0; showTourStep(); return; }
+  if(window.Android && window.Android.signIn && !state.signInPromptShown){ showFirstRunSignIn(); return; }
+  checkSimOnboarding(()=>{ if(rangeAfterLang){ rangeAfterLang = false; window.chooseImportRange(); } });
+}
+// If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
+// rather than leaving it to be found later in Settings. Settings still has the same choices,
+// to change it afterward (a SIM swap, a new family member, etc).
+function checkSimOnboarding(next){
+  if(state.simOnboardingShown || !(window.Android && window.Android.getSimList)){ next(); return; }
+  let sims; try{ sims = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ sims = []; }
+  if(sims.length < 2){ next(); return; }
+  state.simOnboardingShown = true; persist([], false);
+  state.simOwners = state.simOwners || {};
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Whose SIM is whose"><h2>This phone has ${sims.length} SIMs</h2>
+    <p class="help">Looks like more than one person's bank SMS land on this phone. Name each SIM and mark which is yours — the other's entries show up separately under Family, without needing their own phone.</p>
+    <div id="fr-simList"></div>
+    <div class="row"><button class="btn primary" id="fr-simDone">Continue</button></div></div>`;
+  document.body.appendChild(scrim);
+  const draw = ()=>{
+    scrim.querySelector("#fr-simList").innerHTML = sims.map((sim,i)=>{
+      const o = state.simOwners[sim.id] || {};
+      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc(o.name || sim.label || ("SIM " + (i+1)))}" placeholder="${esc(sim.label || "SIM " + (i+1))}">
+        <label><input type="radio" name="frSimMe" data-frsimme="${sim.id}" ${o.isMe || (!Object.values(state.simOwners).some(x=>x.isMe) && i===0) ? "checked" : ""}>Mine</label></div>`;
+    }).join("");
+  };
+  draw();
+  scrim.addEventListener("input", e=>{
+    const nm = e.target.closest("[data-frsimname]"); if(!nm) return;
+    state.simOwners[nm.dataset.frsimname] = { ...(state.simOwners[nm.dataset.frsimname]||{}), name: nm.value.trim() };
+  });
+  scrim.addEventListener("click", e=>{
+    const me = e.target.closest("[data-frsimme]");
+    if(me){
+      Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
+      state.simOwners[me.dataset.frsimme] = { ...(state.simOwners[me.dataset.frsimme]||{}), isMe: true };
+      return;
+    }
+    if(e.target.id === "fr-simDone"){
+      sims.forEach((sim,i)=>{
+        if(!state.simOwners[sim.id]) state.simOwners[sim.id] = {};
+        if(!state.simOwners[sim.id].name) state.simOwners[sim.id].name = sim.label || ("SIM " + (i+1));
+        if(!state.simOwners[sim.id].color) state.simOwners[sim.id].color = PALETTE[i % PALETTE.length];
+      });
+      if(!Object.values(state.simOwners).some(o=>o.isMe) && sims[0]) state.simOwners[sims[0].id].isMe = true;
+      persist([], true); scrim.remove(); render(); next();
+    }
+  });
+}
 document.getElementById("langSeg").addEventListener("click", e=>{
   const b = e.target.closest("[data-lang]"); if(!b || b.dataset.lang === LANG) return;
   setLanguage(b.dataset.lang);
@@ -3267,6 +3413,7 @@ if(state.lang && window.Android && window.Android.setLanguage) try{ window.Andro
 cursor = currentPK();
 render();
 if(!state.lang) openLanguagePicker();
+else runOnboardingChecks();
 if(!state.cardV2){
   const months = new Set();
   state.txns.forEach(t=>{

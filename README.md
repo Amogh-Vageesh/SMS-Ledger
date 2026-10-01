@@ -66,6 +66,26 @@ tab's Top places) to see everything from them: total paid or received, entry cou
 year-by-year breakdown you can expand into the actual entries. Tapping the rest of an entry
 still opens it for editing, same as before.
 
+## First-launch order, fixed for existing installs
+Found and fixed a real bug: the tour and sign-in prompt only ran through the language-picker
+chain, so anyone *updating* from an older version (language already chosen) never saw either.
+Both now also run on a plain app boot, so this version fixes itself in place once installed.
+
+## Dual SIM, now asked about up front
+If the phone has more than one SIM with bank SMS, onboarding now asks once which is yours,
+right after sign-in — no more needing to find it in Settings first. Settings still has the
+exact same controls, now described as "update any time" rather than the only way to set it.
+
+## Summary tab (renamed from Details) + Events filter
+"Details" is now "Summary". Alongside Month / Year / All years, there's a new Events option
+that lists every event with its total — tap one to open its category breakdown.
+
+## Family Hub
+A new Family icon on Home opens a dedicated page: add people, add events, and a prominent
+"+ Add an expense" that opens the same entry sheet with tagging already built in. Each person
+and event has a Share toggle — marked as local-only for now (sharing isn't live until cloud
+sync is built), so nothing is silently inert without an explanation.
+
 ## First-launch order
 Language, then a quick guided tour, then a skippable "Sign in with Google" prompt, then SMS
 access. Signing in is never required to use the app — "Not now" moves straight on to SMS
