@@ -66,6 +66,19 @@ tab's Top places) to see everything from them: total paid or received, entry cou
 year-by-year breakdown you can expand into the actual entries. Tapping the rest of an entry
 still opens it for editing, same as before.
 
+## People and events
+Settings > People: add anyone you tag spending to (local for now; sharing comes once cloud
+sync is built). Editing any entry adds "Who's this for" and "Tag to an event" — the event
+picker searches existing events first and nudges toward a close match (same name or date)
+before letting you create a near-duplicate. Accounts > Events lists each one with total
+spent and a category breakdown, same as a trip.
+
+## Cloud account (sign-in, step 1 of family sharing)
+Settings > Cloud account: sign in with Google (via Firebase Auth + the modern Credential
+Manager API). This is the first building block for live family sharing — right now it only
+establishes who's signed in; events/people/lists don't sync across phones yet. That's next,
+once this step is confirmed working on a real device.
+
 ## Theme
 Settings > Theme: System (follows your phone), Light, or Dark. Applies immediately, including
 the status and navigation bar colours, and is remembered across app restarts.
