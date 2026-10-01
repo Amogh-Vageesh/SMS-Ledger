@@ -12,8 +12,8 @@ android {
         applicationId = "in.vageesh.smsledger"
         minSdk = 26
         targetSdk = 34
-        versionCode = 44
-        versionName = "1.49"
+        versionCode = 45
+        versionName = "1.50"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update
@@ -53,8 +53,8 @@ dependencies {
 
     // Firebase: Auth now, Firestore joins in the next step once sign-in is confirmed working.
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
-    implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 
     // Google Sign-In via the modern Credential Manager API (replaces the older, deprecated
     // GoogleSignInClient). This is what talks to google-services.json's "web" OAuth client.
