@@ -66,6 +66,17 @@ tab's Top places) to see everything from them: total paid or received, entry cou
 year-by-year breakdown you can expand into the actual entries. Tapping the rest of an entry
 still opens it for editing, same as before.
 
+## First-launch order
+Language, then a quick guided tour, then a skippable "Sign in with Google" prompt, then SMS
+access. Signing in is never required to use the app — "Not now" moves straight on to SMS
+permission, same as before this was added.
+
+## Sign-in reliability
+Found and fixed a gap where a failure during sign-in (Firebase not ready, Play Services
+issue, etc.) could leave the button stuck on "Signing in…" with no error shown. Every error
+path now reaches the page, and a 20-second timeout catches the case where the native side
+never responds at all, so the button is never permanently stuck.
+
 ## People and events
 Settings > People: add anyone you tag spending to (local for now; sharing comes once cloud
 sync is built). Editing any entry adds "Who's this for" and "Tag to an event" — the event

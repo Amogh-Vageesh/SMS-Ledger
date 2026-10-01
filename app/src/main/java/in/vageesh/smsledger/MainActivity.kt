@@ -375,9 +375,9 @@ class MainActivity : ComponentActivity() {
             applyChrome()
         }
 
-        /** The signed-in Google account, or null if not signed in. */
+        /** The signed-in Google account, or null if not signed in (or if anything's not ready yet). */
         @JavascriptInterface
-        fun getCurrentUser(): String = cloudAuth.userJson()?.toString() ?: "null"
+        fun getCurrentUser(): String = try { cloudAuth.userJson()?.toString() ?: "null" } catch (e: Throwable) { "null" }
 
         /**
          * Starts Google Sign-In. Answers asynchronously through window.cloudSignInResult(json),
@@ -387,16 +387,24 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun signIn() {
             lifecycleScope.launch {
-                val result = cloudAuth.signIn()
-                val json = result.fold(
-                    onSuccess = { it.put("ok", true) },
-                    onFailure = { e ->
-                        val cancelled = e is androidx.credentials.exceptions.GetCredentialCancellationException
-                        org.json.JSONObject().put("ok", false).put("cancelled", cancelled)
-                            .put("error", e.message ?: e.javaClass.simpleName)
-                    }
-                )
-                web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json.toString())})", null)
+                // Wrapped around the whole block, not just cloudAuth.signIn() itself: accessing
+                // "cloudAuth" for the first time here can throw too (e.g. Firebase not ready),
+                // and that must still reach the page as a loud error, never a silently stuck button.
+                val json: String = try {
+                    val result = cloudAuth.signIn()
+                    result.fold(
+                        onSuccess = { it.put("ok", true).toString() },
+                        onFailure = { e ->
+                            val cancelled = e is androidx.credentials.exceptions.GetCredentialCancellationException
+                            org.json.JSONObject().put("ok", false).put("cancelled", cancelled)
+                                .put("error", e.message ?: e.javaClass.simpleName).toString()
+                        }
+                    )
+                } catch (e: Throwable) {
+                    org.json.JSONObject().put("ok", false).put("cancelled", false)
+                        .put("error", (e.message ?: e.javaClass.simpleName) ?: "Unknown sign-in error").toString()
+                }
+                web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
             }
         }
 
@@ -404,8 +412,12 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun signOutCloud() {
             lifecycleScope.launch {
-                cloudAuth.signOut()
-                val json = org.json.JSONObject().put("ok", false).put("signedOut", true).toString()
+                val json: String = try {
+                    cloudAuth.signOut()
+                    org.json.JSONObject().put("ok", false).put("signedOut", true).toString()
+                } catch (e: Throwable) {
+                    org.json.JSONObject().put("ok", false).put("error", e.message ?: "Couldn't sign out").toString()
+                }
                 web.evaluateJavascript("window.cloudSignInResult && window.cloudSignInResult(${JSONObject.quote(json)})", null)
             }
         }
