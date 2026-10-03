@@ -3,6 +3,8 @@ package `in`.vageesh.smsledger
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.bluetooth.BluetoothManager
 import android.content.res.Configuration
@@ -58,6 +60,34 @@ class MainActivity : ComponentActivity() {
     }
 
     private val cloudAuth by lazy { CloudAuth(this) }
+
+    private val smsQueueReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context, intent: Intent) {
+            if (intent.action == ACTION_SMS_QUEUED) runOnUiThread { drainPendingSms() }
+        }
+    }
+
+    private val googleDiagnosticLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        lifecycleScope.launch {
+            val json = try {
+                cloudAuth.handleLegacyResult(result.data).fold(
+                    onSuccess = { it.put("ok", true).put("stage", "complete").toString() },
+                    onFailure = { e ->
+                        JSONObject().put("ok", false)
+                            .put("cancelled", result.resultCode != RESULT_OK)
+                            .put("stage", "legacy_google_or_firebase")
+                            .put("error", e.message ?: e.javaClass.simpleName).toString()
+                    }
+                )
+            } catch (e: Throwable) {
+                JSONObject().put("ok", false).put("stage", "diagnostic_callback")
+                    .put("error", e.message ?: e.javaClass.simpleName).toString()
+            }
+            web.evaluateJavascript("window.googleDiagnosticResult && window.googleDiagnosticResult(${JSONObject.quote(json)})", null)
+        }
+    }
 
     private val legacyGoogleLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -204,6 +234,7 @@ class MainActivity : ComponentActivity() {
         applyChrome()
         setContentView(web)
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html")
+        ContextCompat.registerReceiver(this, smsQueueReceiver, IntentFilter(ACTION_SMS_QUEUED), ContextCompat.RECEIVER_NOT_EXPORTED)
 
         onBackPressedDispatcher.addCallback(this) {
             web.evaluateJavascript("window.appBack ? window.appBack() : false") { handled ->
@@ -213,6 +244,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(smsQueueReceiver) }
         runCatching { family.stop() }
         runCatching { familyCloud.stop() }
         super.onDestroy()
@@ -223,6 +255,7 @@ class MainActivity : ComponentActivity() {
         NotificationManagerCompat.from(this).cancel(SmsReceiver.NOTIFY_ID)
         if (pageReady) {
             pushStatus()
+            drainPendingSms()
             // Never scan SMS merely because Android reports the permission as granted.
             // First-run onboarding must complete before any SMS is read.
             val smsConsentConfirmed = prefs.getBoolean("smsConsentConfirmed", false)
@@ -244,6 +277,7 @@ class MainActivity : ComponentActivity() {
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
+        drainPendingSms()
         // The WebView owns first-run sequencing: language -> Google account/skip -> SIM names -> SMS permission.
         web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
             if (needs != "true") web.evaluateJavascript("window.runOnboardingChecks && window.runOnboardingChecks()", null)
@@ -330,6 +364,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
             start = end
+        }
+    }
+
+    /** Imports SMS received while the app/WebView was not open. */
+    private fun drainPendingSms() {
+        if (!pageReady || !hasSms() || !prefs.getBoolean("smsConsentConfirmed", false)) return
+        val raw = prefs.getString(SmsReceiver.PENDING_KEY, "[]") ?: "[]"
+        val pending = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+        if (pending.length() == 0) return
+        web.evaluateJavascript("window.ingestSms ? window.ingestSms($pending, false) : -1") { result ->
+            val n = result?.toIntOrNull()
+            if (n != null && n >= 0) {
+                prefs.edit().remove(SmsReceiver.PENDING_KEY).apply()
+                if (n > 0) web.evaluateJavascript("window.importFinished && window.importFinished($n, ${pending.length()})", null)
+            }
         }
     }
 
@@ -495,6 +544,33 @@ class MainActivity : ComponentActivity() {
          * {"ok":false,"error":"...", "cancelled":true|false} otherwise.
          */
         @JavascriptInterface
+        fun googleConfigDiagnostic(): String = try {
+            val fp = JSONObject(getSigningFingerprints())
+            JSONObject()
+                .put("ok", true)
+                .put("package", packageName)
+                .put("webClientId", getString(R.string.default_web_client_id))
+                .put("sha1", fp.optString("sha1"))
+                .put("sha256", fp.optString("sha256"))
+                .put("version", fp.optString("version"))
+                .put("versionCode", fp.optLong("versionCode"))
+                .toString()
+        } catch (e: Exception) {
+            JSONObject().put("ok", false).put("error", e.message ?: e.javaClass.simpleName).toString()
+        }
+
+        @JavascriptInterface
+        fun googleSignInDiagnostic() = runOnUiThread {
+            try {
+                googleDiagnosticLauncher.launch(cloudAuth.legacySignInIntent())
+            } catch (e: Throwable) {
+                val json = JSONObject().put("ok", false).put("stage", "launch")
+                    .put("error", e.message ?: e.javaClass.simpleName).toString()
+                web.evaluateJavascript("window.googleDiagnosticResult && window.googleDiagnosticResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
+        @JavascriptInterface
         fun signIn() {
             lifecycleScope.launch {
                 try {
@@ -641,5 +717,7 @@ class MainActivity : ComponentActivity() {
         const val DAY = 24L * 60 * 60 * 1000
         const val MAX_DAYS = 36500         // ranges are capped at 100 years; 0 means everything
         const val BATCH = 400
+        const val ACTION_SMS_QUEUED = "in.vageesh.smsledger.ACTION_SMS_QUEUED"
     }
+
 }

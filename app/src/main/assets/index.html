@@ -440,8 +440,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     </div>
     <div class="row" style="margin:0 0 4px">
       <button class="btn" id="showSigningFingerprint">Show app SHA-1 / SHA-256</button>
+      <button class="btn" id="googleDiagnostic">Test Google Sign-In</button>
     </div>
     <p class="help" id="signingFingerprint" style="display:none;word-break:break-all"></p>
+    <p class="help" id="googleDiagnosticResult" style="display:none;word-break:break-all"></p>
   </div>
   <h1 class="section-h">Currencies</h1>
   <div class="set-block">
@@ -3372,6 +3374,31 @@ document.getElementById("showSigningFingerprint")?.addEventListener("click", ()=
     out.textContent = r.ok ? `Package: ${r.package} · Version: ${r.version} (${r.versionCode}) · SHA-1: ${r.sha1} · SHA-256: ${r.sha256}` : `Unable to read signing certificate: ${r.error||"Unknown error"}`;
   }catch(e){ out.style.display="block"; out.textContent="Unable to read signing certificate."; }
 });
+
+document.getElementById("googleDiagnostic")?.addEventListener("click", ()=>{
+  const out=document.getElementById("googleDiagnosticResult");
+  out.style.display="block"; out.textContent="Opening Google sign-in diagnostic…";
+  if(!(window.Android && window.Android.googleSignInDiagnostic)){
+    out.textContent="Google Sign-In diagnostic is not available in this build."; return;
+  }
+  try{ window.Android.googleSignInDiagnostic(); }catch(e){ out.textContent="Could not start diagnostic: "+(e.message||e); }
+});
+window.googleDiagnosticResult=function(json){
+  const out=document.getElementById("googleDiagnosticResult"); if(!out)return;
+  let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid diagnostic response"};}
+  let cfg={}; try{cfg=JSON.parse(window.Android.googleConfigDiagnostic());}catch(e){}
+  const lines=[];
+  if(cfg.package) lines.push("Package: "+cfg.package);
+  if(cfg.version) lines.push("Version: "+cfg.version+" ("+(cfg.versionCode||"")+")");
+  if(cfg.sha1) lines.push("APK SHA-1: "+cfg.sha1);
+  if(cfg.webClientId) lines.push("Web OAuth client: "+cfg.webClientId);
+  lines.push("Result: "+(r.ok?"SUCCESS":"FAILED"));
+  if(r.stage) lines.push("Stage: "+r.stage);
+  if(r.email) lines.push("Google account: "+r.email);
+  if(r.error) lines.push("Error: "+r.error);
+  if(r.cancelled) lines.push("Cancelled: yes");
+  out.textContent=lines.join("\n");
+};
 
 let cloudSignInTimer = null;
 window.cloudSignInResult = function(json){

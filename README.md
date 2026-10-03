@@ -472,3 +472,9 @@ If the APK's in-app SHA-1 differs from Firebase, add that SHA-1 under Firebase C
 
 ## v1.51 build compatibility
 This release keeps Kotlin 2.0.21 and uses Firebase Android BoM 33.12.0 with the main `firebase-auth` and `firebase-firestore` modules, plus Google Identity `googleid:1.1.1`. This avoids the Kotlin metadata mismatch introduced by newer dependencies while retaining Firebase Authentication and Firestore cloud functionality.
+
+## v1.52 changes
+- Replaced `app/google-services.json` with the latest Firebase configuration supplied for `sms-ledger-family`.
+- Added a pending SMS queue in `SmsReceiver`: accepted bank SMS are queued even when the WebView/activity is not ready, then imported automatically when the app is open/resumes.
+- Added an in-app **Test Google Sign-In** diagnostic in Settings. It uses the Google Play Services sign-in path and reports the exact stage/error returned, together with the installed APK signing SHA-1 and Web OAuth client ID.
+- Version code/name: 46 / 1.52.
