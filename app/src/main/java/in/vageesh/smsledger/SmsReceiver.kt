@@ -24,7 +24,7 @@ class SmsReceiver : BroadcastReceiver() {
             val body = msgs.joinToString("") { it.messageBody ?: "" }
             if (!SmsFilter.accept(sender, body)) return@forEach
             val date = msgs.minOfOrNull { it.timestampMillis } ?: System.currentTimeMillis()
-            val sim = runCatching { msgs.firstOrNull()?.subscriptionId ?: -1 }.getOrDefault(-1)
+            val sim = intent.getIntExtra("subscription", -1)
             enqueue(context, JSONObject().put("body", body).put("date", date).put("address", sender).put("sim", sim))
             context.sendBroadcast(Intent(ACTION_SMS_QUEUED).setPackage(context.packageName))
             Notifier.show(
