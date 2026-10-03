@@ -12,8 +12,8 @@ android {
         applicationId = "in.vageesh.smsledger"
         minSdk = 26
         targetSdk = 34
-        versionCode = 49
-        versionName = "1.54"
+        versionCode = 50
+        versionName = "1.55"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update

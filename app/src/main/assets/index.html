@@ -438,12 +438,10 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
       <button class="btn primary" id="cloudSignIn">Sign in with Google</button>
       <button class="btn hidden" id="cloudSignOut">Sign out</button>
     </div>
-    <div class="row" style="margin:0 0 4px">
-      <button class="btn" id="showSigningFingerprint">Show app SHA-1 / SHA-256</button>
-      <button class="btn" id="googleDiagnostic">Test Google Sign-In</button>
+    <div class="set-block" style="margin-top:10px">
+      <p class="help" style="margin:0 0 4px">App signing SHA-1</p>
+      <p class="help" id="signingFingerprint" style="display:block;word-break:break-all;margin:0">Reading…</p>
     </div>
-    <p class="help" id="signingFingerprint" style="display:none;word-break:break-all"></p>
-    <p class="help" id="googleDiagnosticResult" style="display:none;word-break:break-all"></p>
   </div>
   <h1 class="section-h">Currencies</h1>
   <div class="set-block">
@@ -1016,7 +1014,7 @@ function firstIndex(low, words){
   return best;
 }
 // Marketing messages that mention a price but aren't a transaction.
-const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon|loan (up ?to|of up ?to) ?(?:rs\.?|inr|₹)|(may|can|could|will) be credited (to|in) your (a\/?c|account|bank)|instant loan (approval|offer|in minutes)|avail (a |an )?(instant )?loan|get (a |an )?(instant )?loan|complete your application)/i;
+const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon|loan (up ?to|of up ?to) ?(?:rs\.?|inr|₹)|(may|can|could|will) be credited (to|in) your (a\/?c|account|bank)|instant loan (approval|offer|in minutes)|avail (a |an )?(instant )?loan|get (a |an )?(instant )?loan|complete your application)|prize pool|winning (cash|amount)|won (rs\.?|inr|₹)|winning amount|winning cash|cash prize|jackpot|rummy|junglee rummy|casino|betting|gambling|fantasy (game|cricket)|play and win|play now|game (cash|offer)|credited in your bank account|opt ?out sms|optout sms|gmg\.im)/i;
 function looksLikePromo(t){
   if(!PROMO.test(t)) return false;
   // a real alert names your account or card, or carries a reference number
@@ -3483,40 +3481,16 @@ function refreshCloudBlock(){
     row.classList.add("hidden"); inBtn.classList.remove("hidden"); outBtn.classList.add("hidden");
   }
 }
-document.getElementById("showSigningFingerprint")?.addEventListener("click", ()=>{
-  const out = document.getElementById("signingFingerprint");
-  if(!(window.Android && window.Android.getSigningFingerprints)){ out.style.display="block"; out.textContent="This diagnostic is available in the Android app."; return; }
+function loadSigningFingerprint(){
+  const out=document.getElementById("signingFingerprint");
+  if(!out) return;
+  if(!(window.Android && window.Android.getSigningFingerprints)){ out.textContent="Unavailable outside the Android app."; return; }
   try{
     const r=JSON.parse(window.Android.getSigningFingerprints());
-    out.style.display="block";
-    out.textContent = r.ok ? `Package: ${r.package} · Version: ${r.version} (${r.versionCode}) · SHA-1: ${r.sha1} · SHA-256: ${r.sha256}` : `Unable to read signing certificate: ${r.error||"Unknown error"}`;
-  }catch(e){ out.style.display="block"; out.textContent="Unable to read signing certificate."; }
-});
-
-document.getElementById("googleDiagnostic")?.addEventListener("click", ()=>{
-  const out=document.getElementById("googleDiagnosticResult");
-  out.style.display="block"; out.textContent="Opening Google sign-in diagnostic…";
-  if(!(window.Android && window.Android.googleSignInDiagnostic)){
-    out.textContent="Google Sign-In diagnostic is not available in this build."; return;
-  }
-  try{ window.Android.googleSignInDiagnostic(); }catch(e){ out.textContent="Could not start diagnostic: "+(e.message||e); }
-});
-window.googleDiagnosticResult=function(json){
-  const out=document.getElementById("googleDiagnosticResult"); if(!out)return;
-  let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid diagnostic response"};}
-  let cfg={}; try{cfg=JSON.parse(window.Android.googleConfigDiagnostic());}catch(e){}
-  const lines=[];
-  if(cfg.package) lines.push("Package: "+cfg.package);
-  if(cfg.version) lines.push("Version: "+cfg.version+" ("+(cfg.versionCode||"")+")");
-  if(cfg.sha1) lines.push("APK SHA-1: "+cfg.sha1);
-  if(cfg.webClientId) lines.push("Web OAuth client: "+cfg.webClientId);
-  lines.push("Result: "+(r.ok?"SUCCESS":"FAILED"));
-  if(r.stage) lines.push("Stage: "+r.stage);
-  if(r.email) lines.push("Google account: "+r.email);
-  if(r.error) lines.push("Error: "+r.error);
-  if(r.cancelled) lines.push("Cancelled: yes");
-  out.textContent=lines.join("\n");
-};
+    out.textContent = r.ok ? (r.sha1 || "SHA-1 unavailable") : ("Unable to read signing certificate: "+(r.error||"Unknown error"));
+  }catch(e){ out.textContent="Unable to read signing certificate."; }
+}
+setTimeout(loadSigningFingerprint, 300);
 
 let cloudSignInTimer = null;
 window.cloudSignInResult = function(json){
