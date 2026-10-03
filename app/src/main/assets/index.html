@@ -507,7 +507,7 @@ const CATS = [
   ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
   ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
   ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
-  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Income","#93b98c"],["Refunds","#77b3b0"]
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Income","#93b98c"],["Refunds","#77b3b0"]
 ];
 const BASE_CAT_COUNT = CATS.length;
 const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
@@ -526,7 +526,7 @@ function addCustomCat(name){
 }
 // Paying a card bill moves money between your own accounts; a loan repayment is just getting your
 // own money back; money to or from someone you know isn't new spending or new income either.
-const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment"]);
+const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment","Payment confirmation"]);
 const SUB_WORDS = ["netflix","spotify","hotstar","jiohotstar","prime","youtube","apple","icloud","google","zee5","sonyliv","jiocinema","linkedin","openai","chatgpt","anthropic","claude","adobe","microsoft","office","notion","canva","swiggy one","zomato gold","audible","kindle","gaana","wynk","times prime","cult","gym","dropbox","github","figma","tata play","airtel xstream","disney"];
 const CAT_COLOR = Object.fromEntries(CATS);
 const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Friends and family transfers","Card payments","Loan repayment","Other"];
@@ -578,7 +578,7 @@ const KN = {
   "Nothing matches here.":"ಇಲ್ಲಿ ಯಾವುದೂ ಹೊಂದುತ್ತಿಲ್ಲ.","rate pending":"ದರ ಬಾಕಿ ಇದೆ",
   "Food & dining":"ಊಟ ಮತ್ತು ಹೋಟೆಲ್","Groceries":"ದಿನಸಿ","Transport":"ಸಾರಿಗೆ","Fuel":"ಇಂಧನ","Shopping":"ಶಾಪಿಂಗ್","Bills & utilities":"ಬಿಲ್‌ಗಳು ಮತ್ತು ಸೇವೆಗಳು",
   "Entertainment":"ಮನರಂಜನೆ","Health":"ಆರೋಗ್ಯ","Travel":"ಪ್ರವಾಸ","Education":"ಶಿಕ್ಷಣ","Investments":"ಹೂಡಿಕೆಗಳು","EMI & loans":"EMI ಮತ್ತು ಸಾಲಗಳು","Rent":"ಬಾಡಿಗೆ",
-  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
+  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Payment confirmation":"ಪಾವತಿ ದೃಢೀಕರಣ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
   "Household":"ಮನೆ ಖರ್ಚು","Sports":"ಕ್ರೀಡೆ","Vehicles":"ವಾಹನಗಳು","Office":"ಕಚೇರಿ","Grooming":"ಸೌಂದರ್ಯ ಆರೈಕೆ",
   "Card":"ಕಾರ್ಡ್","Bank transfer":"ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆ","Auto-debit":"ಸ್ವಯಂ ಡೆಬಿಟ್","ATM withdrawal":"ATM ಹಣ ತೆಗೆತ","Card payment received":"ಕಾರ್ಡ್ ಪಾವತಿ ಬಂದಿದೆ","Money received":"ಬಂದ ಹಣ","Payment":"ಪಾವತಿ",
   "Paste bank SMS":"ಬ್ಯಾಂಕ್ SMS ಅಂಟಿಸಿ","Read messages":"ಸಂದೇಶಗಳನ್ನು ಓದಿ","Paste from clipboard":"ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ನಿಂದ ಅಂಟಿಸಿ","Try sample SMS":"ಮಾದರಿ SMS ಪ್ರಯತ್ನಿಸಿ",
@@ -850,6 +850,12 @@ function loadLocal(){
     // v1.45 deliberately requires a fresh in-app SMS consent/import cycle so old SMS-derived
     // totals are not shown before the user has reviewed the new permission flow.
     if(state.smsConsentUiVersion !== 2){ state.smsPermissionConfirmed = false; state.smsDataReady = false; state.smsConsentUiVersion = 0; }
+    // Native preferences are the final gate. This prevents an upgrade/reinstall from briefly
+    // rendering SMS-derived data saved in the WebView/native ledger before the new onboarding
+    // permission + initial-import flow has completed.
+    if(NATIVE && window.Android && window.Android.isSmsDataUnlocked && !window.Android.isSmsDataUnlocked()){
+      state.smsPermissionConfirmed = false; state.smsDataReady = false;
+    }
   }catch(e){}
 }
 let nativeTimer = null;
@@ -1113,6 +1119,7 @@ function isCardBillMove(low, merchant, isCredit){
 // Money moved into something you own (a wallet, FASTag, UPI Lite) or confirmations of money already
 // counted (SIP units allotted, PF/NPS contributions). None of these is new spending or new income.
 const OWN_MOVE = /(add(ed)? money|money added|added to (your )?(\w+ )?wallet|wallet (top ?up|recharge|load)|top ?up of|upi lite|fastag (recharge|top ?up)|recharge(d)? (of )?(your )?fastag|fastag.{0,40}(recharged|credited|added))/i;
+const OWN_INVEST_MOVE = /\b(?:sip|mutual fund|mf|folio|groww|zerodha|coin|kuvera|upstox|paytm money|indmoney|nps|ppf|epfo|provident fund|demat|nsdl|cdsl|angel one|5paisa|hdfc securities|icici direct|kotak securities|fyers|smallcase|fixed deposit|fd account|recurring deposit|rd account|sukanya)\b/i;
 // A SIP unit-allotment message is your bank debit for that SIP being confirmed — it's already
 // counted as spending when that debit happened, so it's excluded here too (Self transfer), not
 // counted again. A pension/PF contribution (EPFO, NPS, PRAN) is usually money that never showed
@@ -1155,6 +1162,7 @@ function categorize(merchant, low, isCredit, mode, vpa){
   // what the message says about the money beats what the merchant is usually filed as
   if(isCardBillMove(low, merchant, isCredit)) return "Card payments";
   if(OWN_MOVE.test(low)) return "Self transfer";
+  if(!isCredit && OWN_INVEST_MOVE.test(low) && !/fee|charge|penalty|tax|interest|redemption|withdrawal|sell|dividend/i.test(low)) return "Self transfer";
   if(SIP_CONFIRM.test(low)) return "Self transfer";
   if(PENSION_CONTRIB.test(low)) return "Income";
   const mk = mkey(merchant);
@@ -1259,7 +1267,40 @@ function parseOne(msg, fallbackDate, senderAddr){
 // authorizes future charges; it isn't a charge itself, so it's read into Subscriptions instead
 // of being mistaken for a payment (the word "Purchase" in a merchant name like "App Purchase
 // Services" otherwise looks exactly like a completed purchase to the scanner below).
-const MANDATE_SETUP = /(activat|regist|creat)(?:e[ds]?|ion)\b.{0,40}\b(standing instruction|mandate)\b|\b(standing instruction|mandate)\b.{0,40}\b(has been |is |was )?(activat|regist|creat)(?:e[ds]?|ion)\b/i;
+const PAYMENT_CONFIRM = /(?:we have received|received (?:a |your )?payment|payment (?:of|for)\s*(?:rs\.?|inr|₹)?\s*[\d,.]+\s*(?:has been |is |was )?(?:received|credited|posted|realised|realized|successfully)|payment received|payment credited|payment successfully received|thank you for (?:your |the )?payment).{0,140}/i;
+const MANDATE_STOP = /(?:standing instruction|mandate|autopay|e-?mandate|nach|ecs).{0,70}(?:cancel(?:led|ed)?|deactivat(?:ed|e)|stopp(?:ed|ing)|revok(?:ed|e)|terminated|closed)|(?:cancel(?:led|ed)?|deactivat(?:ed|e)|stopp(?:ed|ing)|revok(?:ed|e)|terminated|closed).{0,70}(?:standing instruction|mandate|autopay|e-?mandate|nach|ecs)/i;
+const MANDATE_SETUP = /(?:activat|regist|creat|set up|setup|successfully).{0,55}\b(standing instruction|mandate|autopay|e-?mandate)\b|\b(standing instruction|mandate|autopay|e-?mandate)\b.{0,55}\b(has been |is |was |successfully )?(activat|regist|creat|set ?up|setup|enabled)\b/i;
+function mandateMerchant(t){
+  const merchM = t.match(/(?:merchant|biller|payee|beneficiary)\s*[:\-]?\s*([^,.;\n]{2,60})/i);
+  if(merchM) return cleanMerchant(merchM[1]);
+  const toM = t.match(/(?:to|for|towards)\s+([A-Za-z][A-Za-z0-9&'.\- ]{2,50}?)(?=\s+(?:from|on|dated|for|amount|rs\.?|inr|₹)|[.;,]|$)/i);
+  return toM ? cleanMerchant(toM[1]) : '';
+}
+function deactivateRecurringFromSms(t){
+  const merchant = mandateMerchant(t);
+  const candidates = new Set();
+  if(merchant) candidates.add(mkey(merchant));
+  state.subsManual.forEach(m=>{ if(!merchant || mkey(m.name).includes(mkey(merchant)) || mkey(merchant).includes(mkey(m.name))) candidates.add(m.key); });
+  detectSubs().forEach(x=>{ if(!merchant || mkey(x.name).includes(mkey(merchant)) || mkey(merchant).includes(mkey(x.name))) candidates.add(x.key); });
+  const before = JSON.stringify([state.subsManual, state.subsHidden]);
+  candidates.forEach(k=>{ if(!k) return; state.subsManual = state.subsManual.filter(m=>m.key !== k); if(!state.subsHidden.includes(k)) state.subsHidden.push(k); });
+  return before !== JSON.stringify([state.subsManual, state.subsHidden]);
+}
+function parsePaymentConfirmation(t, fallbackDate){
+  if(!PAYMENT_CONFIRM.test(t)) return null;
+  const am = t.match(/(?:payment|paid|amount|received)(?:\s+of|\s+for|\s+is|\s*:)?\s*(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  if(!am) return null;
+  const amount = num(am[1]); if(!amount) return null;
+  const mer = extractMerchant(t, true);
+  let merchant = mer.name || mandateMerchant(t) || '';
+  if(!merchant){
+    const m = t.match(/payment.{0,30}?(?:for|towards)\s+(?:your\s+)?([A-Za-z][A-Za-z0-9&'.\- ]{2,45})/i);
+    if(m) merchant = cleanMerchant(m[1]);
+  }
+  const date = parseDate(t) || fallbackDate || todayISO();
+  const ref = (t.match(/(?:upi ref(?:erence)?|ref(?:erence)?(?: no)?|utr|rrn|txn id|transaction id)[:.\s#-]*([A-Za-z0-9]{6,})/i)||[])[1]||'';
+  return { id: uidGen(), date, amount, type: 'credit', merchant: merchant || 'Payment confirmation', category: 'Payment confirmation', account: acctOf(t), bank: bankOf(t), mode: detectMode(t.toLowerCase()), ref, raw: t, note: 'Confirmation of a payment already recorded elsewhere' };
+}
 function parseMandate(t, fallbackDate){
   const merchM = t.match(/merchant:?\s*([^,]+)/i);
   let merchant = merchM ? merchM[1].trim().replace(/\s+/g," ") : "";
@@ -1302,6 +1343,12 @@ function parseOneCore(msg, fallbackDate){
   const low = t.toLowerCase();
   if(SKIP.test(t)) return { skip: "Not a completed transaction (OTP, offer or failed payment)" };
   if(looksLikePromo(t)) return { skip: "Promotional message" };
+  if(MANDATE_STOP.test(t)){
+    const changed = deactivateRecurringFromSms(t);
+    return { recurringStop: true, changed, skip: "Standing instruction / mandate stopped" };
+  }
+  const confirmation = parsePaymentConfirmation(t, fallbackDate);
+  if(confirmation) return { txn: confirmation };
   if(MANDATE_SETUP.test(t)){
     const sub = parseMandate(t, fallbackDate);
     return sub ? { subscription: sub } : { skip: "Standing instruction / mandate notice without an amount" };
@@ -1436,6 +1483,52 @@ function ownSign(t){
   const r = (t.raw || "").toLowerCase();
   return /\bself\b|own a\/?c|own account|to your (a\/?c|account)|between your accounts/.test(r) || (me.length >= 4 && mkey(t.merchant).includes(me));
 }
+function linkPaymentConfirmations(){
+  const debits = state.txns.filter(t=>t.type === 'debit' && !t.confirmationId && t.category !== 'Card payments' && t.category !== 'Self transfer');
+  const confirmations = state.txns.filter(t=>t.category === 'Payment confirmation' && !t.confirmationLinked);
+  const months = new Set(); let n=0;
+  confirmations.forEach(c=>{
+    const candidates = debits.filter(d=>{
+      if(Math.abs(d.amount-c.amount) > 0.01) return false;
+      if(Math.abs(daysBetween(d.date,c.date)) > 3) return false;
+      const dm=mkey(d.merchant), cm=mkey(c.merchant);
+      const refMatch=c.ref && d.ref && c.ref.toLowerCase()===d.ref.toLowerCase();
+      const merchantMatch=dm.length>=4 && cm.length>=4 && (dm.includes(cm)||cm.includes(dm)||dm.slice(0,6)===cm.slice(0,6));
+      return refMatch || merchantMatch;
+    }).sort((a,b)=>Math.abs(daysBetween(a.date,c.date))-Math.abs(daysBetween(b.date,c.date)));
+    const d=candidates[0]; if(!d) return;
+    c.confirmationLinked=d.id; d.confirmationId=c.id; c.note='Linked to bank debit';
+    months.add(d.date.slice(0,7)); n++;
+  });
+  return {n,months:[...months]};
+}
+function matchRecurringTransactions(){
+  const active=[...(state.subsManual||[])];
+  const detected=detectSubs();
+  const subs=active.concat(detected.filter(d=>!active.some(m=>m.key===d.key)));
+  let changed=false; const months=new Set();
+  subs.forEach(sub=>{
+    const step=sub.freq==='year'?365:sub.freq==='quarter'?91:30;
+    const key=mkey(sub.name||''); if(!key) return;
+    state.txns.filter(t=>t.type==='debit'&&!t.recurringKey&&counts(t)).forEach(t=>{
+      const tm=mkey(t.merchant||'');
+      if(!tm || !(tm===key||tm.includes(key)||key.includes(tm)||tm.slice(0,6)===key.slice(0,6))) return;
+      if(sub.amount && Math.abs(t.amount-sub.amount)>Math.max(2,sub.amount*0.20)) return;
+      if(sub.last && t.date<sub.last) return;
+      const prev=state.txns.filter(x=>x!==t&&x.type==='debit'&&x.recurringKey===sub.key).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      if(prev && Math.abs(daysBetween(prev.date,t.date)-step)>18) return;
+      t.recurringKey=sub.key; t.recurringMatched=true; changed=true; months.add(t.date.slice(0,7));
+    });
+  });
+  return {changed,months:[...months]};
+}
+function mentionsOwnedAccount(t){
+  const known = Object.values(state.accounts||{}).map(a=>String(a.account||'')).filter(Boolean);
+  if(!known.length) return false;
+  const raw=String(t.raw||'');
+  const suffixes=[...raw.matchAll(/[xX*]{2,}(\d{3,6})/g)].map(m=>m[1]);
+  return suffixes.some(s=>known.includes(s));
+}
 function linkTransfers(){
   const ok = t => !t.userCat && !isForeign(t) && !t.linked && t.category !== "Refunds" && t.source !== "finart";
   const credits = {}, months = new Set();
@@ -1453,8 +1546,8 @@ function linkTransfers(){
       // same name on both sides (e.g. "To VAGEESH" / "from VAGEESH") means your own accounts
       const a = mkey(d.merchant), b = mkey(c.merchant);
       if(a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a) || a.slice(0,5) === b.slice(0,5))) return true;
-      // otherwise only large bank-to-bank moves on the same or next day
-      return d.amount >= 5000 && Math.abs(daysBetween(d.date, c.date)) <= 1 && ["UPI","Bank transfer",""].includes(d.mode) && ["UPI","Bank transfer",""].includes(c.mode);
+      // A transfer is auto-linked only when there is evidence that the destination is one of the user's own accounts.
+      return mentionsOwnedAccount(d) || mentionsOwnedAccount(c);
     });
     if(!c) return;
     const card = c.category === "Card payments" || d.category === "Card payments" || /card/i.test(c.raw || "") && CARD_ACK.test(c.raw || "");
@@ -2171,9 +2264,19 @@ function openEntriesSheet(){
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
   document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
 }
+function totalHeldBalance(){
+  return Object.values(state.accounts||{}).reduce((sum,a)=>{
+    if(!a || a.hidden) return sum;
+    const kind=a.kind||'bank';
+    if(kind==='card'||kind==='loan') return sum;
+    const v=Number(a.balance);
+    return Number.isFinite(v)?sum+v:sum;
+  },0);
+}
 function renderHome(){
   const body=document.getElementById("homeBody");
   const t=homeFamilyTotals();
+  const held=totalHeldBalance();
   const remoteMembers=Object.values((state.family&&state.family.members)||{});
   const localEvents=eventList();
   const remoteEvents=remoteMembers.flatMap(m=>(m.events||[]).map(e=>({...e,remote:true})));
@@ -2189,7 +2292,9 @@ function renderHome(){
     <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${signed?"Google connected":"Family data on this phone"}</span></div>
       <div class="members" style="margin-bottom:14px">${memberChips}</div>
       <div class="inout num"><span>Family income<b>${money(t.income)}</b></span><span class="o">Family expenses<b>${money(t.expense)}</b></span></div>
-      <div class="total-line num"><span>Balance</span><b>${t.balance<0?"−":"+"}${money(Math.abs(t.balance))}</b></div>
+      <div class="total-line num"><span>Monthly balance</span><b>${t.balance<0?"−":"+"}${money(Math.abs(t.balance))}</b></div>
+      <div class="total-line num"><span>Total balance</span><b>${held<0?"−":"+"}${money(Math.abs(held))}</b></div>
+      <p class="hint" style="margin-top:6px">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p>
     </div>
     <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
     <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
@@ -2209,6 +2314,13 @@ function addHomeShopping(){
   document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hs-item").focus(); scrim.querySelector('#hs-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hs-shareLabel').textContent=shareLabel(sharing);});
   scrim.addEventListener("click",e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}if(e.target.id==="hs-save"){const item=scrim.querySelector("#hs-item").value.trim();if(!item){toast("Enter an item.");return;}state.shopping=state.shopping||[];state.shopping.push({id:uidGen(),item,done:false,createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
 }
+function smsDataUnlocked(){ return !!(state.smsPermissionConfirmed && state.smsDataReady); }
+function renderSmsLockedView(){
+  const title = LANG === "kn" ? "SMS ಡೇಟಾ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ" : "SMS data is not available yet";
+  const msg = LANG === "kn" ? "ಮೊದಲು ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ, Google ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ ಅಥವಾ Skip ಮಾಡಿ, ನಂತರ SMS ಅನುಮತಿ ನೀಡಿ. ಅನುಮತಿ ಮತ್ತು ಪ್ರಾಥಮಿಕ SMS ಆಮದು ಪೂರ್ಣವಾದ ನಂತರ ಮಾತ್ರ SMS ಆಧಾರಿತ ಡೇಟಾ ಕಾಣಿಸುತ್ತದೆ." : "First choose your language, sign in with Google or skip, then allow SMS access. SMS-based data will appear only after permission is granted and the initial SMS import has finished.";
+  const body = view === "home" ? document.getElementById("homeBody") : view === "overview" ? document.getElementById("ovBody") : view === "list" ? document.getElementById("listBody") : view === "accounts" ? document.getElementById("accountsBody") : document.getElementById("merchantBody");
+  if(body) body.innerHTML = `<div class="card"><div class="empty"><h2>${esc(title)}</h2><p>${esc(msg)}</p></div></div>`;
+}
 function render(){
   document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + (view === "merchant" ? "merchant" : view)));
   document.querySelectorAll(".tabs button").forEach(b=>b.toggleAttribute("aria-current", b.dataset.v === view) || (b.dataset.v === view && b.setAttribute("aria-current","page")));
@@ -2216,13 +2328,17 @@ function render(){
   const isNow = cursor >= currentPK();
   document.getElementById("nextM2").disabled = isNow;
   if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
-  if(view === "home") renderHome();
-  if(view === "overview") renderOverview();
-  if(view === "list") renderList();
-  if(view === "settings") renderSettings();
-  if(view === "accounts") renderAccounts();
-  if(view === "merchant") renderMerchant();
-  if(view === "family") renderFamily();
+  const gatedView = ["home","overview","list","accounts","merchant"].includes(view);
+  if(gatedView && !smsDataUnlocked()) renderSmsLockedView();
+  else {
+    if(view === "home") renderHome();
+    if(view === "overview") renderOverview();
+    if(view === "list") renderList();
+    if(view === "settings") renderSettings();
+    if(view === "accounts") renderAccounts();
+    if(view === "merchant") renderMerchant();
+    if(view === "family") renderFamily();
+  }
   if(LANG === "kn") trNode(document.querySelector("main"));
   scheduleReminders();
 }
@@ -3191,6 +3307,7 @@ window.ingestSms = function(list, quiet){
   let extra = false;
   list.forEach(m=>{
     const r = parseOne(String(m.body||""), smsDate(m.date), m.address);
+    if(r.recurringStop){ extra = r.changed || extra; return; }
     if(r.skip) return;
     if(r.bill){ extra = upsertBill(r.bill) || extra; return; }
     if(r.balance){ extra = updateAccount(r.balance) || extra; return; }
@@ -3200,7 +3317,9 @@ window.ingestSms = function(list, quiet){
     add.push({ ...r.txn, added: +m.date || Date.now(), source: "sms", sim: m.sim != null && m.sim >= 0 ? String(m.sim) : undefined });
   });
   if(add.length) state.txns.push(...add);
-  const lk = linkTransfers(); if(lk.n) extra = true;
+  const pc=linkPaymentConfirmations(); if(pc.n) extra=true;
+  const lk=linkTransfers(); if(lk.n) extra=true;
+  const rm=matchRecurringTransactions(); if(rm.changed) extra=true;
   if(autoMarkPaid()) extra = true;
   if(!add.length){ if(extra){ persist([], true); render(); } return 0; }
   persist([...new Set(add.map(t=>t.date.slice(0,7)))], extra);
@@ -3223,8 +3342,7 @@ window.appStatus = function(granted){
 };
 window.importFinished = function(added, scanned){
   const el = document.querySelector(".toast"); if(el) el.remove();
-  state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal();
-  try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
+  state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal(); try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
   toast(added ? `Added ${inr.format(added)} ${added===1?"entry":"entries"} from ${inr.format(scanned)} bank SMS.` : `Checked ${inr.format(scanned)} bank SMS. Nothing new to add.`);
   render();
 };
@@ -3594,8 +3712,8 @@ function showSmsConsent(){
   const nativeAccessReady = already && phoneReady;
   const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="smsConsentSheet";
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="SMS access"><h2>Allow SMS reading</h2>
-    <p class="help">SMS Ledger will read bank transaction messages to build your ledger. It will not start reading your existing SMS until you confirm below.</p>
-    ${nativeAccessReady ? `<p class="hint">Android access is already granted. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">Android will request the SMS access and the phone-state access needed to identify the active SIM slots. After you allow them, return here to confirm that you want the app to read your SMS.</p>`}
+    <p class="help">SMS Ledger will read bank transaction messages to build your ledger. Existing SMS will not be read until you allow SMS access below.</p>
+    ${nativeAccessReady ? `<p class="hint">Android access is already granted. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">Android will request SMS access and the phone-state access needed to identify the active SIM slots. After you allow them, the app will automatically start the initial SMS import.</p>`}
     <div class="row"><button class="btn primary" id="smsConsentContinue">${nativeAccessReady ? "Continue and read SMS" : "Allow required access"}</button><button class="btn" id="smsConsentLater">Not now</button></div></div>`;
   document.body.appendChild(scrim);
   scrim.querySelector("#smsConsentLater").onclick=()=>{ scrim.remove(); toast("SMS reading is paused. You can allow it later in Settings."); };
@@ -3705,7 +3823,7 @@ cursor = currentPK();
 render();
 if(!state.lang) openLanguagePicker();
 else runOnboardingChecks();
-if(!state.cardV2){
+if(smsDataUnlocked() && !state.cardV2){
   const months = new Set();
   state.txns.forEach(t=>{
     if(t.userCat || t.source === "finart" || !t.raw || t.category === "Card payments") return;
@@ -3713,7 +3831,12 @@ if(!state.cardV2){
   });
   state.cardV2 = true; persist([...months], false);
 }
-if(!state.linkedV1){ const lk = linkTransfers(); state.linkedV1 = true; persist(lk.months, false); if(lk.n) render(); }
+if(smsDataUnlocked()){
+  const pc=linkPaymentConfirmations(); const lk=linkTransfers(); const rm=matchRecurringTransactions();
+  if(pc.n||lk.n||rm.changed) persist([...(pc.months||[]),...(lk.months||[]),...(rm.months||[])], false);
+  state.linkedV1=true; state.txnIntelligenceV2=true;
+  if(pc.n||lk.n||rm.changed) render();
+}
 connectDb();
 })();
 </script>

@@ -189,11 +189,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // v1.45 resets the SMS flow once so an upgrade cannot scan or display old SMS-derived
         // data before the user sees the new explicit consent/import flow.
-        if (prefs.getInt("smsFlowVersion", 0) < 2) {
-            prefs.edit().putInt("smsFlowVersion", 2)
+        if (prefs.getInt("smsFlowVersion", 0) < 3) {
+            prefs.edit().putInt("smsFlowVersion", 3)
                 .putBoolean("smsConsentConfirmed", false)
                 .putBoolean("onboardingComplete", false)
                 .putBoolean("initialImportDone", false)
+                .putBoolean("smsDataReady", false)
+                .remove(SmsReceiver.PENDING_KEY)
                 .apply()
         }
         val assets = WebViewAssetLoader.Builder()
@@ -255,11 +257,11 @@ class MainActivity : ComponentActivity() {
         NotificationManagerCompat.from(this).cancel(SmsReceiver.NOTIFY_ID)
         if (pageReady) {
             pushStatus()
-            drainPendingSms()
+            if (prefs.getBoolean("smsDataReady", false)) drainPendingSms()
             // Never scan SMS merely because Android reports the permission as granted.
             // First-run onboarding must complete before any SMS is read.
             val smsConsentConfirmed = prefs.getBoolean("smsConsentConfirmed", false)
-            if (smsConsentConfirmed && hasSms()) {
+            if (smsConsentConfirmed && hasSms() && prefs.getBoolean("smsDataReady", false)) {
                 // v1.47: migrate existing installations from the old 90-day first import
                 // to a one-time full historical bank-SMS import.
                 if (!prefs.getBoolean("fullSmsImportV47Done", false)) {
@@ -277,7 +279,7 @@ class MainActivity : ComponentActivity() {
     private fun onPageReady() {
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
-        drainPendingSms()
+        if (prefs.getBoolean("smsDataReady", false)) drainPendingSms()
         // The WebView owns first-run sequencing: language -> Google account/skip -> SIM names -> SMS permission.
         web.evaluateJavascript("window.needsLanguage ? window.needsLanguage() : false") { needs ->
             if (needs != "true") web.evaluateJavascript("window.runOnboardingChecks && window.runOnboardingChecks()", null)
@@ -361,6 +363,7 @@ class MainActivity : ComponentActivity() {
                     scanning = false
                     if (announce || added > 0)
                         web.evaluateJavascript("window.importFinished && window.importFinished($added, $total)", null)
+                    if (accepted) { prefs.edit().putBoolean("smsDataReady", true).apply(); web.postDelayed({ drainPendingSms() }, 250) }
                 }
             }
             start = end
@@ -369,7 +372,7 @@ class MainActivity : ComponentActivity() {
 
     /** Imports SMS received while the app/WebView was not open. */
     private fun drainPendingSms() {
-        if (!pageReady || !hasSms() || !prefs.getBoolean("smsConsentConfirmed", false)) return
+        if (!pageReady || !hasSms() || !prefs.getBoolean("smsConsentConfirmed", false) || !prefs.getBoolean("smsDataReady", false)) return
         val raw = prefs.getString(SmsReceiver.PENDING_KEY, "[]") ?: "[]"
         val pending = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
         if (pending.length() == 0) return
@@ -446,6 +449,9 @@ class MainActivity : ComponentActivity() {
         fun hasSmsAccess(): Boolean = hasSms()
 
         @JavascriptInterface
+        fun isSmsDataUnlocked(): Boolean = prefs.getBoolean("smsConsentConfirmed", false) && prefs.getBoolean("smsDataReady", false)
+
+        @JavascriptInterface
         fun hasPhoneStateAccess(): Boolean = ContextCompat.checkSelfPermission(
             this@MainActivity, Manifest.permission.READ_PHONE_STATE
         ) == PackageManager.PERMISSION_GRANTED
@@ -512,11 +518,11 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun setSmsConsentConfirmed() {
-            prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).putBoolean("initialImportDone", false).apply()
+            prefs.edit().putBoolean("smsConsentConfirmed", true).putBoolean("onboardingComplete", true).putBoolean("initialImportDone", false).putBoolean("smsDataReady", false).apply()
         }
 
         @JavascriptInterface
-        fun setInitialImportDone() { prefs.edit().putBoolean("initialImportDone", true).apply() }
+        fun setInitialImportDone() { prefs.edit().putBoolean("initialImportDone", true).putBoolean("smsDataReady", true).apply(); runOnUiThread { drainPendingSms() } }
 
         @JavascriptInterface
         fun setBackupSchedule(frequency: String) { BackupScheduler.set(this@MainActivity, frequency) }

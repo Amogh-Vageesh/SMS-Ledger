@@ -478,3 +478,11 @@ This release keeps Kotlin 2.0.21 and uses Firebase Android BoM 33.12.0 with the 
 - Added a pending SMS queue in `SmsReceiver`: accepted bank SMS are queued even when the WebView/activity is not ready, then imported automatically when the app is open/resumes.
 - Added an in-app **Test Google Sign-In** diagnostic in Settings. It uses the Google Play Services sign-in path and reports the exact stage/error returned, together with the installed APK signing SHA-1 and Web OAuth client ID.
 - Version code/name: 46 / 1.52.
+
+
+## v1.54 transaction intelligence
+- Correlates bank debits with biller/payment-confirmation SMS so confirmations do not count as extra income/expense.
+- Classifies matched own-account transfers as internal transfers and excludes them from income/expense totals.
+- Tracks standing-instruction setup and stop/cancel messages and matches subsequent recurring debits.
+- Excludes promotional/non-financial SMS from ledger calculations.
+- Home Total Balance includes bank, investment, FD and EPF/PF/NPS account balances and excludes credit-card limits.
