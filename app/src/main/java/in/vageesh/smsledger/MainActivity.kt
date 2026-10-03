@@ -189,8 +189,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // v1.45 resets the SMS flow once so an upgrade cannot scan or display old SMS-derived
         // data before the user sees the new explicit consent/import flow.
-        if (prefs.getInt("smsFlowVersion", 0) < 3) {
-            prefs.edit().putInt("smsFlowVersion", 3)
+        if (prefs.getInt("smsFlowVersion", 0) < 5) {
+            prefs.edit().putInt("smsFlowVersion", 5)
                 .putBoolean("smsConsentConfirmed", false)
                 .putBoolean("onboardingComplete", false)
                 .putBoolean("initialImportDone", false)
@@ -507,6 +507,17 @@ class MainActivity : ComponentActivity() {
             }
             if (need.isEmpty()) family.start(name, json)
             else { pendingFamily = name to json; familyPerms.launch(need.toTypedArray()) }
+        }
+
+        /** Reset the native SMS onboarding gate when a new onboarding flow is introduced. */
+        @JavascriptInterface
+        fun resetSmsOnboarding() {
+            prefs.edit().putBoolean("smsConsentConfirmed", false)
+                .putBoolean("onboardingComplete", false)
+                .putBoolean("initialImportDone", false)
+                .putBoolean("smsDataReady", false)
+                .remove(SmsReceiver.PENDING_KEY)
+                .apply()
         }
 
         /** The language the person picked, kept for notifications and dialogs. */

@@ -829,10 +829,10 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {} }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {} }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
 let state = blankState();
 let view = "home";
-let homeRange = 6, homeSel = null, homeFamily = false;
+let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all";
 let cursor = "";
 let pending = [];
 let db = null, uid = null;
@@ -853,6 +853,49 @@ function loadLocal(){
     // permission + initial-import flow has completed.
     if(NATIVE && window.Android && window.Android.isSmsDataUnlocked && !window.Android.isSmsDataUnlocked()){
       state.smsPermissionConfirmed = false; state.smsDataReady = false;
+    }
+    // v1.56: force the explicit first-run sequence once, even when Android app data was
+    // retained across an APK upgrade. This prevents a saved language/Google choice from
+    // silently bypassing the language -> Google/skip -> SIM -> SMS consent flow.
+    if((state.onboardingVersion || 0) < 5){
+      state.onboardingVersion = 5;
+      state.lang = "";
+      state.googleOnboardingDone = false;
+      state.googleSkipped = false;
+      state.smsPermissionConfirmed = false;
+      state.smsDataReady = false;
+      state.smsConsentUiVersion = 0;
+      state.initialImportDone = false;
+      if(NATIVE && window.Android && window.Android.resetSmsOnboarding) try{ window.Android.resetSmsOnboarding(); }catch(e){}
+      saveLocal();
+    }
+    // Reclassify/remove promotional SMS that may have been imported by an older build.
+    // They must never remain as income merely because the stronger filter was added later.
+    if(Array.isArray(state.txns)){
+      const before = state.txns.length;
+      state.txns = state.txns.filter(t => {
+        if(!t) return false;
+        const raw = String(t.raw || "");
+        const merchant = String(t.merchant || "");
+        const category = String(t.category || "");
+        return !(looksLikePromo(raw) || looksLikePromo(merchant) || /^(income|other income)$/i.test(category) && /(rummy|junglee|prize|winning|jackpot|casino|betting|gambling)/i.test(merchant));
+      });
+      if(state.txns.length !== before) saveLocal();
+    }
+    // v1.58: repair older credit-card repayment records that were imported as Income.
+    // A card repayment/acknowledgement is a transfer/liability payment, not new income.
+    let cardFixed = false;
+    if(Array.isArray(state.txns)){
+      state.txns.forEach(t => {
+        if(!t) return;
+        const raw = String(t.raw || "").toLowerCase();
+        const merchant = String(t.merchant || "");
+        const cardAck = CARD_ACK.test(raw);
+        if(isCardBillMove(raw, merchant, t.type === "credit") || cardAck){
+          if(t.category !== "Card payments"){ t.category = "Card payments"; cardFixed = true; }
+        }
+      });
+      if(cardFixed) saveLocal();
     }
   }catch(e){}
 }
@@ -1014,8 +1057,12 @@ function firstIndex(low, words){
   return best;
 }
 // Marketing messages that mention a price but aren't a transaction.
-const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon|loan (up ?to|of up ?to) ?(?:rs\.?|inr|₹)|(may|can|could|will) be credited (to|in) your (a\/?c|account|bank)|instant loan (approval|offer|in minutes)|avail (a |an )?(instant )?loan|get (a |an )?(instant )?loan|complete your application|prize pool|winning (cash|amount)|won (rs\.?|inr|₹)|winning amount|winning cash|cash prize|jackpot|rummy|junglee rummy|casino|betting|gambling|fantasy (game|cricket)|play and win|play now|game (cash|offer)|credited in your bank account|opt ?out sms|optout sms|gmg\.im)/i;
+const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon|loan (up ?to|of up ?to) ?(?:rs\.?|inr|₹)|(may|can|could|will) be credited (to|in) your (a\/?c|account|bank)|instant loan (approval|offer|in minutes)|avail (a |an )?(instant )?loan|get (a |an )?(instant )?loan|complete your application|prize pool|winning (cash|amount)|won\s+(?:rs\.?|inr|₹)|won\s+\$|winning amount|winning cash|cash prize|jackpot|rummy|junglee\s+rummy|casino|betting|gambling|fantasy (game|cricket)|play and win|play now|game (cash|offer)|credited in your bank account|opt ?out sms|optout sms|gmg\.im)/i;
 function looksLikePromo(t){
+  // Hard promotional markers: these must never be allowed to become ledger income,
+  // even if the message happens to contain an account/reference-like number.
+  const HARD_PROMO = /(junglee\s*rummy|\brummy\b|won\s+(?:rs\.?|inr|₹)|winning\s+(?:cash|amount)|\bprize\s+pool\b|cash\s+prize|jackpot|\bcasino\b|\bbetting\b|\bgambling\b|gmg\.im|optout\s+sms|opt\s*out\s+sms)/i;
+  if(HARD_PROMO.test(t)) return true;
   if(!PROMO.test(t)) return false;
   // a real alert names your account or card, or carries a reference number
   const hasAcct = /(a\/?c|acct|account|card)\s*(no\.?\s*)?(ending\s*(with|in)?\s*)?[:\s]*[x*]+\s?\d{3,6}|\b[x*]{2,}\d{3,6}\b/i.test(t);
@@ -2228,29 +2275,41 @@ function homeFamilyTotals(){
   const people = [];
   const owners = state.simOwners || {};
   const localTxns = displayTxns();
-  const ownerIds = Object.keys(owners);
-  if(ownerIds.length){
-    ownerIds.forEach((sid,i)=>{
-      const o=owners[sid]||{};
-      const name=String(o.name||"").trim();
-      if(!name || name.startsWith("__SIM_")) return; // unnamed SIMs remain internal only until the user names them in Settings.
-      people.push({id:"sim:"+sid,name,color:o.color||PALETTE[i%PALETTE.length],txns:localTxns.filter(t=>String(t.sim||"")===String(sid))});
+  const k = currentPK();
+  const addPerson = (id,name,color,txns) => {
+    const list = (txns||[]).filter(t => pk(t.date) === k);
+    let income=0, expense=0, refunds=0;
+    list.forEach(t=>{
+      if(!counts(t)) return;
+      if(t.type === "credit" && t.category === "Refunds") refunds += inAmt(t);
+      else if(t.type === "credit") income += inAmt(t);
+      else if(t.type === "debit") expense += spendAmt(t);
     });
-    const namedSimIds=new Set(people.filter(p=>p.simId).map(p=>p.simId));
-  } else {
-    people.push({id:"me",name:(state.family&&state.family.me)||"You",color:"var(--brass)",txns:localTxns});
-  }
-  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m])=>{
-    if(m && m.name) people.push({id:"remote:"+id,name:m.name,color:m.color||PALETTE[people.length%PALETTE.length],txns:m.txns||[]});
+    expense = Math.max(0, expense - refunds);
+    people.push({id,name,color,txns:txns||[],income,expense,balance:income-expense});
+  };
+  const namedSimIds = new Set();
+  Object.entries(owners).forEach(([sid,o],i)=>{
+    const name=String(o?.name||"").trim();
+    if(!name || name.startsWith("__SIM_")) return;
+    namedSimIds.add(String(sid));
+    addPerson("sim:"+sid,name,o.color||PALETTE[i%PALETTE.length],localTxns.filter(t=>String(t.sim||"")===String(sid)));
   });
-  if(!people.length) people.push({id:"me",name:(state.family&&state.family.me)||"You",color:"var(--brass)",txns:localTxns});
-  // Totals include all transactions already available on this phone, including transactions
-  // arriving from an unnamed SIM; only the person label is hidden until that SIM is named.
-  let income=0, expense=0;
-  localTxns.forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); });
-  Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{ if(!counts(t)) return; if(t.type==="credit" && t.category!=="Refunds") income+=inAmt(t); else if(t.type==="debit") expense+=spendAmt(t); }));
-  return {people,income,expense,balance:income-expense};
+  // The owner's local transactions are those not assigned to another named SIM.
+  // This keeps a second named SIM from being counted twice in the Family view.
+  const myTxns = localTxns.filter(t=>!namedSimIds.has(String(t.sim||"")));
+  addPerson("me",(state.family&&state.family.me)||"You","var(--brass)",myTxns);
+  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m],i)=>{
+    if(m && m.name) addPerson("remote:"+id,m.name,m.color||PALETTE[(i+1)%PALETTE.length],m.txns||[]);
+  });
+  if(!people.length) addPerson("me",(state.family&&state.family.me)||"You","var(--brass)",localTxns);
+  const visible = homePersonFilter === "all" ? people : people.filter(p=>p.id === homePersonFilter);
+  const rows = visible.length ? visible : people;
+  const income = rows.reduce((a,p)=>a+p.income,0);
+  const expense = rows.reduce((a,p)=>a+p.expense,0);
+  return {people,income,expense,balance:income-expense,month:k,selected:homePersonFilter};
 }
+
 function renderRecentExpenses(){
   const tx=displayTxns().filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
   if(!tx.length) return '<p class="help">No expenses yet.</p>';
@@ -2282,14 +2341,16 @@ function renderHome(){
   const cal=(state.calendar||[]).concat(remoteMembers.flatMap(m=>m.calendar||[])).filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,5);
   const shopping=(state.shopping||[]).concat(remoteMembers.flatMap(m=>m.shopping||[])).slice(0,8);
   const signed=!!cloudUser;
-  const memberChips=t.people.filter(p=>p.visible!==false && !String(p.name||"").startsWith("__SIM_")).map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("");
+  const memberChips=t.people.filter(p=>p.visible!==false && !String(p.name||"").startsWith("__SIM_")).map(p=>`<button class="member" data-home-person="${esc(p.id)}" aria-pressed="${t.selected===p.id}"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("");
+  const allChip = `<button class="member" data-home-person="all" aria-pressed="${t.selected==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
   const eventHtml=events.length?events.map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.shared?"<span>Shared</span>":"<span>Private</span>"}</span></button>`).join(""):"<p class=\"help\">No events yet.</p>";
   const calHtml=cal.length?cal.map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||"Calendar item")}</span><span>${esc(x.date)}</span><span class="w" style="grid-column:1/3">${esc(x.note||"")}</span></div>`).join(""):"<p class=\"help\">No calendar items yet.</p>";
   const shopHtml=shopping.length?shopping.map(x=>`<label class="due" style="cursor:pointer;${x.done?"opacity:.55;text-decoration:line-through":""}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?"checked":""} style="margin-right:8px">${esc(x.item)}</span><span>${x.shared?"Shared":"Private"}</span></label>`).join(""):"<p class=\"help\">Shopping list is empty.</p>";
   body.innerHTML=`
     <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${signed?"Google connected":"Family data on this phone"}</span></div>
-      <div class="members" style="margin-bottom:14px">${memberChips}</div>
-      <div class="inout num"><span>Family income<b>${money(t.income)}</b></span><span class="o">Family expenses<b>${money(t.expense)}</b></span></div>
+      <div class="members" style="margin-bottom:6px">${allChip}${memberChips}</div>
+      <p class="hint" style="margin:0 0 12px">Tap a family member to view only their shared income and expenses for this month.</p>
+      <div class="inout num"><span>${t.selected==='all'?"Family income":esc((t.people.find(p=>p.id===t.selected)||{}).name||"Income")}<b>${money(t.income)}</b></span><span class="o">${t.selected==='all'?"Family expenses":esc((t.people.find(p=>p.id===t.selected)||{}).name||"Expenses")}<b>${money(t.expense)}</b></span></div>
       <div class="total-line num"><span>Monthly balance</span><b>${t.balance<0?"−":"+"}${money(Math.abs(t.balance))}</b></div>
       <div class="total-line num"><span>Total balance</span><b>${held<0?"−":"+"}${money(Math.abs(held))}</b></div>
       <p class="hint" style="margin-top:6px">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p>
@@ -3005,6 +3066,7 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   if(e.target.closest("#homeAddShopping")){ addHomeShopping(); return; }
   if(e.target.closest("#homeAddCalendar")){ addHomeCalendar(); return; }
   if(e.target.closest("#homeSeeEvents")){ view="overview"; ovMode="events"; render(); return; }
+  const hp=e.target.closest("[data-home-person]"); if(hp){ homePersonFilter=hp.dataset.homePerson||"all"; render(); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
   const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
