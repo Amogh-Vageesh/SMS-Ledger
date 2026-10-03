@@ -1,18 +1,13 @@
-# SMS Ledger v1.62
+# SMS Ledger v1.63
 
-GitHub-ready Android SMS ledger/family finance app.
+GitHub-ready Android project.
 
-## v1.62 changes
-- Summary: Mark paid now works directly from the Summary tab.
-- Summary: category navigation chips allow quick navigation to every expense category.
-- Summary: Day view added alongside Month, Year, All years and Events.
-- Family Hub: family income/expense totals can be viewed by day, month, year or all years, with previous/next navigation where applicable.
-- Sharing controls changed from large Choose buttons to compact on/off switches; audience selection appears only when sharing is enabled.
-- Family page layout tightened for People and Events rows.
-- Loans/EMIs: accounts can store original loan amount and loan category (Home, Vehicle, Education, Personal, Business, Other).
-- Loan account view shows original amount, matched EMI/loan repayments paid, and an estimated remaining amount.
-- Preserves the prior family identity duplicate protections and transaction intelligence.
-- Includes `.github/workflows/build.yml` for GitHub Actions release APK builds.
+Changes in v1.63:
+- Family members can select shared family events when adding an expense.
+- Event selection now resolves both local and remotely synced family events.
+- Selected remote event remains visible in the expense form and is saved by event ID.
+- Event picker labels remotely synced events as shared events.
+- New events created from the expense picker retain owner identity.
+- Version 1.63 / versionCode 58.
 
-## Build
-Push the ZIP contents to the repository root and run GitHub Actions `Build APK`.
+Build through `.github/workflows/build.yml`.

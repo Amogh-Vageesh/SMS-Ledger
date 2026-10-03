@@ -1719,6 +1719,15 @@ function eventList(){
   const seen=new Set(), out=[]; [...local,...remote].forEach(e=>{if(!seen.has(e.id)){seen.add(e.id);out.push(e);}});
   return out.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
 }
+function eventById(id){
+  if(!id) return null;
+  if(state.events && state.events[id]) return {...state.events[id],id};
+  for(const m of Object.values((state.family&&state.family.members)||{})){
+    const e=(m.events||[]).find(x=>x && x.id===id);
+    if(e) return {...e,id,remote:true,ownerUid:e.ownerUid||m.googleUid};
+  }
+  return null;
+}
 function eventTransactions(id){
   const out=state.txns.filter(t=>t.event===id);
   Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t.event===id) out.push({...t,remote:true,ownerUid:t.ownerUid||m.googleUid});}));
@@ -2816,7 +2825,7 @@ function openEventPicker(currentId, forName, forDate, onPick){
     const results = qk ? all.filter(e=>mkey(e.name).includes(qk) || qk.includes(mkey(e.name).slice(0,5))) : all;
     listEl.innerHTML = results.length ? results.map(e=>`<button class="evrow" data-pick="${esc(e.id)}"><span class="ic">${esc(e.icon||"📌")}</span>
       <div style="flex-grow:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}</div>
-      <div style="font-size:.8rem;color:var(--muted)">${e.date?esc(niceDate(e.date)):"No date"} · ${money(eventSpend(e.id),true)} tagged so far</div></div></button>`).join("")
+      <div style="font-size:.8rem;color:var(--muted)">${e.date?esc(niceDate(e.date)):"No date"} · ${money(eventSpend(e.id),true)} tagged so far${e.remote?" · Shared event":""}</div></div></button>`).join("")
       : `<p class="help">No events yet. Create one below.</p>`;
     const near = query ? findEventNudge(query, forDate, currentId) : null;
     nudgeEl.innerHTML = near ? `<button class="nudge" data-usenudge="${esc(near.id)}"><span>💡</span><span>Close to an event already here — <b>${esc(near.name)}</b>${near.date?", "+esc(niceDate(near.date)):""}. Use that instead?</span></button>` : "";
@@ -2833,7 +2842,7 @@ function openEventPicker(currentId, forName, forDate, onPick){
       const name = q.value.trim(); if(!name){ q.focus(); return; }
       const id = mkey(name) || uidGen();
       state.events = state.events || {};
-      if(!state.events[id]) state.events[id] = { name, date: forDate || todayISO(), icon: "📌", createdAt: todayISO() };
+      if(!state.events[id]) state.events[id] = { name, date: forDate || todayISO(), icon: "📌", createdAt: todayISO(), ownerUid: cloudUser?.uid||"", createdBy: cloudUser?.uid||"" };
       persist([], true);
       onPick(id); close();
     }
@@ -2905,7 +2914,7 @@ function openSheet(t, isNew){
   if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
   const evBtn = scrim.querySelector("#e-evBtn");
   const refreshEvBtn = ()=>{
-    const ev = selEvent && state.events[selEvent];
+    const ev = eventById(selEvent);
     scrim.querySelector("#e-evIcon").textContent = ev ? (ev.icon || "📌") : "+";
     scrim.querySelector("#e-evLabel").textContent = ev ? ev.name : "None — tap to tag";
   };
