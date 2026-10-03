@@ -486,3 +486,7 @@ This release keeps Kotlin 2.0.21 and uses Firebase Android BoM 33.12.0 with the 
 - Tracks standing-instruction setup and stop/cancel messages and matches subsequent recurring debits.
 - Excludes promotional/non-financial SMS from ledger calculations.
 - Home Total Balance includes bank, investment, FD and EPF/PF/NPS account balances and excludes credit-card limits.
+
+## GitHub Actions build
+
+This project includes `.github/workflows/build.yml`. Push the project to GitHub and run **Build APK** from Actions, or push to `main`/`master` to trigger the workflow automatically. The release APK is uploaded as the `smsledger-release` artifact.
