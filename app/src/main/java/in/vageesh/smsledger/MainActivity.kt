@@ -40,7 +40,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.InputStreamReader
-import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import org.apache.poi.ss.usermodel.WorkbookFactory
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import java.security.MessageDigest
@@ -100,10 +100,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        if (mime.contains("excel") || mime.contains("spreadsheet") || name.endsWith(".xls")) {
+        if (mime.contains("excel") || mime.contains("spreadsheet") || name.endsWith(".xls") || name.endsWith(".xlsx") || name.endsWith(".xlsm")) {
             contentResolver.openInputStream(uri).use { input ->
                 requireNotNull(input) { "Unable to open statement." }
-                HSSFWorkbook(input).use { workbook ->
+                WorkbookFactory.create(input).use { workbook ->
                     val sheet = workbook.getSheetAt(0)
                     val out = StringBuilder()
                     val formatter = org.apache.poi.ss.usermodel.DataFormatter()
