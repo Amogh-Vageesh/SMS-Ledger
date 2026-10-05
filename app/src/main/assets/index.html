@@ -469,7 +469,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     <div id="historicalCoverage" class="help">Checking transaction coverage…</div>
     <div class="row" style="margin-top:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="historicalScan">Find missing months</button><button class="btn primary" id="statementImport">Import bank statement(s)</button></div>
     <label class="check" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="includePre2022Statements"> <span>Also import transactions before 1 Jan 2022</span></label>
-    <div id="statementStatus" class="hint" style="margin-top:8px">Select one or multiple PDF, CSV, XLS/XLSX or text statements. Existing SMS transactions are matched first; overlapping statement files are also reconciled so the same transaction is not added twice.</div>
+    <div id="statementStatus" class="hint" style="margin-top:8px">Select one or multiple PDF, CSV, XLS/XLSX or text statements. After import, this area shows files processed, rows read, new transactions, SMS matches, possible matches and skipped rows.</div>
   </div>
   <h1 class="section-h">Data not from SMS</h1>
   <div class="set-block" id="importedBlock">
@@ -1973,34 +1973,53 @@ function parseStatementCsv(text){
 function statementHeaderMap(headers){
   const h=headers.map(x=>statementNorm(x));
   const find=(arr)=>{const i=h.findIndex(x=>arr.some(a=>x===a||x.includes(a)));return i;};
-  return {date:find(["date","transaction date","value date","txn date"]),desc:find(["description","narration","particulars","transaction details","remarks"]),debit:find(["debit","withdrawal","withdrawals","debit amount"]),credit:find(["credit","deposit","deposits","credit amount"]),amount:find(["amount","transaction amount"]),type:find(["type","dr cr","debit credit"]),ref:find(["reference","ref no","reference no","transaction id","utr","upi ref"])};
+  return {date:find(["date","transaction date","value date","txn date"]),desc:find(["description","narration","particulars","transaction details","remarks","transaction remarks"]),debit:find(["debit","withdrawal","withdrawals","withdrawal amount","debit amount"]),credit:find(["credit","deposit","deposits","deposit amount","credit amount"]),amount:find(["amount","transaction amount"]),type:find(["type","dr cr","debit credit"]),ref:find(["reference","ref no","reference no","transaction id","utr","upi ref","cheque number","cheque no"])};
 }
-function importStatementText(text, fileName, done){
-  if(!text || text.startsWith("__ERROR__:")){ toast(text?text.slice(10):"Could not read the statement."); if(done) done(); return; }
+function findStatementHeader(rows){
+  for(let i=0;i<Math.min(rows.length,60);i++){
+    const map=statementHeaderMap(rows[i]||[]);
+    const hasDate=map.date>=0;
+    const hasNarration=map.desc>=0;
+    const hasMoney=map.debit>=0||map.credit>=0||map.amount>=0;
+    if(hasDate && (hasNarration||hasMoney)) return {index:i,map};
+  }
+  return {index:-1,map:null};
+}
+function importStatementText(text, fileName, done, batch){
+  if(!batch) batch={files:0,rows:0,added:0,matched:0,review:0,skipped:0,errors:0};
+  if(!text || text.startsWith("__ERROR__:")){ batch.errors++; toast(text?text.slice(10):"Could not read the statement."); if(done) done(); return; }
   const rows=parseStatementCsv(text);
-  let added=0, matched=0, review=0, skipped=0; const months=new Set();
-  if(rows.length<2){ toast(`No statement rows were found in ${fileName||"the statement"}. Please use a CSV, XLS/XLSX or text-based PDF statement.`); if(done) done(); return; }
-  const map=statementHeaderMap(rows[0]);
-  if(map.date<0 || (map.desc<0 && map.amount<0)){ toast(`I couldn't identify the statement columns in ${fileName||"the statement"}. Please use a bank statement with Date and Description/Narration columns.`); if(done) done(); return; }
+  if(rows.length<2){ batch.errors++; toast(`No statement rows were found in ${fileName||"the statement"}.`); if(done) done(); return; }
+  const header=findStatementHeader(rows);
+  if(header.index<0 || !header.map){ batch.errors++; toast(`I couldn't identify the transaction table in ${fileName||"the statement"}. Please check that the file contains Date/Value Date and transaction description/amount columns.`); if(done) done(); return; }
+  const map=header.map;
+  const includePre2022=!!document.getElementById("includePre2022Statements")?.checked;
   const existing=state.txns||[];
-  const used=new Set();
-  rows.slice(1).forEach(r=>{
-    const date=statementDate(r[map.date]); const includePre2022=!!document.getElementById("includePre2022Statements")?.checked; if(!date || (!includePre2022 && date<"2022-01-01")) { if(date) skipped++; return; }
+  const used=new Set(); const months=new Set();
+  batch.files++; batch.rows += Math.max(0,rows.length-header.index-1);
+  rows.slice(header.index+1).forEach(r=>{
+    const date=statementDate(r[map.date]);
+    if(!date || (!includePre2022 && date<"2022-01-01")){ if(date) batch.skipped++; return; }
     let debit=map.debit>=0?statementAmount(r[map.debit]):null, credit=map.credit>=0?statementAmount(r[map.credit]):null;
     if(map.amount>=0 && debit==null && credit==null){ const a=statementAmount(r[map.amount]); const typ=statementNorm(map.type>=0?r[map.type]:""); if(/credit|cr|deposit|inward/.test(typ)) credit=a; else debit=a; }
-    if((debit==null||debit===0)&&(credit==null||credit===0)) {skipped++;return;}
+    if((debit==null||debit===0)&&(credit==null||credit===0)){batch.skipped++;return;}
     const type=(credit!=null&&credit>0&&!(debit>0))?"credit":"debit"; const amount=type==="credit"?credit:debit;
     const raw=r.join(" | "), desc=map.desc>=0?String(r[map.desc]||"").trim():raw, ref=map.ref>=0?String(r[map.ref]||"").trim():"";
-    const cand=existing.filter(t=>t&&t.date&&t.type===type&&Math.abs(Number(t.amount)-amount)<0.01&&Math.abs(daysBetween(t.date,date))<=1&&!used.has(t.id));
+    const all=state.txns||existing;
+    const cand=all.filter(t=>t&&t.date&&t.type===type&&Math.abs(Number(t.amount)-amount)<0.01&&Math.abs(daysBetween(t.date,date))<=1&&!used.has(t.id));
     const exactRef=ref?cand.find(t=>statementNorm(t.raw||"").includes(statementNorm(ref))||statementNorm(t.note||"").includes(statementNorm(ref))):null;
-    const best=exactRef||cand.find(t=>mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(desc))||mkey(desc).includes(mkey(t.merchant||"")));
-    if(best){ best.statementSources=[...(best.statementSources||[]),{date,description:desc,reference:ref,importedAt:Date.now()}]; best.source="sms+statement"; used.add(best.id); matched++; months.add(best.date.slice(0,7)); return; }
-    const soft=cand[0]; if(soft){ review++; return; }
+    const best=exactRef||cand.find(t=>{
+      const a=mkey((t.merchant||"")+" "+(t.raw||"")), b=mkey(desc);
+      return b.length>=4 && (a.includes(b)||b.includes(mkey(t.merchant||"")));
+    });
+    if(best){ best.statementSources=[...(best.statementSources||[]),{date,description:desc,reference:ref,sourceFile:fileName||"statement",importedAt:Date.now()}]; best.source=(best.source&&best.source.includes("sms"))?"sms+statement":"statement"; used.add(best.id); batch.matched++; months.add(best.date.slice(0,7)); return; }
+    const soft=cand[0]; if(soft){ batch.review++; return; }
     const merchant=desc.split(/\s{2,}|\/|\|/)[0].trim().slice(0,80)||"Bank transaction";
-    const t={id:uidGen(),date,amount,type,merchant,category:type==="credit"?"Other income":"Other",raw:`[Bank statement] ${raw}`,source:"statement",statementSources:[{date,description:desc,reference:ref,importedAt:Date.now()}],added:Date.now()};
-    state.txns.push(t); added++; months.add(date.slice(0,7));
+    const t={id:uidGen(),date,amount,type,merchant,category:type==="credit"?"Other income":"Other",raw:`[Bank statement: ${fileName||"statement"}] ${raw}`,source:"statement",statementSources:[{date,description:desc,reference:ref,sourceFile:fileName||"statement",importedAt:Date.now()}],added:Date.now()};
+    state.txns.push(t); batch.added++; months.add(date.slice(0,7));
   });
-  persist([...months],false); render(); toast(`${fileName||"Statement"}: ${added} new, ${matched} matched${review?`, ${review} need review`:""}.`); if(done) done();
+  persist([...months],false); render();
+  if(done) done();
 }
 window.bankStatementFilesResult=function(payload){
   let files=[]; try{ files=JSON.parse(payload||"[]"); }catch(e){ toast("Could not read the selected statement files."); return; }
@@ -2008,15 +2027,20 @@ window.bankStatementFilesResult=function(payload){
   const status=document.getElementById("statementStatus");
   const ok=files.filter(f=>f&&f.text); const bad=files.filter(f=>f&&f.error);
   if(!ok.length){ toast(bad[0]?.error||"Could not read the selected statements."); return; }
-  if(status) status.textContent=`Reading ${ok.length} statement${ok.length===1?"":"s"}${bad.length?`; ${bad.length} could not be read`:""}…`;
+  const batch={files:0,rows:0,added:0,matched:0,review:0,skipped:0,errors:bad.length};
+  if(status) status.innerHTML=`<b>Importing ${ok.length} file${ok.length===1?"":"s"}…</b><br>Reading transaction rows and reconciling against SMS and earlier statement files.`;
   let i=0;
   const next=()=>{
     if(i>=ok.length){
-      if(status) { const pre=!!document.getElementById("includePre2022Statements")?.checked; status.textContent=`Processed ${ok.length} statement${ok.length===1?"":"s"}. ${pre?"Pre-2022 transactions were included. ":"Transactions before 1 Jan 2022 were skipped. "}Existing SMS transactions and overlapping statement transactions were reconciled before adding new entries.`; }
+      render();
+      const pre=!!document.getElementById("includePre2022Statements")?.checked;
+      const summary=`Import complete: ${batch.files} file${batch.files===1?"":"s"}, ${batch.added} new, ${batch.matched} matched to existing transactions, ${batch.review} possible matches, ${batch.skipped} skipped${batch.errors?`, ${batch.errors} file error${batch.errors===1?"":"s"}`:""}.`;
+      if(status) status.innerHTML=`<b>${summary}</b><br>${pre?"Pre-2022 transactions were included.":"Transactions before 1 Jan 2022 were skipped."} Open Ledger/Summary to see the imported transactions.`;
+      toast(summary);
       return;
     }
     const f=ok[i++];
-    importStatementText(f.text, f.name, next);
+    importStatementText(f.text,f.name,next,batch);
   };
   next();
 };
