@@ -63,7 +63,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 // Stored data stays in English (category keys etc.); only what's shown on screen is translated.
 let LANG = "en";
 const KN = {
-  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Summary":"ಸಾರಾಂಶ","Tagged to events":"ಸಂದರ್ಭಗಳಿಗೆ ಟ್ಯಾಗ್ ಆಗಿರುವುದು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
+  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Summary":"ನನ್ನ ಲೆಡ್ಜರ್","Tagged to events":"ಸಂದರ್ಭಗಳಿಗೆ ಟ್ಯಾಗ್ ಆಗಿರುವುದು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
   "Your money at a glance":"ನಿಮ್ಮ ಹಣದ ಒಂದು ನೋಟ","Day":"ದಿನ","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","Events":"ಸಂದರ್ಭಗಳು","Your family's money at a glance":"ನಿಮ್ಮ ಕುಟುಂಬದ ಹಣದ ಒಂದು ನೋಟ","Period":"ಅವಧಿ",
   "Just me":"ನಾನು ಮಾತ್ರ","Family":"ಕುಟುಂಬ","Whose money":"ಯಾರ ಹಣ",
   "Money in":"ಬಂದ ಹಣ","Money out":"ಹೋದ ಹಣ","In":"ಬಂದದ್ದು","Out":"ಹೋದದ್ದು","in":"ಬಂದದ್ದು","out":"ಹೋದದ್ದು","in ·":"ಬಂದದ್ದು ·",
@@ -1208,6 +1208,15 @@ function eventList(){
   const seen=new Set(), out=[]; [...local,...remote].forEach(e=>{if(!seen.has(e.id)){seen.add(e.id);out.push(e);}});
   return out.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
 }
+function eventById(id){
+  if(!id) return null;
+  if(state.events && state.events[id]) return {...state.events[id],id};
+  for(const m of Object.values((state.family&&state.family.members)||{})){
+    const e=(m.events||[]).find(x=>x && x.id===id);
+    if(e) return {...e,id,remote:true,ownerUid:e.ownerUid||m.googleUid};
+  }
+  return null;
+}
 function eventTransactions(id){
   const out=state.txns.filter(t=>t.event===id);
   Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t.event===id) out.push({...t,remote:true,ownerUid:t.ownerUid||m.googleUid});}));
@@ -1835,42 +1844,83 @@ function totalHeldBalance(){
     return Number.isFinite(v)?sum+v:sum;
   },0);
 }
+function homeSharedItemsForSelected(){
+  const members=Object.entries((state.family&&state.family.members)||{}).map(([id,m])=>({id,m}));
+  const selected=homePersonFilter;
+  const isAll=selected==='all';
+  const currentUid=cloudUser?.uid||'';
+  const allRemote=members.map(x=>({...x.m,_uid:x.id}));
+  const localSharedEvents=Object.values(state.events||{}).filter(e=>e&&e.shared).map(e=>({...e,_uid:e.ownerUid||currentUid,remote:false}));
+  const localSharedShopping=(state.shopping||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const localSharedCalendar=(state.calendar||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const remoteEvents=allRemote.flatMap(m=>(m.events||[]).filter(Boolean).map(e=>({...e,remote:true,_uid:e.ownerUid||m._uid})));
+  const remoteShopping=allRemote.flatMap(m=>(m.shopping||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const remoteCalendar=allRemote.flatMap(m=>(m.calendar||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const localSharedTxns=(state.family&&state.family.shareTransactions!==false)?displayTxns().filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:false,_uid:t.ownerUid||currentUid})):[];
+  const remoteTxns=allRemote.flatMap(m=>(m.txns||[]).filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:true,_uid:t.ownerUid||m._uid})));
+  let events=[...localSharedEvents,...remoteEvents];
+  let shopping=[...localSharedShopping,...remoteShopping];
+  let calendar=[...localSharedCalendar,...remoteCalendar];
+  let txns=[...localSharedTxns,...remoteTxns];
+  if(!isAll){
+    const memberId=selected==='me' ? currentUid : (selected.startsWith('remote:')?selected.slice(7):selected);
+    const ownedEvents=events.filter(e=>String(e._uid)===String(memberId) || String(e.ownerUid)===String(memberId));
+    // Include events created by this member even when other family members tagged expenses to them.
+    const taggedEventIds=new Set();
+    Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));}));
+    (state.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));});
+    const taggedEvents=events.filter(e=>taggedEventIds.has(String(e.id)) && (String(e.ownerUid||e._uid)===String(memberId)));
+    const seenE=new Set(); events=[...ownedEvents,...taggedEvents].filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    shopping=shopping.filter(x=>String(x._uid)===String(memberId) || String(x.ownerUid)===String(memberId));
+    calendar=[];
+    txns=[];
+  } else {
+    const seenE=new Set(); events=events.filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    const seenS=new Set(); shopping=shopping.filter(x=>{if(seenS.has(x.id))return false;seenS.add(x.id);return true;});
+    const seenC=new Set(); calendar=calendar.filter(x=>{if(seenC.has(x.id))return false;seenC.add(x.id);return true;});
+  }
+  return {events,shopping,calendar,txns,isAll};
+}
 function renderHome(){
-  if(!homePeriodDay) homePeriodDay=todayISO();
-  if(!homePeriodMonth) homePeriodMonth=currentPK();
   const body=document.getElementById("homeBody");
-  const t=homeFamilyTotals();
-  const held=totalHeldBalance();
-  const remoteMembers=Object.values((state.family&&state.family.members)||{});
-  const localEvents=eventList();
-  const remoteEvents=remoteMembers.flatMap(m=>(m.events||[]).map(e=>({...e,remote:true})));
-  const events=localEvents.concat(remoteEvents).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).slice(0,5);
-  const cal=(state.calendar||[]).concat(remoteMembers.flatMap(m=>m.calendar||[])).filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,5);
-  const shopping=(state.shopping||[]).concat(remoteMembers.flatMap(m=>m.shopping||[])).slice(0,8);
-  const signed=!!cloudUser;
-  const memberChips=t.people.filter(p=>p.visible!==false && !String(p.name||"").startsWith("__SIM_")).map(p=>`<button class="member" data-home-person="${esc(p.id)}" aria-pressed="${t.selected===p.id}"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("");
-  const allChip = `<button class="member" data-home-person="all" aria-pressed="${t.selected==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
-  const periodLabel=homePeriodMode==="day"?niceDate(homePeriodDay):homePeriodMode==="year"?String(homePeriodYear):homePeriodMode==="all"?"All years":monthLabel(homePeriodMonth);
-  const periodTabs=["day","month","year","all"].map(m=>`<button data-home-period="${m}" class="${homePeriodMode===m?"active":""}">${m==="day"?"Day":m==="month"?"Month":m==="year"?"Year":"All years"}</button>`).join("");
-  const eventHtml=events.length?events.map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.shared?"<span>Shared</span>":"<span>Private</span>"}</span></button>`).join(""):"<p class=\"help\">No events yet.</p>";
-  const calHtml=cal.length?cal.map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||"Calendar item")}</span><span>${esc(x.date)}</span><span class="w" style="grid-column:1/3">${esc(x.note||"")}</span></div>`).join(""):"<p class=\"help\">No calendar items yet.</p>";
-  const shopHtml=shopping.length?shopping.map(x=>`<label class="due" style="cursor:pointer;${x.done?"opacity:.55;text-decoration:line-through":""}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?"checked":""} style="margin-right:8px">${esc(x.item)}</span><span>${x.shared?"Shared":"Private"}</span></label>`).join(""):"<p class=\"help\">Shopping list is empty.</p>";
-  body.innerHTML=`
-    <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${signed?"Google connected":"Family data on this phone"}</span></div>
-      <div class="members" style="margin-bottom:6px">${allChip}${memberChips}</div>
-      <div class="summary-cats" style="margin-bottom:4px">${periodTabs}</div>
-      <div class="row" style="margin:0 0 8px;justify-content:space-between;align-items:center"><button class="mini" data-home-period-shift="-1" ${homePeriodMode==="all"?"disabled":""}>‹</button><b>${esc(periodLabel)}</b><button class="mini" data-home-period-shift="1" ${homePeriodMode==="all"||(homePeriodMode==="day"&&homePeriodDay>=todayISO())?"disabled":""}>›</button></div>
-      <p class="hint" style="margin:0 0 12px">Tap a family member to view only their shared income and expenses for the selected period.</p>
-      <div class="inout num"><span>${t.selected==='all'?"Family income":esc((t.people.find(p=>p.id===t.selected)||{}).name||"Income")}<b>${money(t.income)}</b></span><span class="o">${t.selected==='all'?"Family expenses":esc((t.people.find(p=>p.id===t.selected)||{}).name||"Expenses")}<b>${money(t.expense)}</b></span></div>
-      <div class="total-line num"><span>Monthly balance</span><b>${t.balance<0?"−":"+"}${money(Math.abs(t.balance))}</b></div>
-      <div class="total-line num"><span>Total balance</span><b>${held<0?"−":"+"}${money(Math.abs(held))}</b></div>
-      <p class="hint" style="margin-top:6px">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p>
-    </div>
-    <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
-    <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
-    <div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>
-    <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-    <div class="card"><p class="hint">Items marked <b>Shared</b> are visible to the selected family members after cloud sync.</p></div>`;
+  if(!body) return;
+  // Family Hub must never become blank because one malformed cloud record breaks one card.
+  // Sanitize family collections before rendering and keep the Hub independent of SMS readiness.
+  try{
+    state.family=state.family||{members:{}};
+    state.family.members=state.family.members||{};
+    state.events=state.events||{}; state.shopping=Array.isArray(state.shopping)?state.shopping:[]; state.calendar=Array.isArray(state.calendar)?state.calendar:[];
+    const items=homeSharedItemsForSelected();
+    const members=familyMembers();
+    const meName=(state.family&&state.family.me)||cloudUser?.name||cloudUser?.email||"You";
+    const meChip=`<button class="member" data-home-person="me" aria-pressed="${homePersonFilter==='me'}"><span class="av" style="background:var(--brass)">${esc(String(meName).slice(0,1).toUpperCase())}</span>${esc(meName)}</button>`;
+    const memberChips=members.filter(m=>m&&m.visible!==false).map(p=>`<button class="member" data-home-person="remote:${esc(p.id)}" aria-pressed="${homePersonFilter===`remote:${p.id}`}"><span class="av" style="background:${p.color||'var(--brass)'}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name||"Family member")}</button>`).join("");
+    const allChip=`<button class="member" data-home-person="all" aria-pressed="${homePersonFilter==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
+    const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
+    const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
+    const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
+    const eventHtml=items.events.length ? items.events.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>{
+      let spend=0; try{ spend=eventSpend(e.id); }catch(_){ spend=0; }
+      return `<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name||'Event')}</span><span class="num" style="font-weight:600">${money(Number(spend)||0,true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`;
+    }).join('') : '<p class="help">No shared events yet.</p>';
+    const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item||'Shopping item')}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
+    const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
+    const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
+    body.innerHTML=`
+      <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
+        <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
+        <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
+      </div>
+      <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
+      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}
+      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+  }catch(err){
+    console.error('Family Hub render failed', err);
+    body.innerHTML=`<div class="card"><div class="card-h"><h2>Family Hub</h2></div><p class="help">Family Hub is loading. Your family data is safe on this phone.</p><div class="row"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button></div></div>`;
+  }
 }
 function addHomeCalendar(){
   const scrim=document.createElement("div"); scrim.className="scrim";
@@ -1898,7 +1948,7 @@ function render(){
   const isNow = cursor >= currentPK();
   document.getElementById("nextM2").disabled = isNow;
   if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
-  const gatedView = ["home","overview","list","accounts","merchant"].includes(view);
+  const gatedView = ["overview","list","accounts","merchant"].includes(view);
   if(gatedView && !smsDataUnlocked()) renderSmsLockedView();
   else {
     if(view === "home") renderHome();
@@ -1919,7 +1969,7 @@ function renderOverview(){
   if(ovMode === "events") return renderEventsSummary();
   if(ovMode === "day") return renderDaySummary();
   if(ovMode !== "month") return renderPeriodSummary();
-  document.querySelector(".spent-label").textContent = tr("Spent this month");
+  document.querySelector(".spent-label").textContent = "Expenses this month";
   document.getElementById("prevM").disabled = false;
   document.getElementById("monthName").textContent = monthLabel(cursor);
   const tx = monthTx(cursor);
@@ -1939,6 +1989,7 @@ function renderOverview(){
   let exclEl = document.getElementById("exclLine");
   if(!exclEl){ exclEl = document.createElement("p"); exclEl.id = "exclLine"; exclEl.className = "hint"; exclEl.style.margin = "10px 0 0"; document.querySelector(".strip").appendChild(exclEl); }
   exclEl.textContent = "Excludes card bill payments and transfers between your own accounts" + (refundTotal > 0 ? ", and is after " + money(refundTotal) + " of refunds and cashback" : "") + ".";
+  const inLabel=document.querySelector("#income")?.parentElement; if(inLabel) inLabel.innerHTML='Income <b id="income">'+money(got)+'</b>';
 
   const byCat = {};
   out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
@@ -1954,7 +2005,7 @@ function renderOverview(){
   }
   // budgets not yet spent in also shown
   Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
-  let html = comingHtml;
+  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p></div>` + comingHtml;
   if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
   html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;
   cats.forEach(([c,v])=>{
@@ -2018,7 +2069,7 @@ function renderDaySummary(){
   document.getElementById("monthName").textContent = niceDate(d);
   document.getElementById("prevM").disabled = false;
   document.getElementById("nextM").disabled = d >= todayISO();
-  document.querySelector(".spent-label").textContent = "Spent on this day";
+  document.querySelector(".spent-label").textContent = "Expenses on this day";
   const tx = displayTxns().filter(t=>t.date===d);
   const out = tx.filter(t=>t.type==="debit" && counts(t));
   const inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category!=="Refunds");
@@ -2081,7 +2132,7 @@ function renderPeriodSummary(){
     else if(t.category === "Refunds"){ const v = inAmt(t); per[bk].exp -= v; exp -= v; refunds += v; }
     else { const v = inAmt(t); per[bk].inc += v; inc += v; }
   });
-  document.querySelector(".spent-label").textContent = yr ? `Spent in ${yr}` : "Spent in all years";
+  document.querySelector(".spent-label").textContent = yr ? `Expenses in ${yr}` : "Expenses in all years";
   document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(exp));
   document.getElementById("income").textContent = money(inc);
   const net = inc - exp;
@@ -2094,7 +2145,8 @@ function renderPeriodSummary(){
   const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
   const lcVals = [...buckets.map(k=>per[k].inc), ...buckets.map(k=>Math.max(0, per[k].exp))];
   const lcScale = chartScale(Math.max(1, ...lcVals));
-  let html = `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
+  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Current value held across owned accounts; this is separate from the selected period's net income.</p></div>`;
+  html += `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
     <div class="chart-note">Amounts in ₹ ${lcScale.unit}${yr ? ", by month" : ", by year"}</div>
     ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
     ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}</div>`;
@@ -2305,7 +2357,7 @@ function openEventPicker(currentId, forName, forDate, onPick){
     const results = qk ? all.filter(e=>mkey(e.name).includes(qk) || qk.includes(mkey(e.name).slice(0,5))) : all;
     listEl.innerHTML = results.length ? results.map(e=>`<button class="evrow" data-pick="${esc(e.id)}"><span class="ic">${esc(e.icon||"📌")}</span>
       <div style="flex-grow:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}</div>
-      <div style="font-size:.8rem;color:var(--muted)">${e.date?esc(niceDate(e.date)):"No date"} · ${money(eventSpend(e.id),true)} tagged so far</div></div></button>`).join("")
+      <div style="font-size:.8rem;color:var(--muted)">${e.date?esc(niceDate(e.date)):"No date"} · ${money(eventSpend(e.id),true)} tagged so far${e.remote?" · Shared event":""}</div></div></button>`).join("")
       : `<p class="help">No events yet. Create one below.</p>`;
     const near = query ? findEventNudge(query, forDate, currentId) : null;
     nudgeEl.innerHTML = near ? `<button class="nudge" data-usenudge="${esc(near.id)}"><span>💡</span><span>Close to an event already here — <b>${esc(near.name)}</b>${near.date?", "+esc(niceDate(near.date)):""}. Use that instead?</span></button>` : "";
@@ -2322,7 +2374,7 @@ function openEventPicker(currentId, forName, forDate, onPick){
       const name = q.value.trim(); if(!name){ q.focus(); return; }
       const id = mkey(name) || uidGen();
       state.events = state.events || {};
-      if(!state.events[id]) state.events[id] = { name, date: forDate || todayISO(), icon: "📌", createdAt: todayISO() };
+      if(!state.events[id]) state.events[id] = { name, date: forDate || todayISO(), icon: "📌", createdAt: todayISO(), ownerUid: cloudUser?.uid||"", createdBy: cloudUser?.uid||"" };
       persist([], true);
       onPick(id); close();
     }
@@ -2394,7 +2446,7 @@ function openSheet(t, isNew){
   if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
   const evBtn = scrim.querySelector("#e-evBtn");
   const refreshEvBtn = ()=>{
-    const ev = selEvent && state.events[selEvent];
+    const ev = eventById(selEvent);
     scrim.querySelector("#e-evIcon").textContent = ev ? (ev.icon || "📌") : "+";
     scrim.querySelector("#e-evLabel").textContent = ev ? ev.name : "None — tap to tag";
   };
@@ -2616,6 +2668,7 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   const hper=e.target.closest("[data-home-period]"); if(hper){ homePeriodMode=hper.dataset.homePeriod; if(homePeriodMode==="day")homePeriodDay=todayISO(); if(homePeriodMode==="month")homePeriodMonth=currentPK(); if(homePeriodMode==="year")homePeriodYear=new Date().getFullYear(); render(); return; }
   const hshift=e.target.closest("[data-home-period-shift]"); if(hshift){ const n=+hshift.dataset.homePeriodShift; if(homePeriodMode==="day"){const d=new Date(homePeriodDay+"T00:00:00");d.setDate(d.getDate()+n);const k=iso(d);if(k<=todayISO())homePeriodDay=k;} else if(homePeriodMode==="month"){const d=new Date(homePeriodMonth+"-01T00:00:00"); d.setMonth(d.getMonth()+n); const k=monthKey(d); if(k<=currentPK()){homePeriodMonth=k;}} else if(homePeriodMode==="year"){const y=homePeriodYear+n;if(y<=new Date().getFullYear())homePeriodYear=y;} render(); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
+  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); return; }
   const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }

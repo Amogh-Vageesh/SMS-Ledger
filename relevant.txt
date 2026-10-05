@@ -1,0 +1,706 @@
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='nef-save'){
+      const name=scrim.querySelector('#nef-name').value.trim(); if(!name){toast('Enter an event name.');return;}
+      const budget=parseFloat(scrim.querySelector('#nef-budget').value.replace(/[,₹\s]/g,''))||0;
+      const id=existingId||mkey(name)||uidGen(); state.events=state.events||{};
+      state.events[id]={...(state.events[id]||{}),id,name,date:scrim.querySelector('#nef-date').value||todayISO(),budget:budget||undefined,note:scrim.querySelector('#nef-note').value.trim(),icon:(ev&&ev.icon)||'📌',createdAt:(ev&&ev.createdAt)||todayISO(),ownerUid:ev?.ownerUid||cloudUser?.uid||'',createdBy:ev?.createdBy||cloudUser?.uid||'',...sharing};
+      persist([],true); scrim.remove(); render();
+    }
+    if(e.target.id==='nef-delete' && existingId){ if(!confirm('Delete this event? Tagged expenses will remain but become untagged.'))return; const months=new Set();state.txns.forEach(t=>{if(t.event===existingId){delete t.event;months.add(t.date.slice(0,7));}});delete state.events[existingId];persist([...months],true);scrim.remove();render(); }
+  });
+}
+// -------- Family Hub: one place to manage people, events, and add a tagged expense --------
+// "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
+// is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
+function renderFamily(){
+  const people = peopleList(), events = eventList();
+  const fam = state.family = state.family || { members: {} };
+  if(cloudUser && fam.cloudId && window.Android && window.Android.listenFamily && familyCloudListeningId !== fam.cloudId){ familyCloudListeningId=fam.cloudId; window.Android.listenFamily(fam.cloudId); }
+  const cloudReady = !!(window.Android && window.Android.createFamily && cloudUser);
+  let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0"><b>Family Cloud</b><br>Events, calendar, shopping lists and family-shared transactions sync through Firebase. Your private SMS ledger stays on this phone unless you choose to share it.</p>`;
+  if(!cloudUser){ html += `<p class="help">Sign in with Google in Settings first.</p>`; }
+  else if(!fam.cloudId){ html += `<div class="row"><button class="btn primary" id="famCreateCloud">Create family</button><button class="btn" id="famJoinCloud">Join with code</button></div>`; }
+  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div>`; }
+  html += `</div>`;
+
+  html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
+
+  html += `<h2 class="section-h" style="margin-top:4px">People</h2>`;
+  html += people.length ? people.map(p=>{
+    const shared = !!p.shared;
+    return `<div class="family-row"><span class="n"><span class="av" style="background:${p.color};width:26px;height:26px;border-radius:50%;color:var(--brass-ink);font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;vertical-align:middle">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>
+      <span class="num" style="font-size:.78rem;color:var(--muted)">${shared?"Shared":"Private"}</span>
+      <span class="w" style="grid-column:1/3"><button class="mini" data-sharep="${esc(p.id)}">${shared?"Make private":"Share"}</button><button class="mini" data-delp2="${esc(p.id)}">Remove</button></span></div>`;
+  }).join("") : `<p class="help">No one added yet.</p>`;
+  html += `<div class="row"><input id="famNewPerson" placeholder="Name, e.g. Aarav" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="famAddPerson">Add</button></div>`;
+
+  html += `<h2 class="section-h">Events</h2>`;
+  html += events.length ? events.map(e=>{
+    const shared = !!e.shared, spent = eventSpend(e.id);
+    return `<div class="family-row"><button data-openevfam="${esc(e.id)}" style="all:unset;cursor:pointer;grid-column:1/2"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span></button><span class="num" style="font-weight:600">${money(spent,true)}</span>
+      <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span><span style="color:var(--muted)">${esc(shareLabel(e))}</span><button class="mini" data-editev="${esc(e.id)}">Edit</button><label class="switch" title="Share event"><input type="checkbox" data-shareet="${esc(e.id)}" ${shared?"checked":""}><span class="track"></span></label></span></div>`;
+  }).join("") : `<p class="help">No events yet.</p>`;
+  html += `<div class="row"><button class="btn" id="famAddEvent">+ Add an event</button></div>`;
+
+  document.getElementById("famBody").innerHTML = html;
+}
+document.getElementById("homeFamBtn").onclick = ()=>{ view = "family"; window.scrollTo(0,0); render(); };
+document.getElementById("famBack").onclick = ()=>{ view = "home"; window.scrollTo(0,0); render(); };
+document.getElementById("famBody").addEventListener("click", e=>{
+  if(e.target.id === "famCreateCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const name=(famPrompt("Family name", "My Family")||"").trim(); if(name && window.Android) window.Android.createFamily(name); return; }
+  if(e.target.id === "famJoinCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const code=(famPrompt("Enter family code", "")||"").trim(); if(!code)return; const name=(famPrompt("Your name in the family", cloudUser.name||"")||"").trim(); if(window.Android) window.Android.joinFamily(code,name); return; }
+  if(e.target.id === "famCopyCode"){ try{ navigator.clipboard.writeText((state.family||{}).cloudCode||""); toast("Family code copied."); }catch(_){ toast("Family code: "+((state.family||{}).cloudCode||"")); } return; }
+  if(e.target.id === "famSyncCloud"){ publishFamilyCloud(true); return; }
+  if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
+  if(e.target.id === "famAddPerson"){
+    const inp = document.getElementById("famNewPerson"), name = inp.value.trim();
+    if(!name){ toast("Type a name first."); return; }
+    addPerson(name); inp.value = ""; persist([], true); render(); toast("Added.");
+    return;
+  }
+  if(e.target.id === "famAddEvent"){ createEventForm(); return; }
+  const oev = e.target.closest("[data-openevfam]"); if(oev){ openEventDetail(oev.dataset.openevfam); return; }
+  const sp = e.target.closest("[data-sharep]");
+  if(sp){ const p = state.people[sp.dataset.sharep]; if(p){ p.shared = !p.shared; persist([], true); render(); toast(p.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  const ee=e.target.closest("[data-editev]"); if(ee){ const ev=state.events[ee.dataset.editev]; if(ev && (!ev.ownerUid || !cloudUser || ev.ownerUid===cloudUser.uid)) createEventForm(ee.dataset.editev); else toast("Only the person who created this event can modify it."); return; }
+  const se = e.target.closest("[data-sharee]");
+  if(se){ const ev = state.events[se.dataset.sharee]; if(ev){ chooseShareAudience(ev,r=>{Object.assign(ev,r);persist([],true);render();}); } return; }
+  const dp = e.target.closest("[data-delp2]");
+  if(dp){
+    if(!confirm("Remove this person? Entries already tagged to them keep the tag.")) return;
+    delete state.people[dp.dataset.delp2]; persist([], true); render();
+  }
+});
+document.getElementById("famBody").addEventListener("change", e=>{
+  if(e.target.id === "famShareTx"){ state.family=state.family||{members:{}}; state.family.shareTransactions=!!e.target.checked; persist([],true); publishFamilyCloud(true); }
+});
+function famPrompt(title, value){ return window.prompt(title, value||""); }
+
+let familyCloudTimer=null, familyCloudListeningId="";
+function scheduleFamilyCloudPublish(){ if(!(window.Android&&window.Android.publishFamily)) return; if(!(state.family&&state.family.cloudId)) return; clearTimeout(familyCloudTimer); familyCloudTimer=setTimeout(()=>publishFamilyCloud(false),900); }
+function publishFamilyCloud(force){
+  if(!(window.Android&&window.Android.publishFamily)) return; const fam=state.family||{}; if(!fam.cloudId||!cloudUser) return;
+  const memberIds=familyShareMembers().map(m=>m.id);
+  const audience=e=>e.shareWith==='all'||!Array.isArray(e.shareWith)?memberIds:[...new Set([cloudUser.uid,...e.shareWith])];
+  const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns};
+  try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
+}
+window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
+window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){return}; if(!r.ok){toast(r.error||"Couldn\'t load family");return;} state.family=state.family||{members:{}}; state.family.cloudName=r.name||"My Family"; state.family.cloudCode=r.inviteCode||""; state.family.members=state.family.members||{}; const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):""; (r.members||[]).forEach(m=>{const id=String(m.uid||uidGen()); if(selfUid && id===selfUid) return; state.family.members[id]={...(state.family.members[id]||{}),name:m.name||m.email||"Member",googleUid:m.uid||"",googleEmail:m.email||""};}); if(selfUid) delete state.family.members[selfUid]; Object.keys(state.family.members).forEach(id=>{if(state.family.members[id]&&String(state.family.members[id].googleUid||"")===selfUid) delete state.family.members[id];}); saveLocal(); render(); };
+window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
+window.familyCloudArrived=function(json){
+  let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
+  const kinds=["members","transactions","events","calendar","shopping"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
+  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
+  saveLocal(); render();
+};
+window.familyCloudError=function(msg){ if(msg) toast(msg); };
+
+function familyMembers(){
+  const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):"";
+  const selfEmail=cloudUser&&cloudUser.email?String(cloudUser.email).trim().toLowerCase():"";
+  const selfName=(state.family&&state.family.me?String(state.family.me):cloudUser&&cloudUser.name?String(cloudUser.name):"").trim().toLowerCase();
+  const seen=new Set();
+  return Object.entries((state.family && state.family.members) || {}).filter(([id,m])=>{
+    const mid=String(id);
+    const muid=String(m&&m.googleUid||"");
+    const memail=String(m&&m.googleEmail||m&&m.email||"").trim().toLowerCase();
+    // Never show the signed-in account as a remote family member. Match by UID first,
+    // then email as a safeguard for stale/legacy family records created under the same account.
+    if(selfUid && (mid===selfUid || muid===selfUid)) return false;
+    if(selfEmail && memail && memail===selfEmail) return false;
+    // Remove exact duplicate remote records that represent the same Google identity.
+    const identity=muid||memail||mid;
+    if(seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  }).map(([id,m])=>({ id, ...m, kind: "remote" }));
+}
+let simListCache = null;
+async function refreshSimBlock(){
+  const head = document.getElementById("simHeading"), block = document.getElementById("simBlock");
+  if(!(window.Android && window.Android.getSimList)){ head.style.display = "none"; block.style.display = "none"; return; }
+  if(!simListCache){ try{ simListCache = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ simListCache = []; } }
+  if(simListCache.length < 2){ head.style.display = "none"; block.style.display = "none"; return; }
+  head.style.display = ""; block.style.display = "";
+  state.simOwners = state.simOwners || {};
+  if(!Object.values(state.simOwners).some(o=>o.isMe) && simListCache.length){ state.simOwners[simListCache[0].id] = { ...(state.simOwners[simListCache[0].id]||{}), isMe: true }; persist([], false); }
+  document.getElementById("simList").innerHTML = simListCache.map((sim,i)=>{
+    const o = state.simOwners[sim.id] || {};
+    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc((o.name||"").startsWith("__SIM_") ? "" : (o.name || ""))}" placeholder="Enter person name (e.g. Vageesh)">
+      <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
+  }).join("");
+}
+document.getElementById("simList").addEventListener("change", e=>{
+  const nm = e.target.closest("[data-simname]");
+  if(nm){
+    const v=nm.value.trim(); const cur=state.simOwners[nm.dataset.simname] || {};
+    cur.name = v || cur.name || `__SIM_${(simListCache.findIndex(s=>String(s.id)===String(nm.dataset.simname))+1)||1}__`;
+    cur.hidden = !v; if(v) delete cur.hidden;
+    state.simOwners[nm.dataset.simname]=cur; persist([], false); render(); return;
+  }
+  const me = e.target.closest("[data-simme]");
+  if(me){
+    Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
+    state.simOwners[me.dataset.simme] = { ...(state.simOwners[me.dataset.simme]||{}), isMe: true };
+    simListCache.filter(s=>String(s.id) !== me.dataset.simme).forEach((s,i)=>{ if(!state.simOwners[s.id]) state.simOwners[s.id] = {}; if(!state.simOwners[s.id].color) state.simOwners[s.id].color = PALETTE[i % PALETTE.length]; });
+    persist([], false); toast("Saved."); render();
+  }
+});
+function renderLedgerHome(){
+  const members = familyMembers();
+  const fam = homeFamily && members.length > 0;
+  const k = currentPK();
+  document.getElementById("homeHi").textContent = fam ? "Your family's money at a glance" : "Your money at a glance";
+  document.getElementById("homeMonth").textContent = monthLabel(k);
+  const [py, pm] = k.split("-").map(Number); const prevK = pm === 1 ? (py-1) + "-12" : py + "-" + String(pm-1).padStart(2,"0");
+  const meName = (state.family && state.family.me) || "You";
+  const simExcluded = new Set(members.filter(m=>m.kind === "sim").map(m=>m.simId));
+  const baseTxns = displayTxns();
+  const meTxns = simExcluded.size ? baseTxns.filter(t=>!simExcluded.has(String(t.sim))) : baseTxns;
+  const people = [{ id: "me", name: meName, color: "var(--brass)", txns: meTxns }]
+    .concat(fam ? members.map((m,i)=>{
+      const rawName=m.name || "Member";
+      const displayName=(rawName.trim().toLowerCase()===String(meName).trim().toLowerCase())
+        ? (rawName + " (family)") : rawName;
+      return { id: m.id, name: displayName, color: m.color || (i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length]),
+        txns: m.kind === "sim" ? baseTxns.filter(t=>String(t.sim) === m.simId) : (m.txns || []) };
+    }) : []);
+  const tot = { inc: 0, exp: 0, prevExp: 0, refunds: 0 }, byCat = {}, bySrc = {}, byPerson = {};
+  people.forEach(p=>{
+    byPerson[p.id] = { inc: 0, exp: 0 };
+    p.txns.forEach(t=>{
+      if(!counts(t)) return;
+      const tk = pk(t.date);
+      if(tk === prevK && t.type === "debit") tot.prevExp += spendAmt(t);
+      if(tk === prevK && t.type === "credit" && t.category === "Refunds") tot.prevExp -= inAmt(t);
+      if(tk !== k) return;
+      if(t.type === "debit"){ const v = spendAmt(t); tot.exp += v; byPerson[p.id].exp += v; byCat[t.category] = (byCat[t.category]||0) + v; }
+      else if(t.category === "Refunds"){ const v = inAmt(t); tot.exp -= v; tot.refunds += v; byPerson[p.id].exp -= v; }
+      else { const v = inAmt(t); tot.inc += v; byPerson[p.id].inc += v; const sk = p.id + "|" + t.merchant; bySrc[sk] = bySrc[sk] || { name: t.merchant, v: 0, who: p }; bySrc[sk].v += v; }
+    });
+  });
+  const inc = tot.inc, exp = tot.exp, saved = inc - exp;
+  const body = document.getElementById("homeBody");
+  let html = "";
+  if(members.length) html += `<div class="seg wide" id="homeScope" role="group" aria-label="Whose money"><button data-f="0" aria-pressed="${!fam}">Just me</button><button data-f="1" aria-pressed="${fam}">Family</button></div>`;
+  if(fam){
+    const remoteM = members.filter(m=>m.kind !== "sim"), simM = members.filter(m=>m.kind === "sim");
+    const famBits = [];
+    if(remoteM.length) famBits.push(remoteM.map(m=>`${esc(m.name)}'s ledger synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}`).join(" · ") + ". Sync again from Settings when you're together.");
+    if(simM.length) famBits.push(`${simM.map(m=>esc(m.name)).join(", ")} read from the other SIM on this phone.`);
+    html += `<div class="card"><div class="members">${people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("")}</div>
+      <p class="hint">${famBits.join(" ")}</p></div>`;
+  }
+  if(!inc && !exp && !Object.keys(byCat).length){
+    body.innerHTML = html + `<div class="card"><div class="empty"><p>Nothing recorded for ${esc(monthLabel(k))} yet.<br>New bank SMS appear here as they arrive.</p><button class="btn primary" data-go="add">Add entries</button></div></div>`;
+    return;
+  }
+  const rate = inc > 0 ? Math.round(saved / inc * 100) : 0;
+  html += `<div class="card"><div class="hint" style="margin:0">${fam ? "Family saved" : "Saved"} this month</div>
+    <div class="saved-big num">${saved < 0 ? "−" : ""}<span class="rupee">₹</span>${inr.format(Math.round(Math.abs(saved)))}${inc > 0 ? `<span class="pill">${rate}% of income</span>` : ""}</div>
+    <div class="split-bar" aria-hidden="true"><span style="flex:${Math.max(exp,1)};background:var(--brass)"></span><span style="flex:${Math.max(saved,0)};background:var(--good)"></span></div>
+    <div class="inout num"><span>Money in<b>${money(inc)}</b></span><span class="o">Money out<b>${money(exp)}</b></span></div>
+    <p class="hint">Excludes card bill payments and transfers between your own accounts${tot.refunds > 0 ? `, and is after ${money(tot.refunds)} of refunds and cashback` : ""}.</p>
+    ${fam ? `<div class="psplit num">${people.map(p=>{ const b = byPerson[p.id]; const sv = b.inc - b.exp; return `<div><span class="dot" style="background:${p.color};border-radius:50%"></span><span class="nm">${esc(p.name)}</span><span class="mid">in ${shortInr(b.inc)} · out ${shortInr(b.exp)}</span><span class="sv" style="${sv<0?"color:var(--over)":""}">${sv<0?"−":"+"}${shortInr(Math.abs(sv))}</span></div>`; }).join("")}</div>` : ""}
+  </div>`;
+  // income vs expenses, this month
+  const mx = Math.max(inc, exp, 1);
+  const diff = tot.prevExp > 0 ? Math.round((exp - tot.prevExp) / tot.prevExp * 100) : null;
+  const homeScale = chartScale(mx);
+  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><span class="chart-note">Amounts in ₹ ${homeScale.unit}</span></div>
+    <div class="hbars num">
+      <div><span class="hl">Money in</span><span class="ht"><i style="width:${Math.max(1, inc/mx*100)}%;background:var(--inc)"></i></span><b style="color:var(--inc)">${chartNum(inc, homeScale.div)}</b></div>
+      <div><span class="hl">Money out</span><span class="ht"><i style="width:${Math.max(1, exp/mx*100)}%;background:var(--brass)"></i></span><b style="color:var(--brass)">${chartNum(exp, homeScale.div)}</b></div>
+    </div>
+    ${diff != null ? `<p class="hint">${diff === 0 ? "Spending is the same as last month" : diff > 0 ? `Spending is ${diff}% higher than last month` : `Spending is ${-diff}% lower than last month`} (${money(tot.prevExp)}).</p>` : ""}
+    <p class="hint"><button class="btn link" data-trends style="padding:0;font-size:inherit">See trends by month and year</button>. Card bill payments and transfers between your own accounts aren't counted.</p></div>`;
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  if(cats.length){
+    const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
+    const shown = cats.slice(0,6), rest = cats.slice(6).reduce((a,c)=>a+c[1],0);
+    const segs = shown.map(([c,v])=>[c, v, CAT_COLOR[c]||"#8a8272"]); if(rest > 0) segs.push(["Everything else", rest, "#8a8272"]);
+    let acc = 0; const stops = segs.map(([,v,col])=>{ const a = acc; acc += v/gross*360; return `${col} ${(a+0.6).toFixed(1)}deg ${acc.toFixed(1)}deg`; });
+    html += `<div class="card"><div class="card-h"><h2>Where it went</h2><span class="hint" style="margin:0">${esc(monthLabel(k))}</span></div>
+      <div class="donut-row"><div class="donut" style="background:conic-gradient(${stops.join(",")})" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(gross)}</b></div></div>
+      <div class="dleg">${segs.map(([c,v,col])=>`<div><span class="dot" style="background:${col}"></span><span class="n">${esc(c)}</span><span class="p num">${Math.round(v/gross*100)}%</span></div>`).join("")}</div></div></div>`;
+  }
+  const srcs = Object.values(bySrc).sort((a,b)=>b.v-a.v).slice(0,5);
+  if(srcs.length) html += `<div class="toplist"><h2>Top income sources${fam ? "" : `<button data-see="__credit">See all</button>`}</h2>${srcs.map(s=>`<div class="trow"><div class="l1 num"><span>${fam ? esc(s.name) : `<button class="mname" data-merchant="${esc(s.name)}">${esc(s.name)}</button>`}${fam ? `<span class="owner" style="background:${s.who.color}">${esc(s.who.name)}</span>` : ""}</span><b style="color:var(--inc)">${money(s.v)}</b></div>
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(s.v/srcs[0].v*100))}%;background:var(--inc)"></i></span><small class="num">${inc ? Math.round(s.v/inc*100) : 0}%</small></div></div>`).join("")}</div>`;
+  const topC = cats.slice(0,5), gross2 = cats.reduce((a,c)=>a+c[1],0) || 1;
+  if(topC.length) html += `<div class="toplist"><h2>Top expense categories${fam ? "" : `<button data-see="__debit">See all</button>`}</h2>${topC.map(([c,v])=>`<button class="trow" ${fam ? "disabled" : `data-cat="${esc(c)}"`}><div class="l1 num"><span><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span>${esc(c)}</span><b>${money(v)}</b></div>
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(v/topC[0][1]*100))}%;background:${CAT_COLOR[c]||"#8a8272"}"></i></span><small class="num">${Math.round(v/gross2*100)}%</small></div></button>`).join("")}</div>`;
+  body.innerHTML = html;
+}
+
+// Other payments with the same amount (to the rupee) in different months: the same monthly deduction
+// can arrive under slightly different names each month.
+function sameAmountOthers(t){
+  if(!t || !t.amount || t.type !== "debit") return [];
+  const m = (t.date||"").slice(0,7);
+  const tk = mkey(t.merchant);
+  return state.txns.filter(x=>x !== t && x.id !== t.id && x.type === "debit" && Math.abs(x.amount - t.amount) < 1 && x.date.slice(0,7) !== m &&
+    Math.abs(daysBetween(x.date, t.date)) <= 750 &&
+    // the same deduction: same account, a similar name, or both automatic debits
+    ((x.account && t.account && x.account === t.account) || (tk.length >= 4 && mkey(x.merchant).slice(0,4) === tk.slice(0,4)) || (x.mode === "Auto-debit" && t.mode === "Auto-debit")) &&
+    (mkey(x.merchant) !== tk || x.category !== t.category));
+}
+function isRecurringKey(k){
+  if(!k) return false;
+  if(state.subsManual.some(m=>m.key === k)) return true;
+  if(state.subsHidden.includes(k)) return false;
+  return detectSubs().some(x=>x.key === k);
+}
+function setRecurring(t, on){
+  const k = mkey(t.merchant);
+  if(on){
+    state.subsHidden = state.subsHidden.filter(x=>x !== k);
+    if(!state.subsManual.some(m=>m.key === k) && !detectSubs().some(x=>x.key === k))
+      state.subsManual.push({ id: uidGen(), key: k, name: t.merchant, amount: t.amount, freq: "month", category: t.category });
+  } else {
+    state.subsManual = state.subsManual.filter(m=>m.key !== k);
+    if(!state.subsHidden.includes(k)) state.subsHidden.push(k);
+  }
+}
+function openRecurringSheet(key){
+  const x = allSubs().find(s=>s.key === key); if(!x) return;
+  const entries = state.txns.filter(t=>t.type === "debit" && mkey(t.merchant) === key);
+  sheet("Edit recurring payment", `
+    <label class="field"><span>Name</span><input id="rc-name" value="${esc(x.name)}"></label>
+    <div class="two"><label class="field"><span>Category</span><select id="rc-cat">${CATS.map(([c])=>`<option${c===x.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Repeats every</span><select id="rc-freq">${[["month","Month"],["quarter","Quarter"],["year","Year"]].map(([v,l])=>`<option value="${v}"${v===x.freq?" selected":""}>${l}</option>`).join("")}</select></label></div>
+    <p class="help">Changes apply to all ${entries.length} ${entries.length===1?"entry":"entries"} from this merchant, and to new ones.</p>`,
+  sc=>{
+    const name = sc.querySelector("#rc-name").value.trim() || x.name, cat = sc.querySelector("#rc-cat").value, freq = sc.querySelector("#rc-freq").value;
+    const months = new Set(), nk = mkey(name);
+    entries.forEach(t=>{ t.merchant = name; t.category = cat; t.userCat = true; months.add(t.date.slice(0,7)); });
+    if(nk !== key) state.names[key] = name;
+    state.rules[key] = cat; state.rules[nk] = cat; prefixCache = null;
+    const man = state.subsManual.find(m=>m.key === key);
+    if(man){ Object.assign(man, { key: nk, name, category: cat, freq }); }
+    else if(freq !== x.freq || nk !== key){ state.subsHidden.push(key); state.subsManual.push({ id: uidGen(), key: nk, name, amount: x.amount, freq, category: cat }); }
+    persist([...months], true); toast("Recurring payment updated.");
+  });
+}
+
+/* ---------- Subscriptions ---------- */
+function detectSubs(){
+  const groups = {};
+  state.txns.forEach(t=>{
+    if(t.type !== "debit" || !counts(t) || ["Transfers","Cash"].includes(t.category)) return;
+    const k = mkey(t.merchant); if(!k) return;
+    (groups[k] = groups[k] || []).push(t);
+  });
+  const today = todayISO(), out = [];
+  Object.entries(groups).forEach(([k, arr])=>{
+    if(state.subsHidden.includes(k)) return;
+    arr.sort((a,b)=>a.date.localeCompare(b.date));
+    // one payment per month at most counts toward the pattern
+    const byMonth = []; arr.forEach(t=>{ if(!byMonth.length || byMonth[byMonth.length-1].date.slice(0,7) !== t.date.slice(0,7)) byMonth.push(t); });
+    const known = SUB_WORDS.some(w=>(" "+arr[0].merchant.toLowerCase()+" ").includes(w)) || arr.some(t=>t.mode === "Auto-debit");
+    if(byMonth.length < 2 && !(known && arr.some(t=>t.mode === "Auto-debit"))) return;
+    const gaps = []; for(let i=1;i<byMonth.length;i++) gaps.push(daysBetween(byMonth[i-1].date, byMonth[i].date));
+    const g = gaps.length ? gaps.slice().sort((a,b)=>a-b)[Math.floor(gaps.length/2)] : 30;
+    const freq = g >= 25 && g <= 35 ? "month" : g >= 85 && g <= 95 ? "quarter" : g >= 350 && g <= 380 ? "year" : null;
+    if(!freq) return;
+    const recent = byMonth.slice(-3).map(t=>t.amount);
+    const med = recent.slice().sort((a,b)=>a-b)[Math.floor(recent.length/2)];
+    const steady = recent.every(a=>Math.abs(a - med) <= med * 0.2);
+    if(!steady) return;
+    if(!known && byMonth.length < 3) return;
+    const last = byMonth[byMonth.length-1];
+    const step = freq === "month" ? 30 : freq === "quarter" ? 91 : 365;
+    if(daysBetween(last.date, today) > step * 1.6) return;       // looks stopped
+    let next = last.date; while(next <= today) next = addDays(next, step);
+    const perMonth = freq === "month" ? last.amount : freq === "quarter" ? last.amount / 3 : last.amount / 12;
+    out.push({ key: k, name: last.merchant, amount: last.amount, freq, last: last.date, next, perMonth, category: last.category });
+  });
+  return out.sort((a,b)=>a.next.localeCompare(b.next));
+}
+
+/* ---------- Accounts tab ---------- */
+function renderAccounts(){
+  const el = document.getElementById("accountsBody");
+  const bills = upcomingBills();
+  const today = todayISO();
+  const paid = state.bills.filter(b=>b.paid && b.paidOn && daysBetween(b.paidOn, today) <= 45).sort((a,b)=>b.paidOn.localeCompare(a.paidOn));
+  let html = `<h1 class="section-h" style="margin-top:4px">Bills due</h1>`;
+  html += bills.length ? bills.map(b=>billRow(b, true)).join("") : `<p class="help">No unpaid bills. Card statements and utility bill SMS show up here with their due dates.</p>`;
+  if(paid.length) html += `<details class="skipped"><summary>${paid.length} paid recently</summary>${paid.map(b=>`<div class="due"><span class="n">${esc(b.name)}</span><span class="num">${money(b.amount,true)}</span><span class="w" style="grid-column:1/3">Paid ${esc(niceDate(b.paidOn))}</span></div>`).join("")}</details>`;
+  html += `<div class="row"><button class="btn" id="addBill">Add a bill</button></div>`;
+
+  const all = Object.entries(state.accounts).map(([key,a])=>({ key, ...a }));
+  const visible = all.filter(a=>!a.hidden);
+  html += `<h2 class="section-h">Balances</h2>`;
+  if(visible.length){
+    ACCT_GROUPS.forEach(([gid, label, kinds])=>{
+      const group = visible.filter(a=>kinds.includes(a.kind||"bank")).sort((a,b)=>kinds.indexOf(a.kind||"bank") - kinds.indexOf(b.kind||"bank") || (b.asOf||"").localeCompare(a.asOf||""));
+      if(!group.length) return;
+      const known = group.map(a=>(a.kind === "card" ? a.availLimit : a.balance)).filter(v=>v != null && (a => true)());
+      const tot = group.reduce((sum,a)=>{ const v = a.kind === "card" ? a.availLimit : a.balance; return v != null && a.kind !== "loan" ? sum + v : sum; }, 0);
+      html += `<details class="agroup" data-g="${gid}" ${acctOpen[gid] === false ? "" : "open"}><summary><span>${label} <small>${group.length}</small></span><span class="num">${known.length ? "<b>" + money(tot) + "</b>" + (gid==="card" ? " available" : "") : ""}</span></summary>`;
+      html += group.map(a=>{
+        const kind = a.kind || "bank";
+        const v = kind === "card" ? a.availLimit : a.balance;
+        const age = a.asOf ? daysBetween(a.asOf, today) : null;
+        return `<button class="due" data-acct="${esc(a.key)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0">
+          <span class="n">${esc(a.label || ((a.bank || "Account") + (a.account ? " ··" + a.account : "")))}</span><span class="num" style="font-weight:600">${v != null ? money(v,true) : "–"}</span>
+          <span class="w" style="grid-column:1/3"><span>${kind==="card" ? "Available limit" : a.typeLabel || KIND_LABEL[kind] || "Balance"}</span>${kind==="loan" && a.loanCategory ? `<span>${esc(a.loanCategory)}</span>` : ""}${kind==="loan" && a.originalAmount!=null ? `<span>Original ${money(a.originalAmount)}</span>` : ""}${kind==="loan" ? `<span>Paid ${money(state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0))}</span>` : ""}${a.asOf && a.asOf > "2000" ? `<span>as of ${esc(niceDate(a.asOf))}</span>` : ""}${age != null && age > 30 && a.asOf > "2000" ? `<span class="late">Not updated for ${age} days</span>` : ""}</span></button>`;
+      }).join("") + `</details>`;
+    });
+  } else html += `<p class="help">Balances appear once an SMS mentions one, such as "Avl Bal" or "Available limit".</p>`;
+  const hid = all.length - visible.length;
+  html += `<div class="row"><button class="btn" id="addAcct">Add an account</button>${hid ? `<button class="btn link" id="unhideAccts">Show ${hid} hidden</button>` : ""}</div>`;
+
+  const subs = allSubs();
+  html += `<h2 class="section-h">Subscriptions and recurring</h2>`;
+  if(subs.length){
+    const perMonth = subs.reduce((a,x)=>a+x.perMonth,0);
+    html += `<div class="total-line num"><span>${subs.length} active</span><span><b>${money(perMonth)}</b> a month · <b>${money(perMonth*12)}</b> a year</span></div>`;
+    html += subs.map(x=>`<div class="due"><span class="n">${esc(x.name)}</span><span class="num" style="font-weight:600">${money(x.amount,true,x.currency)}<span style="color:var(--muted);font-weight:400">/${x.freq}</span></span>
+      <span class="w" style="grid-column:1/3"><span class="chip"><span class="dot" style="background:${CAT_COLOR[x.category]||"#777"}"></span>${esc(x.tag || x.category)}</span>${x.next ? `<span class="${daysBetween(today,x.next)<=3?"soon":""}">Next around ${esc(niceDate(x.next))}</span>` : `<span>Added by you</span>`}<button class="mini" data-recedit="${esc(x.key)}">Edit</button><button class="mini" data-hide="${esc(x.key)}">${x.manual ? "Remove" : "Not recurring"}</button></span></div>`).join("");
+  } else html += `<p class="help">Repeating payments like Netflix, SIPs, rent or EMIs show up here after two or three months of SMS.</p>`;
+  html += `<div class="row"><button class="btn" id="addSub">Add a subscription</button></div>`;
+  if(state.subsHidden.length) html += `<div class="row"><button class="btn link" id="unhideSubs">Show ${state.subsHidden.length} hidden</button></div>`;
+
+  const reimb = state.txns.filter(t=>t.reimb && !t.reimbDone).sort((a,b)=>b.date.localeCompare(a.date));
+  if(reimb.length){
+    const tot = reimb.reduce((a,t)=>a + t.amount, 0);
+    html += `<h2 class="section-h">Reimbursements pending</h2><div class="total-line num"><span>${reimb.length} ${reimb.length===1?"claim":"claims"}</span><span><b>${money(tot,true)}</b> to claim</span></div>`;
+    html += reimb.slice(0,30).map(t=>`<div class="due"><span class="n">${esc(t.merchant)}</span><span class="num" style="font-weight:600">${money(t.amount,true,t.currency)}</span>
+      <span class="w" style="grid-column:1/3"><span>${esc(niceDate(t.date))}</span><span>${esc(t.category)}</span><button class="mini" data-reimb="${t.id}">Mark received</button></span></div>`).join("");
+  }
+  const owed = state.txns.filter(t=>t.share != null && !t.settled && t.amount > t.share).sort((a,b)=>b.date.localeCompare(a.date));
+  html += `<h2 class="section-h">Owed to you</h2>`;
+  if(owed.length){
+    const tot = owed.reduce((a,t)=>a + t.amount - t.share, 0);
+    html += `<div class="total-line num"><span>${owed.length} ${owed.length===1?"split":"splits"}</span><span><b>${money(tot,true)}</b> to collect</span></div>`;
+    html += owed.map(t=>`<div class="due"><span class="n">${esc(t.splitWith || "Split")} · ${esc(t.merchant)}</span><span class="num" style="font-weight:600">${money(t.amount - t.share,true)}</span>
+      <span class="w" style="grid-column:1/3"><span>${esc(niceDate(t.date))}</span><span>of ${money(t.amount,true)}</span><button class="mini" data-settle="${t.id}">Mark settled</button></span></div>`).join("");
+  } else html += `<p class="help">Split a payment from its entry (tap it in Entries) to track what others owe you.</p>`;
+
+  const evs = eventList();
+  html += `<h2 class="section-h">Events</h2>`;
+  if(evs.length){
+    html += evs.map(e=>{
+      const spent = eventSpend(e.id);
+      return `<button class="due" data-openev="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0">
+        <span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(spent,true)}</span>
+        <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span>${e.budget?`<span>of ${money(e.budget,true)} budget</span>`:""}</span></button>`;
+    }).join("");
+  } else html += `<p class="help">Tag an entry to an event — a trip, a festival, a function, anything — and it'll show up here with what you spent on it.</p>`;
+  html += `<div class="row"><button class="btn" id="addEvent">Add an event</button></div>`;
+
+  el.innerHTML = html;
+}
+function eventCatBreakdown(id){
+  const rows = eventTransactions(id).filter(t=>t.type === "debit" && counts(t));
+  const byCat = {}, byPerson = {};
+  rows.forEach(t=>{ const v=spendAmt(t); byCat[t.category] = (byCat[t.category]||0) + v; const pid=t.person||"self"; let name="You"; const local=peopleList().find(p=>p.id===pid); if(local) name=local.name; else if(pid.startsWith("remote:")&&state.family?.members?.[pid.slice(7)]) name=state.family.members[pid.slice(7)].name; else if(t.ownerUid&&state.family?.members?.[t.ownerUid]) name=state.family.members[t.ownerUid].name; byPerson[name]=(byPerson[name]||0)+v; });
+  return { rows, byCat, byPerson, total: Object.values(byCat).reduce((a,v)=>a+v,0) };
+}
+function openEventDetail(id){
+  const ev = state.events[id] || eventList().find(e=>e.id===id); if(!ev) return;
+  const { rows, byCat, byPerson, total } = eventCatBreakdown(id);
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  let acc = 0;
+  const stops = cats.map(([c,v])=>{ const a = acc; acc += (total ? v/total : 0) * 360; return `${CAT_COLOR[c]||"#8a8272"} ${(a+0.6).toFixed(1)}deg ${acc.toFixed(1)}deg`; });
+  const conic = cats.length ? `conic-gradient(${stops.join(",")})` : "var(--raise)";
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(ev.name)}"><h2>${esc(ev.icon||"📌")} ${esc(ev.name)}</h2>
+    <p class="help" style="margin-top:-8px">${ev.date?esc(niceDate(ev.date)):"No date"}${ev.budget?` · budget ${money(ev.budget,true)}`:""}</p>
+    ${cats.length?`<div class="donut-row"><div class="donut" style="background:${conic}" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(total)}</b></div></div>
+    <div class="dleg">${cats.map(([c,v])=>`<div><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span><span class="n">${esc(c)}</span><span class="p num">${total?Math.round(v/total*100):0}%</span></div>`).join("")}</div></div><h3 class="section-h" style="margin-top:14px;font-size:1rem">Who spent</h3><div class="dleg">${Object.entries(byPerson).sort((a,b)=>b[1]-a[1]).map(([n,v],i)=>`<div><span class="n">${i===0?'★ ':''}${esc(n)}${i===0?' · Top spender':''}</span><span class="p num">${money(v,true)}${total?` · ${Math.round(v/total*100)}%`:''}</span></div>`).join("")}</div>`
+    : `<p class="help">No spending tagged to this yet.</p>`}
+    <h2 class="section-h" style="margin-top:16px">Entries</h2>
+    ${rows.length ? rows.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<button class="trow" data-id="${t.id}"><div class="l1 num"><span>${esc(t.merchant)}</span><b>${money(t.amount,true,t.currency)}</b></div>
+      <div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join("") : ""}
+    <div class="row" style="margin-top:14px"><button class="btn" data-s="cancel">Close</button>${(!ev.ownerUid||!cloudUser||ev.ownerUid===cloudUser.uid)?`<button class="btn" data-editeventdetail="${esc(id)}">Edit</button><button class="btn danger" data-delev="${esc(id)}" style="margin-left:auto">Delete event</button>`:''}</div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    if(e.target === scrim || e.target.closest("[data-s=cancel]")){ scrim.remove(); return; }
+    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx && !tx.remote){ scrim.remove(); openSheet(tx, false); } else if(tx){ toast("This expense belongs to another family member and can be viewed here but edited on their phone."); } return; }
+    const ed=e.target.closest('[data-editeventdetail]'); if(ed){scrim.remove();createEventForm(ed.dataset.editeventdetail);return;}
+    const edit = e.target.closest("[data-edetail]");
+    if(edit){ scrim.remove(); createEventForm(edit.dataset.edetail); return; }
+    const del = e.target.closest("[data-delev]");
+    if(del){
+      if(!confirm("Delete this event? Tagged entries keep their amounts and categories, just untagged from it.")) return;
+      const evId = del.dataset.delev; const months = new Set();
+      state.txns.forEach(t=>{ if(t.event === evId){ delete t.event; months.add(t.date.slice(0,7)); } });
+      delete state.events[evId]; persist([...months], true); scrim.remove(); render();
+    }
+  });
+}
+
+/* ---------- Reminders (phone app only) ---------- */
+let remTimer = null;
+function scheduleReminders(){
+  if(!(window.Android && window.Android.setReminders)) return;
+  clearTimeout(remTimer);
+  remTimer = setTimeout(()=>{
+    const now = Date.now(), list = [];
+    const at = (dateISO, h) => { const d = toDate(dateISO); d.setHours(h, 0, 0, 0); return d.getTime(); };
+    upcomingBills().forEach(b=>{
+      if(!b.dueDate) return;
+      [[3,"due in 3 days"],[1,"due tomorrow"],[0,"due today"]].forEach(([n, txt])=>{
+        const t = at(addDays(b.dueDate, -n), 9);
+        if(t > now) list.push({ id: "b" + b.id + n, at: t, title: `${b.name} ${txt}`, text: `${money(b.amount,true)}${b.minDue ? " · minimum " + money(b.minDue,true) : ""}` });
+      });
+    });
+    detectSubs().forEach(x=>{
+      const t = at(addDays(x.next, -1), 10);
+      if(t > now && t - now < 40 * 86400000) list.push({ id: "s" + x.key, at: t, title: `${x.name} renews tomorrow`, text: `About ${money(x.amount,true)} will be charged` });
+    });
+    list.sort((a,b)=>a.at-b.at);
+    try{ window.Android.setReminders(JSON.stringify(list.slice(0, 60))); }catch(e){}
+  }, 800);
+}
+
+// Entries imported from FinArt have different merchant names, so match them on amount, date and direction instead.
+function softKeys(){ return new Set(state.txns.filter(t=>t.source === "finart").map(t=>[t.amount.toFixed(2), t.date, t.type].join("|"))); }
+function softKey(x){ return [x.amount.toFixed(2), x.date, x.type].join("|"); }
+/* ---------- Exchange rates ---------- */
+const CURRENCIES = ["INR","USD","AED","EUR","GBP","SGD","SAR","QAR","OMR","KWD","BHD","LKR","NPR","BDT","THB","MYR","IDR","JPY","AUD","CAD","CHF","HKD","CNY","NZD","ZAR"];
+const rateCache = {};
+let rateSeq = 0; const rateWaiters = {};
+window.rateResult = function(id, rate){ const w = rateWaiters[id]; delete rateWaiters[id]; if(w) w(rate > 0 ? Math.round(rate*10000)/10000 : null); };
+function getRate(cur, date){
+  if(!cur || cur === "INR") return Promise.resolve(1);
+  const k = cur + "@" + date;
+  if(rateCache[k]) return Promise.resolve(rateCache[k]);
+  let p;
+  if(window.Android && window.Android.getRate){
+    p = new Promise(res=>{ const id = "r" + (++rateSeq); rateWaiters[id] = res; window.Android.getRate(id, cur, date); setTimeout(()=>{ if(rateWaiters[id]) window.rateResult(id, 0); }, 25000); });
+  } else {
+    // Web version: the page's security rules usually block other sites, so this quietly falls back to a typed rate.
+    p = fetch(`https://api.frankfurter.dev/v1/${date}?base=${cur}&symbols=INR`).then(r=>r.json()).then(j=>j && j.rates && j.rates.INR || null).catch(()=>null);
+  }
+  return p.then(r=>{ if(r) rateCache[k] = r; return r; });
+}
+let converting = false;
+async function convertPending(announce){
+  if(converting) return; converting = true;
+  const todo = state.txns.filter(t=>isForeign(t) && !t.fxRate);
+  let done = 0; const months = new Set();
+  for(const t of todo.slice(0, 400)){
+    const r = await getRate(t.currency, t.date);
+    if(r){ t.fxRate = r; t.fxAuto = true; done++; months.add(t.date.slice(0,7)); }
+  }
+  converting = false;
+  if(done){ persist([...months]); render(); }
+  if(announce) toast(todo.length ? `Converted ${done} of ${todo.length} foreign-currency ${todo.length===1?"entry":"entries"} to ₹.` + (done < todo.length ? " The rest had no rate available; you can type one in each entry." : "") : "No foreign-currency entries need converting.");
+}
+
+function dupKey(x){ return [x.amount.toFixed(2), x.date, x.type, x.account, x.ref || mkey(x.merchant)].join("|"); }
+
+/* ---------- Rendering ---------- */
+function monthTx(m){ return displayTxns().filter(t=>pk(t.date) === m); }
+function monthLabel(m){
+  const [y,mo] = m.split("-").map(Number);
+  if((state.monthStart||1) === 1) return MONTH_NAMES[mo-1] + " " + y;
+  const [a,b] = periodRange(m);
+  const f = d => d.getDate() + " " + mShort(d.getMonth());
+  return f(a) + " – " + f(b) + " " + b.getFullYear();
+}
+
+function familyLocalPeople(){
+  const owners = state.simOwners || {};
+  const out = [];
+  Object.entries(owners).forEach(([simId,o])=>{
+    if(o && o.name) out.push({ id:"sim:"+simId, name:o.name, color:o.color || "var(--brass)", simId });
+  });
+  if(!out.length) out.push({ id:"me", name:(state.family&&state.family.me)||"You", color:"var(--brass)" });
+  return out;
+}
+function homeFamilyTotals(){
+  const people=[]; const owners=state.simOwners||{}; const localTxns=displayTxns(); const currentMonth=currentPK();
+  const inPeriod=(t)=>{
+    if(homePeriodMode==="day") return t.date===homePeriodDay;
+    if(homePeriodMode==="year") return String(t.date||"").slice(0,4)===String(homePeriodYear);
+    if(homePeriodMode==="all") return true;
+    return pk(t.date)===homePeriodMonth;
+  };
+  const addPerson=(id,name,color,txns)=>{ const list=(txns||[]).filter(inPeriod); let income=0,expense=0,refunds=0; list.forEach(t=>{ if(!counts(t))return; if(t.type==="credit"&&t.category==="Refunds")refunds+=inAmt(t); else if(t.type==="credit")income+=inAmt(t); else if(t.type==="debit")expense+=spendAmt(t); }); expense=Math.max(0,expense-refunds); people.push({id,name,color,txns:txns||[],income,expense,balance:income-expense}); };
+  const namedSimIds=new Set();
+  Object.entries(owners).forEach(([sid,o],i)=>{const name=String(o?.name||"").trim(); if(!name||name.startsWith("__SIM_"))return; namedSimIds.add(String(sid)); addPerson("sim:"+sid,name,o.color||PALETTE[i%PALETTE.length],localTxns.filter(t=>String(t.sim||"")===String(sid)));});
+  addPerson("me",(state.family&&state.family.me)||"You","var(--brass)",localTxns.filter(t=>!namedSimIds.has(String(t.sim||""))));
+  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m],i)=>{if(m&&m.name)addPerson("remote:"+id,m.name,m.color||PALETTE[(i+1)%PALETTE.length],m.txns||[]);});
+  const visible=homePersonFilter==="all"?people:people.filter(p=>p.id===homePersonFilter); const rows=visible.length?visible:people;
+  const income=rows.reduce((a,p)=>a+p.income,0), expense=rows.reduce((a,p)=>a+p.expense,0);
+  return {people,income,expense,balance:income-expense,selected:homePersonFilter};
+}
+
+function renderRecentExpenses(){
+  const tx=displayTxns().filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
+  if(!tx.length) return '<p class="help">No expenses yet.</p>';
+  return tx.map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('');
+}
+function openEntriesSheet(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const tx=displayTxns().filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
+  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
+}
+function totalHeldBalance(){
+  return Object.values(state.accounts||{}).reduce((sum,a)=>{
+    if(!a || a.hidden) return sum;
+    const kind=a.kind||'bank';
+    if(kind==='card'||kind==='loan') return sum;
+    const v=Number(a.balance);
+    return Number.isFinite(v)?sum+v:sum;
+  },0);
+}
+function homeSharedItemsForSelected(){
+  const members=Object.entries((state.family&&state.family.members)||{}).map(([id,m])=>({id,m}));
+  const selected=homePersonFilter;
+  const isAll=selected==='all';
+  const currentUid=cloudUser?.uid||'';
+  const allRemote=members.map(x=>({...x.m,_uid:x.id}));
+  const localSharedEvents=Object.values(state.events||{}).filter(e=>e&&e.shared).map(e=>({...e,_uid:e.ownerUid||currentUid,remote:false}));
+  const localSharedShopping=(state.shopping||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const localSharedCalendar=(state.calendar||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const remoteEvents=allRemote.flatMap(m=>(m.events||[]).filter(Boolean).map(e=>({...e,remote:true,_uid:e.ownerUid||m._uid})));
+  const remoteShopping=allRemote.flatMap(m=>(m.shopping||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const remoteCalendar=allRemote.flatMap(m=>(m.calendar||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const remoteTxns=allRemote.flatMap(m=>(m.txns||[]).filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:true,_uid:t.ownerUid||m._uid})));
+  let events=[...localSharedEvents,...remoteEvents];
+  let shopping=[...localSharedShopping,...remoteShopping];
+  let calendar=[...localSharedCalendar,...remoteCalendar];
+  let txns=[...localSharedTxns,...remoteTxns];
+  if(!isAll){
+    const memberId=selected.startsWith('remote:')?selected.slice(7):selected;
+    const ownedEvents=events.filter(e=>String(e._uid)===String(memberId) || String(e.ownerUid)===String(memberId));
+    // Include events created by this member even when other family members tagged expenses to them.
+    const taggedEventIds=new Set();
+    Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));}));
+    (state.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));});
+    const taggedEvents=events.filter(e=>taggedEventIds.has(String(e.id)) && (String(e.ownerUid||e._uid)===String(memberId)));
+    const seenE=new Set(); events=[...ownedEvents,...taggedEvents].filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    shopping=shopping.filter(x=>String(x._uid)===String(memberId) || String(x.ownerUid)===String(memberId));
+    calendar=[];
+    txns=[];
+  } else {
+    const seenE=new Set(); events=events.filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    const seenS=new Set(); shopping=shopping.filter(x=>{if(seenS.has(x.id))return false;seenS.add(x.id);return true;});
+    const seenC=new Set(); calendar=calendar.filter(x=>{if(seenC.has(x.id))return false;seenC.add(x.id);return true;});
+  }
+  return {events,shopping,calendar,txns,isAll};
+}
+function renderHome(){
+  const body=document.getElementById("homeBody");
+  const items=homeSharedItemsForSelected();
+  const members=familyMembers();
+  const meId="me";
+  const meName=(state.family&&state.family.me)||cloudUser?.name||cloudUser?.email||"You";
+  const meChip=`<button class="member" data-home-person="me" aria-pressed="${homePersonFilter==='me'}"><span class="av" style="background:var(--brass)">${esc(String(meName).slice(0,1).toUpperCase())}</span>${esc(meName)}</button>`;
+  const memberChips=members.filter(m=>m.visible!==false).map(p=>`<button class="member" data-home-person="remote:${esc(p.id)}" aria-pressed="${homePersonFilter===`remote:${p.id}`}" ><span class="av" style="background:${p.color||'var(--brass)'}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("");
+  const allChip=`<button class="member" data-home-person="all" aria-pressed="${homePersonFilter==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
+  const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
+  const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
+  const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
+  const eventHtml=items.events.length ? items.events.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`).join('') : '<p class="help">No shared events yet.</p>';
+  const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item)}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
+  const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
+  body.innerHTML=`
+    <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
+      <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
+      <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
+    </div>
+    <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
+    <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
+    ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
+    <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
+    ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${items.txns.length ? items.txns.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>'}</div>` : ''}
+    <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+}
+function addHomeCalendar(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet"><h2>Add calendar item</h2><label class="field"><span>Title</span><input id="hc-title"></label><label class="field"><span>Date</span><input id="hc-date" type="date" value="${todayISO()}"></label><label class="field"><span>Note</span><input id="hc-note"></label><div class="switchrow"><span><b>Share this item</b><small id="hc-shareLabel" style="display:block;color:var(--muted)">Private</small></span><label class="switch"><input id="hc-shareToggle" type="checkbox"><span class="track"></span></label></div><div class="share-audience" id="hc-shareArea" style="display:none"><button class="mini" id="hc-share">All family</button></div><div class="row"><button class="btn primary" id="hc-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hc-title").focus(); scrim.querySelector('#hc-shareToggle').onchange=e=>{sharing.shared=e.target.checked;scrim.querySelector('#hc-shareArea').style.display=sharing.shared?'flex':'none';}; scrim.querySelector('#hc-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hc-shareToggle').checked=sharing.shared;scrim.querySelector('#hc-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{ if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} if(e.target.id==="hc-save"){const title=scrim.querySelector("#hc-title").value.trim();if(!title){toast("Enter a title.");return;} state.calendar=state.calendar||[];state.calendar.push({id:uidGen(),title,date:scrim.querySelector("#hc-date").value,note:scrim.querySelector("#hc-note").value.trim(),createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
+}
+function addHomeShopping(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet"><h2>Add shopping item</h2><label class="field"><span>Item</span><input id="hs-item" placeholder="Milk, rice, detergent…"></label><div class="switchrow"><span><b>Share this item</b><small id="hs-shareLabel" style="display:block;color:var(--muted)">Private</small></span><label class="switch"><input id="hs-shareToggle" type="checkbox"><span class="track"></span></label></div><div class="share-audience" id="hs-shareArea" style="display:none"><button class="mini" id="hs-share">All family</button></div><div class="row"><button class="btn primary" id="hs-save">Add</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hs-item").focus(); scrim.querySelector('#hs-shareToggle').onchange=e=>{sharing.shared=e.target.checked;scrim.querySelector('#hs-shareArea').style.display=sharing.shared?'flex':'none';}; scrim.querySelector('#hs-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hs-shareToggle').checked=sharing.shared;scrim.querySelector('#hs-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}if(e.target.id==="hs-save"){const item=scrim.querySelector("#hs-item").value.trim();if(!item){toast("Enter an item.");return;}state.shopping=state.shopping||[];state.shopping.push({id:uidGen(),item,done:false,createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
+}
+function smsDataUnlocked(){ return !!(state.smsPermissionConfirmed && state.smsDataReady); }
+function renderSmsLockedView(){
+  const title = LANG === "kn" ? "SMS ಡೇಟಾ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ" : "SMS data is not available yet";
+  const msg = LANG === "kn" ? "ಮೊದಲು ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ, Google ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ ಅಥವಾ Skip ಮಾಡಿ, ನಂತರ SMS ಅನುಮತಿ ನೀಡಿ. ಅನುಮತಿ ಮತ್ತು ಪ್ರಾಥಮಿಕ SMS ಆಮದು ಪೂರ್ಣವಾದ ನಂತರ ಮಾತ್ರ SMS ಆಧಾರಿತ ಡೇಟಾ ಕಾಣಿಸುತ್ತದೆ." : "First choose your language, sign in with Google or skip, then allow SMS access. SMS-based data will appear only after permission is granted and the initial SMS import has finished.";
+  const body = view === "home" ? document.getElementById("homeBody") : view === "overview" ? document.getElementById("ovBody") : view === "list" ? document.getElementById("listBody") : view === "accounts" ? document.getElementById("accountsBody") : document.getElementById("merchantBody");
+  if(body) body.innerHTML = `<div class="card"><div class="empty"><h2>${esc(title)}</h2><p>${esc(msg)}</p></div></div>`;
+}
+function render(){
+  document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + (view === "merchant" ? "merchant" : view)));
+  document.querySelectorAll(".tabs button").forEach(b=>b.toggleAttribute("aria-current", b.dataset.v === view) || (b.dataset.v === view && b.setAttribute("aria-current","page")));
+  document.querySelectorAll(".tabs button").forEach(b=>{ if(b.dataset.v === view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const isNow = cursor >= currentPK();
+  document.getElementById("nextM2").disabled = isNow;
+  if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
+  const gatedView = ["home","overview","list","accounts","merchant"].includes(view);
+  if(gatedView && !smsDataUnlocked()) renderSmsLockedView();
+  else {
+    if(view === "home") renderHome();
+    if(view === "overview") renderOverview();
+    if(view === "list") renderList();
+    if(view === "settings") renderSettings();
+    if(view === "accounts") renderAccounts();
+    if(view === "merchant") renderMerchant();
+    if(view === "family") renderFamily();
+  }
+  if(LANG === "kn") trNode(document.querySelector("main"));
+  scheduleReminders();
+}
+
+function renderOverview(){
+  document.querySelectorAll("#ovMode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m === ovMode)));
+  document.getElementById("monthName").classList.toggle("nopick", ovMode !== "month");
+  if(ovMode === "events") return renderEventsSummary();
+  if(ovMode === "day") return renderDaySummary();
+  if(ovMode !== "month") return renderPeriodSummary();
+  document.querySelector(".spent-label").textContent = tr("Spent this month");
+  document.getElementById("prevM").disabled = false;
+  document.getElementById("monthName").textContent = monthLabel(cursor);
+  const tx = monthTx(cursor);
+  const out = tx.filter(t=>t.type==="debit" && counts(t)), inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category !== "Refunds");
+  const refundTotal = tx.filter(t=>t.type==="credit" && counts(t) && t.category === "Refunds").reduce((a,t)=>a+inAmt(t),0);
+  const spent = out.reduce((a,t)=>a+spendAmt(t),0) - refundTotal, got = inc.reduce((a,t)=>a+inAmt(t),0);
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(spent));
+  document.getElementById("income").textContent = money(got);
+  const net = got - spent;
+  document.getElementById("net").textContent = (net < 0 ? "−" : "+") + money(Math.abs(net));
+  document.getElementById("count").textContent = tx.length;
+  const fx = {};
+  tx.forEach(t=>{ if(isForeign(t) && !t.fxRate && t.type === "debit") fx[t.currency] = (fx[t.currency]||0) + (t.share != null ? t.share : t.amount); });
+  let fxEl = document.getElementById("fxLine");
+  if(!fxEl){ fxEl = document.createElement("div"); fxEl.id = "fxLine"; fxEl.className = "sub num"; document.querySelector(".strip").appendChild(fxEl); }
+  fxEl.innerHTML = Object.keys(fx).length ? `<span>Also spent ${Object.entries(fx).map(([c,v])=>`<b>${money(v,false,c)}</b>`).join(", ")} (no exchange rate yet, so not in the ₹ total)</span>` : "";
+  let exclEl = document.getElementById("exclLine");
+  if(!exclEl){ exclEl = document.createElement("p"); exclEl.id = "exclLine"; exclEl.className = "hint"; exclEl.style.margin = "10px 0 0"; document.querySelector(".strip").appendChild(exclEl); }
+  exclEl.textContent = "Excludes card bill payments and transfers between your own accounts" + (refundTotal > 0 ? ", and is after " + money(refundTotal) + " of refunds and cashback" : "") + ".";
+
+  const byCat = {};
+  out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("band").innerHTML = cats.map(([c,v])=>`<span style="flex:${v};background:${CAT_COLOR[c]||"#777"}" title="${esc(c)}"></span>`).join("");
+
+  const body = document.getElementById("overviewBody");
+  const soon = cursor === currentPK() ? upcomingBills().filter(b=>b.dueDate && daysBetween(todayISO(), b.dueDate) <= 7) : [];
+  const comingHtml = soon.length ? `<div class="coming" aria-label="Bills due soon">${soon.slice(0,3).map(b=>billRow(b,true)).join("")}</div>` : "";
+  if(!tx.length){
+    body.innerHTML = comingHtml + `<div class="empty"><p>No entries for ${esc(monthLabel(cursor))} yet.<br>Paste your bank SMS to fill this month in.</p><button class="btn primary" data-go="add">Add SMS</button></div>`;
+    return;
+  }
+  // budgets not yet spent in also shown
+  Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
+  let html = comingHtml;
+  if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
+  html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;

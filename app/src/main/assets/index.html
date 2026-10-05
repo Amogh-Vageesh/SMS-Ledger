@@ -305,7 +305,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 
 <section id="v-home">
   <div class="home-top">
-    <div><div class="hi" id="homeHi">Your money at a glance</div><h1>Ledger</h1></div>
+    <div><div class="hi" id="homeHi">Your family at a glance</div><h1>Ledger</h1></div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="iconbtn" id="homeFamBtn" aria-label="Family" style="width:48px;height:48px">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="6" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.8-4.5 4-4.8"/></svg>
@@ -843,7 +843,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {} }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
@@ -1820,7 +1820,7 @@ function renderFamily(){
   let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0"><b>Family Cloud</b><br>Events, calendar, shopping lists and family-shared transactions sync through Firebase. Your private SMS ledger stays on this phone unless you choose to share it.</p>`;
   if(!cloudUser){ html += `<p class="help">Sign in with Google in Settings first.</p>`; }
   else if(!fam.cloudId){ html += `<div class="row"><button class="btn primary" id="famCreateCloud">Create family</button><button class="btn" id="famJoinCloud">Join with code</button></div>`; }
-  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div>`; }
+  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div><div class="switchrow" style="margin-top:8px"><span><b>Share complete data</b><small style="display:block;color:var(--muted)">Share your complete ledger, accounts, bills, budgets, events, lists and transaction details with selected family members.</small></span><label class="switch"><input type="checkbox" id="famShareComplete" ${fam.completeDataSharing===true?"checked":""}><span class="track"></span></label></div><div class="share-audience" id="famCompleteShareArea" style="${fam.completeDataSharing===true?'display:flex':''}"><button class="mini" id="famCompleteShare">${fam.completeDataShareWith==='all'||!fam.completeDataShareWith?'All family':'Choose members'}</button></div>`; }
   html += `</div>`;
 
   html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
@@ -1851,6 +1851,7 @@ document.getElementById("famBody").addEventListener("click", e=>{
   if(e.target.id === "famJoinCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const code=(famPrompt("Enter family code", "")||"").trim(); if(!code)return; const name=(famPrompt("Your name in the family", cloudUser.name||"")||"").trim(); if(window.Android) window.Android.joinFamily(code,name); return; }
   if(e.target.id === "famCopyCode"){ try{ navigator.clipboard.writeText((state.family||{}).cloudCode||""); toast("Family code copied."); }catch(_){ toast("Family code: "+((state.family||{}).cloudCode||"")); } return; }
   if(e.target.id === "famSyncCloud"){ publishFamilyCloud(true); return; }
+  if(e.target.id === "famCompleteShare"){ const current=state.family&&state.family.completeDataShareWith; chooseShareAudience({shared:true,shareWith:current||'all'}, r=>{ state.family=state.family||{members:{}}; state.family.completeDataShareWith=r.shareWith||'all'; persist([],true); publishFamilyCloud(true); render(); }); return; }
   if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
   if(e.target.id === "famAddPerson"){
     const inp = document.getElementById("famNewPerson"), name = inp.value.trim();
@@ -1873,6 +1874,7 @@ document.getElementById("famBody").addEventListener("click", e=>{
 });
 document.getElementById("famBody").addEventListener("change", e=>{
   if(e.target.id === "famShareTx"){ state.family=state.family||{members:{}}; state.family.shareTransactions=!!e.target.checked; persist([],true); publishFamilyCloud(true); }
+  if(e.target.id === "famShareComplete"){ state.family=state.family||{members:{}}; state.family.completeDataSharing=!!e.target.checked; if(e.target.checked && !state.family.completeDataShareWith) state.family.completeDataShareWith='all'; const area=document.getElementById('famCompleteShareArea'); if(area) area.style.display=e.target.checked?'flex':'none'; persist([],true); publishFamilyCloud(true); render(); }
 });
 function famPrompt(title, value){ return window.prompt(title, value||""); }
 
@@ -1883,7 +1885,10 @@ function publishFamilyCloud(force){
   const memberIds=familyShareMembers().map(m=>m.id);
   const audience=e=>e.shareWith==='all'||!Array.isArray(e.shareWith)?memberIds:[...new Set([cloudUser.uid,...e.shareWith])];
   const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
-  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns};
+  const completeEnabled=fam.completeDataSharing===true;
+  const completeAudience=completeEnabled ? (fam.completeDataShareWith==='all'||!Array.isArray(fam.completeDataShareWith)?memberIds:[...new Set([cloudUser.uid,...fam.completeDataShareWith])]) : [];
+  const completeState=completeEnabled ? {...state, family:{cloudId:fam.cloudId,cloudName:fam.cloudName,cloudCode:fam.cloudCode,me:fam.me}, googleOnboardingDone:undefined, googleSkipped:undefined} : null;
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeData:completeState?JSON.stringify(completeState):'',completeShareWith:(completeEnabled && fam.completeDataShareWith!=='all' ? 'some' : 'all'),completeAudienceUids:completeAudience};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
@@ -1891,10 +1896,10 @@ window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r
 window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
 window.familyCloudArrived=function(json){
   let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
-  const kinds=["members","transactions","events","calendar","shopping"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  const kinds=["members","transactions","events","calendar","shopping","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
   (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
   ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
-  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
+  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
   saveLocal(); render();
 };
 window.familyCloudError=function(msg){ if(msg) toast(msg); };
@@ -2367,13 +2372,14 @@ function homeSharedItemsForSelected(){
   const remoteEvents=allRemote.flatMap(m=>(m.events||[]).filter(Boolean).map(e=>({...e,remote:true,_uid:e.ownerUid||m._uid})));
   const remoteShopping=allRemote.flatMap(m=>(m.shopping||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
   const remoteCalendar=allRemote.flatMap(m=>(m.calendar||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const localSharedTxns=(state.family&&state.family.shareTransactions!==false)?displayTxns().filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:false,_uid:t.ownerUid||currentUid})):[];
   const remoteTxns=allRemote.flatMap(m=>(m.txns||[]).filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:true,_uid:t.ownerUid||m._uid})));
   let events=[...localSharedEvents,...remoteEvents];
   let shopping=[...localSharedShopping,...remoteShopping];
   let calendar=[...localSharedCalendar,...remoteCalendar];
   let txns=[...localSharedTxns,...remoteTxns];
   if(!isAll){
-    const memberId=selected.startsWith('remote:')?selected.slice(7):selected;
+    const memberId=selected==='me' ? currentUid : (selected.startsWith('remote:')?selected.slice(7):selected);
     const ownedEvents=events.filter(e=>String(e._uid)===String(memberId) || String(e.ownerUid)===String(memberId));
     // Include events created by this member even when other family members tagged expenses to them.
     const taggedEventIds=new Set();
@@ -2393,30 +2399,44 @@ function homeSharedItemsForSelected(){
 }
 function renderHome(){
   const body=document.getElementById("homeBody");
-  const items=homeSharedItemsForSelected();
-  const members=familyMembers();
-  const meId="me";
-  const meName=(state.family&&state.family.me)||cloudUser?.name||cloudUser?.email||"You";
-  const meChip=`<button class="member" data-home-person="me" aria-pressed="${homePersonFilter==='me'}"><span class="av" style="background:var(--brass)">${esc(String(meName).slice(0,1).toUpperCase())}</span>${esc(meName)}</button>`;
-  const memberChips=members.filter(m=>m.visible!==false).map(p=>`<button class="member" data-home-person="remote:${esc(p.id)}" aria-pressed="${homePersonFilter===`remote:${p.id}`}" ><span class="av" style="background:${p.color||'var(--brass)'}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("");
-  const allChip=`<button class="member" data-home-person="all" aria-pressed="${homePersonFilter==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
-  const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
-  const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
-  const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
-  const eventHtml=items.events.length ? items.events.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>`<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(eventSpend(e.id),true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`).join('') : '<p class="help">No shared events yet.</p>';
-  const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item)}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
-  const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
-  body.innerHTML=`
-    <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
-      <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
-      <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
-    </div>
-    <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
-    <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
-    ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
-    <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-    ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${items.txns.length ? items.txns.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>'}</div>` : ''}
-    <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+  if(!body) return;
+  // Family Hub must never become blank because one malformed cloud record breaks one card.
+  // Sanitize family collections before rendering and keep the Hub independent of SMS readiness.
+  try{
+    state.family=state.family||{members:{}};
+    state.family.members=state.family.members||{};
+    state.events=state.events||{}; state.shopping=Array.isArray(state.shopping)?state.shopping:[]; state.calendar=Array.isArray(state.calendar)?state.calendar:[];
+    const items=homeSharedItemsForSelected();
+    const members=familyMembers();
+    const meName=(state.family&&state.family.me)||cloudUser?.name||cloudUser?.email||"You";
+    const meChip=`<button class="member" data-home-person="me" aria-pressed="${homePersonFilter==='me'}"><span class="av" style="background:var(--brass)">${esc(String(meName).slice(0,1).toUpperCase())}</span>${esc(meName)}</button>`;
+    const memberChips=members.filter(m=>m&&m.visible!==false).map(p=>`<button class="member" data-home-person="remote:${esc(p.id)}" aria-pressed="${homePersonFilter===`remote:${p.id}`}"><span class="av" style="background:${p.color||'var(--brass)'}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name||"Family member")}</button>`).join("");
+    const allChip=`<button class="member" data-home-person="all" aria-pressed="${homePersonFilter==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
+    const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
+    const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
+    const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
+    const eventHtml=items.events.length ? items.events.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>{
+      let spend=0; try{ spend=eventSpend(e.id); }catch(_){ spend=0; }
+      return `<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name||'Event')}</span><span class="num" style="font-weight:600">${money(Number(spend)||0,true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`;
+    }).join('') : '<p class="help">No shared events yet.</p>';
+    const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item||'Shopping item')}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
+    const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
+    const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
+    body.innerHTML=`
+      <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
+        <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
+        <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
+      </div>
+      <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
+      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}
+      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+  }catch(err){
+    console.error('Family Hub render failed', err);
+    body.innerHTML=`<div class="card"><div class="card-h"><h2>Family Hub</h2></div><p class="help">Family Hub is loading. Your family data is safe on this phone.</p><div class="row"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button></div></div>`;
+  }
 }
 function addHomeCalendar(){
   const scrim=document.createElement("div"); scrim.className="scrim";
@@ -2444,7 +2464,7 @@ function render(){
   const isNow = cursor >= currentPK();
   document.getElementById("nextM2").disabled = isNow;
   if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
-  const gatedView = ["home","overview","list","accounts","merchant"].includes(view);
+  const gatedView = ["overview","list","accounts","merchant"].includes(view);
   if(gatedView && !smsDataUnlocked()) renderSmsLockedView();
   else {
     if(view === "home") renderHome();
@@ -2465,7 +2485,7 @@ function renderOverview(){
   if(ovMode === "events") return renderEventsSummary();
   if(ovMode === "day") return renderDaySummary();
   if(ovMode !== "month") return renderPeriodSummary();
-  document.querySelector(".spent-label").textContent = tr("Spent this month");
+  document.querySelector(".spent-label").textContent = "Expenses this month";
   document.getElementById("prevM").disabled = false;
   document.getElementById("monthName").textContent = monthLabel(cursor);
   const tx = monthTx(cursor);
@@ -2485,6 +2505,7 @@ function renderOverview(){
   let exclEl = document.getElementById("exclLine");
   if(!exclEl){ exclEl = document.createElement("p"); exclEl.id = "exclLine"; exclEl.className = "hint"; exclEl.style.margin = "10px 0 0"; document.querySelector(".strip").appendChild(exclEl); }
   exclEl.textContent = "Excludes card bill payments and transfers between your own accounts" + (refundTotal > 0 ? ", and is after " + money(refundTotal) + " of refunds and cashback" : "") + ".";
+  const inLabel=document.querySelector("#income")?.parentElement; if(inLabel) inLabel.innerHTML='Income <b id="income">'+money(got)+'</b>';
 
   const byCat = {};
   out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
@@ -2500,7 +2521,7 @@ function renderOverview(){
   }
   // budgets not yet spent in also shown
   Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
-  let html = comingHtml;
+  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p></div>` + comingHtml;
   if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
   html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;
   cats.forEach(([c,v])=>{
@@ -2564,7 +2585,7 @@ function renderDaySummary(){
   document.getElementById("monthName").textContent = niceDate(d);
   document.getElementById("prevM").disabled = false;
   document.getElementById("nextM").disabled = d >= todayISO();
-  document.querySelector(".spent-label").textContent = "Spent on this day";
+  document.querySelector(".spent-label").textContent = "Expenses on this day";
   const tx = displayTxns().filter(t=>t.date===d);
   const out = tx.filter(t=>t.type==="debit" && counts(t));
   const inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category!=="Refunds");
@@ -2627,7 +2648,7 @@ function renderPeriodSummary(){
     else if(t.category === "Refunds"){ const v = inAmt(t); per[bk].exp -= v; exp -= v; refunds += v; }
     else { const v = inAmt(t); per[bk].inc += v; inc += v; }
   });
-  document.querySelector(".spent-label").textContent = yr ? `Spent in ${yr}` : "Spent in all years";
+  document.querySelector(".spent-label").textContent = yr ? `Expenses in ${yr}` : "Expenses in all years";
   document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(exp));
   document.getElementById("income").textContent = money(inc);
   const net = inc - exp;
@@ -2640,7 +2661,8 @@ function renderPeriodSummary(){
   const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
   const lcVals = [...buckets.map(k=>per[k].inc), ...buckets.map(k=>Math.max(0, per[k].exp))];
   const lcScale = chartScale(Math.max(1, ...lcVals));
-  let html = `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
+  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Current value held across owned accounts; this is separate from the selected period's net income.</p></div>`;
+  html += `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
     <div class="chart-note">Amounts in ₹ ${lcScale.unit}${yr ? ", by month" : ", by year"}</div>
     ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
     ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}</div>`;

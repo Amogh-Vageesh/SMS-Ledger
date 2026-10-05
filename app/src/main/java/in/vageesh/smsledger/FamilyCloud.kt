@@ -56,6 +56,41 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         replaceArray(root.collection("calendar"), payload.optJSONArray("calendar"), uid, now)
         replaceArray(root.collection("shopping"), payload.optJSONArray("shopping"), uid, now)
         replaceArray(root.collection("transactions"), payload.optJSONArray("transactions"), uid, now)
+        replaceCompleteData(root.collection("completeData"), payload.optString("completeData", ""), payload.optString("completeShareWith", "all"), payload.optJSONArray("completeAudienceUids"), uid, now)
+    }
+
+
+    private suspend fun replaceCompleteData(
+        col: com.google.firebase.firestore.CollectionReference,
+        raw: String,
+        shareWith: String,
+        audience: JSONArray?,
+        uid: String,
+        now: Long
+    ) {
+        val existing = col.whereEqualTo("ownerUid", uid).get().await()
+        existing.documents.forEach { it.reference.delete().await() }
+        if (raw.isBlank()) return
+        val chunkSize = 450_000
+        val count = ((raw.length() + chunkSize - 1) / chunkSize).coerceAtLeast(1)
+        val aud = mutableListOf<String>()
+        if (audience != null) for (i in 0 until audience.length()) {
+            audience.optString(i, "").takeIf { it.isNotBlank() }?.let { aud += it }
+        }
+        for (i in 0 until count) {
+            val start = i * chunkSize
+            val end = minOf(raw.length(), start + chunkSize)
+            val data = mutableMapOf<String, Any>(
+                "ownerUid" to uid,
+                "updatedAt" to now,
+                "shareWith" to shareWith,
+                "audienceUids" to aud,
+                "chunkIndex" to i,
+                "chunkCount" to count,
+                "dataChunk" to raw.substring(start, end)
+            )
+            col.document("${uid}_$i").set(data, SetOptions.merge()).await()
+        }
     }
 
     private suspend fun replaceArray(col: com.google.firebase.firestore.CollectionReference, arr: JSONArray?, uid: String, now: Long) {
@@ -104,7 +139,7 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
                 listeners += reg
             }
         }
-        listOf("events","calendar","shopping","transactions","members").forEach(::watch)
+        listOf("events","calendar","shopping","transactions","completeData","members").forEach(::watch)
     }
 
     suspend fun familyInfo(familyId: String): JSONObject {
