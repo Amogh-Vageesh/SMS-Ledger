@@ -843,7 +843,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
@@ -948,7 +948,7 @@ async function flushDb(){
     setStatus("Couldn't sync just now. Your entries are safe on this device.");
   }
 }
-function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual }; }
+function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [] }; }
 async function connectDb(){
   try{
     if(!window.claude || !window.claude.use) return;
@@ -2351,6 +2351,97 @@ function openEntriesSheet(){
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
   document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
 }
+/* ---------- Assets / net worth ---------- */
+const ASSET_TYPES = [
+  ["property","Property / home"],["land","Land / farmland"],["vehicle","Vehicle"],["gold","Gold / jewellery"],
+  ["investment","Investment / security"],["business","Business / ownership"],["electronics","Electronics"],["other","Other asset"]
+];
+function assetTypeLabel(k){ const x=ASSET_TYPES.find(a=>a[0]===k); return x?x[1]:"Other asset"; }
+function assetLoanOutstanding(a){
+  if(!a || !a.loanAccount) return Number(a&&a.loanOutstanding)||0;
+  const ac=state.accounts&&state.accounts[a.loanAccount];
+  return ac && ac.kind==="loan" ? Math.max(0,Number(ac.balance)||0) : Number(a.loanOutstanding)||0;
+}
+function assetOriginalLoan(a){
+  if(!a) return 0;
+  if(a.loanAccount){ const ac=state.accounts&&state.accounts[a.loanAccount]; if(ac&&ac.originalAmount!=null) return Number(ac.originalAmount)||0; }
+  return Number(a.originalLoan)||0;
+}
+function assetCurrentValue(a){ return Math.max(0,Number(a&&a.currentValue)||0); }
+function assetInvestmentMetrics(a){
+  const purchase=Number(a.purchasePrice)||0, originalLoan=assetOriginalLoan(a), outstanding=assetLoanOutstanding(a);
+  const down=Math.max(0,purchase-originalLoan), principalPaid=Math.max(0,originalLoan-outstanding);
+  const interest=Number(a.interestPaid)||0, acquisition=Number(a.acquisitionCosts)||0, maintenance=Number(a.ownershipCosts)||0;
+  const income=Number(a.incomeReceived)||0, saleCosts=Number(a.saleCosts)||0;
+  const cashInvested=down+principalPaid+interest+acquisition+maintenance;
+  const netSale=assetCurrentValue(a)-outstanding-saleCosts;
+  const profit=netSale+income-cashInvested;
+  const equity=assetCurrentValue(a)-outstanding;
+  const appreciation=assetCurrentValue(a)-purchase;
+  const roi=cashInvested>0 ? profit/cashInvested*100 : null;
+  return {purchase,originalLoan,outstanding,down,principalPaid,interest,acquisition,maintenance,income,saleCosts,cashInvested,netSale,profit,equity,appreciation,roi};
+}
+function physicalAssetTotal(){ return (state.assets||[]).reduce((s,a)=>s+assetCurrentValue(a),0); }
+function totalLiabilities(){ return Object.values(state.accounts||{}).reduce((s,a)=>{ if(!a||a.hidden)return s; if(a.kind==="loan") return s+Math.max(0,Number(a.balance)||0); return s; },0); }
+function totalAssetsValue(){ return totalHeldBalance()+physicalAssetTotal(); }
+function netWorth(){ return totalAssetsValue()-totalLiabilities(); }
+function assetMarketNote(a){
+  const v=assetCurrentValue(a), p=Number(a.purchasePrice)||0;
+  const trend=a.marketTrend || (v>p?"Upward since purchase":v<p?"Below purchase value":"Stable vs purchase");
+  const src=a.marketSource || (a.type==="gold"?"Live gold market rate":"User-entered current value");
+  const asOf=a.marketUpdated || a.valuationDate || todayISO();
+  return `${trend}. ${src}. Last updated ${niceDate(asOf)}. This is an estimate, not a guaranteed sale price.`;
+}
+function openAssetSheet(id){
+  const a=id ? (state.assets||[]).find(x=>x.id===id) : {type:"property",purchaseDate:todayISO()};
+  if(!a) return;
+  const loanOpts=Object.entries(state.accounts||{}).filter(([k,x])=>x&&x.kind==="loan"&&!x.hidden).map(([k,x])=>`<option value="${esc(k)}"${a.loanAccount===k?" selected":""}>${esc(x.label||"Loan")}</option>`).join("");
+  const inner=`
+    <div class="two"><label class="field"><span>Asset type</span><select id="as-type">${ASSET_TYPES.map(([k,l])=>`<option value="${k}"${k===(a.type||"property")?" selected":""}>${l}</option>`).join("")}</select></label>
+    <label class="field"><span>Name</span><input id="as-name" value="${esc(a.name||"")}" placeholder="e.g. Bangalore home"></label></div>
+    <div class="two"><label class="field"><span>Purchase date</span><input id="as-date" type="date" value="${esc(a.purchaseDate||todayISO())}"></label>
+    <label class="field"><span>Purchase price (₹)</span><input id="as-purchase" inputmode="decimal" value="${a.purchasePrice!=null?a.purchasePrice:""}"></label></div>
+    <div class="two"><label class="field"><span>Current market value (₹)</span><input id="as-current" inputmode="decimal" value="${a.currentValue!=null?a.currentValue:""}"></label>
+    <label class="field"><span>Acquisition costs (₹)</span><input id="as-acq" inputmode="decimal" value="${a.acquisitionCosts||""}" placeholder="Stamp duty, registration, etc."></label></div>
+    <div class="two"><label class="field"><span>Interest paid so far (₹)</span><input id="as-interest" inputmode="decimal" value="${a.interestPaid||""}"></label>
+    <label class="field"><span>Other ownership costs (₹)</span><input id="as-costs" inputmode="decimal" value="${a.ownershipCosts||""}"></label></div>
+    <div class="two"><label class="field"><span>Income received (₹)</span><input id="as-income" inputmode="decimal" value="${a.incomeReceived||""}" placeholder="Rent, dividends, etc."></label>
+    <label class="field"><span>Estimated sale costs (₹)</span><input id="as-sale" inputmode="decimal" value="${a.saleCosts||""}"></label></div>
+    <div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="as-loan" inputmode="decimal" value="${a.originalLoan||""}"></label>
+    <label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label></div>
+    <div class="two"><label class="field"><span>Quantity (optional)</span><input id="as-qty" inputmode="decimal" value="${a.quantity||""}" placeholder="e.g. 100"></label>
+    <label class="field"><span>Purity % (for gold)</span><input id="as-purity" inputmode="decimal" value="${a.purity||""}" placeholder="e.g. 22"></label></div>
+    <label class="field"><span>Market note / source</span><input id="as-source" value="${esc(a.marketSource||"")}" placeholder="e.g. current local market trend"></label>
+    <p class="help">For gold, property and other market-linked assets, the current value can be refreshed later. The app will show the source/date and will never silently overwrite your value.</p>`;
+  sheet(id?"Edit asset":"Add asset",inner,sc=>{
+    const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
+    const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
+    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice:num("#as-purchase"),currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),originalLoan:num("#as-loan"),loanAccount:sc.querySelector("#as-loanacct").value||"",quantity:num("#as-qty"),purity:num("#as-purity"),marketSource:sc.querySelector("#as-source").value.trim()};
+    next.marketUpdated=todayISO(); next.marketTrend=next.currentValue>next.purchasePrice?"Upward":next.currentValue<next.purchasePrice?"Downward":"Stable";
+    state.assets=state.assets||[]; const i=state.assets.findIndex(x=>x.id===next.id); if(i>=0) state.assets[i]=next; else state.assets.push(next); persist([],true); toast("Asset saved."); if(next.type==="gold" && next.quantity>0){ refreshGoldAsset(next.id); }
+  },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
+}
+async function refreshGoldAsset(id){
+  const a=(state.assets||[]).find(x=>x.id===id); if(!a||a.type!=="gold"||!(Number(a.quantity)>0)) return;
+  try{
+    const r=await fetch("https://xaus.com/api/v1/spot?currency=INR&unit=gram",{cache:"no-store"});
+    if(!r.ok) throw new Error("market service unavailable");
+    const d=await r.json(); const perGram=Number(d?.xau?.price); if(!Number.isFinite(perGram)||perGram<=0) throw new Error("invalid price");
+    const purity=Number(a.purity)>0?Number(a.purity):24; const estimated=perGram*(purity/24)*Number(a.quantity);
+    a.currentValue=Math.round(estimated); a.marketUpdated=todayISO(); a.marketSource=`Live gold spot estimate at ₹${Math.round(perGram).toLocaleString("en-IN")}/g for 24K; adjusted for ${purity}K purity`;
+    a.marketTrend=(Number(a.currentValue)||0)>(Number(a.purchasePrice)||0)?"Upward":"Downward"; persist([],true); render();
+    toast("Gold market value refreshed.");
+  }catch(e){ /* retain user-entered value when market data is unavailable */ }
+}
+function renderAssetsAndNetWorth(){
+  const assets=state.assets||[], physical=physicalAssetTotal(), financial=totalHeldBalance(), liabilities=totalLiabilities(), nw=netWorth();
+  let html=`<div class="card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(nw)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(financial)}</b></div><div><small>Other assets</small><b>${money(physical)}</b></div><div><small>Liabilities</small><b style="color:var(--over)">−${money(liabilities)}</b></div></div></div>`;
+  html+=`<div class="card" style="margin-top:14px"><div class="card-h"><h2>My assets</h2><button class="mini" id="addAsset">+ Add asset</button></div>`;
+  if(!assets.length) html+=`<p class="help">Add your home, land, vehicle, gold or other assets to track current value and investment performance.</p>`;
+  assets.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name))).forEach(a=>{const m=assetInvestmentMetrics(a); html+=`<button class="due" data-asset="${esc(a.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(a.name)}</span><span class="num" style="font-weight:700">${money(assetCurrentValue(a))}</span><span class="w" style="grid-column:1/3"><span>${esc(assetTypeLabel(a.type))}</span><span>${m.appreciation>=0?"+":"−"}${money(Math.abs(m.appreciation))} vs purchase</span></span><span class="w" style="grid-column:1/3"><span>Equity ${money(m.equity)}</span><span>Est. investment ${m.profit>=0?"profit":"loss"} ${money(Math.abs(m.profit))}${m.roi!=null?` (${m.roi>=0?"+":"−"}${Math.abs(m.roi).toFixed(1)}%)`:""}</span></span><span class="w" style="grid-column:1/3"><span>${esc(assetMarketNote(a))}</span></span></button>`;});
+  html+=`</div>`;
+  return html;
+}
 function totalHeldBalance(){
   return Object.values(state.accounts||{}).reduce((sum,a)=>{
     if(!a || a.hidden) return sum;
@@ -2516,12 +2607,12 @@ function renderOverview(){
   const soon = cursor === currentPK() ? upcomingBills().filter(b=>b.dueDate && daysBetween(todayISO(), b.dueDate) <= 7) : [];
   const comingHtml = soon.length ? `<div class="coming" aria-label="Bills due soon">${soon.slice(0,3).map(b=>billRow(b,true)).join("")}</div>` : "";
   if(!tx.length){
-    body.innerHTML = comingHtml + `<div class="empty"><p>No entries for ${esc(monthLabel(cursor))} yet.<br>Paste your bank SMS to fill this month in.</p><button class="btn primary" data-go="add">Add SMS</button></div>`;
+    body.innerHTML = renderAssetsAndNetWorth() + comingHtml + `<div class="empty"><p>No entries for ${esc(monthLabel(cursor))} yet.<br>Paste your bank SMS to fill this month in.</p><button class="btn primary" data-go="add">Add SMS</button></div>`;
     return;
   }
   // budgets not yet spent in also shown
   Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
-  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Includes bank, FD, investment, EPF/PF, NPS and other owned account balances. Credit-card limits and loan limits are excluded.</p></div>` + comingHtml;
+  let html = renderAssetsAndNetWorth() + comingHtml;
   if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
   html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;
   cats.forEach(([c,v])=>{
@@ -2661,7 +2752,7 @@ function renderPeriodSummary(){
   const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
   const lcVals = [...buckets.map(k=>per[k].inc), ...buckets.map(k=>Math.max(0, per[k].exp))];
   const lcScale = chartScale(Math.max(1, ...lcVals));
-  let html = `<div class="card"><div class="card-h"><h2>Total balance</h2><span class="chart-note">Current owned balances</span></div><div class="num" style="font-size:1.75rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint" style="margin-bottom:0">Current value held across owned accounts; this is separate from the selected period's net income.</p></div>`;
+  let html = renderAssetsAndNetWorth();
   html += `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
     <div class="chart-note">Amounts in ₹ ${lcScale.unit}${yr ? ", by month" : ", by year"}</div>
     ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
@@ -3196,6 +3287,8 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   const c = e.target.closest("[data-cat]"); if(c){ openEntriesSheet(); return; }
 });
 document.getElementById("overviewBody").addEventListener("click", e=>{
+  const ab=e.target.closest("[data-asset]"); if(ab){ openAssetSheet(ab.dataset.asset); return; }
+  if(e.target.id==="addAsset"){ openAssetSheet(null); return; }
   const p=e.target.closest("[data-paid]"); if(p){ const b=state.bills.find(x=>x.id===p.dataset.paid); if(b){ b.paid=true; b.paidOn=todayISO(); persist([],true); render(); toast("Marked paid."); } return; }
   const oev = e.target.closest("[data-openevov]"); if(oev){ openEventDetail(oev.dataset.openevov); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; window.scrollTo(0,0); render(); return; }
