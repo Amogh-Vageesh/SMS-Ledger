@@ -464,10 +464,11 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   </div>
   <h1 class="section-h">Historical & missing-month import</h1>
   <div class="set-block" id="historicalImportBlock">
-    <p><b>Import window: January 2022 onward</b></p>
-    <p class="help">SMS remains the primary source. Use bank statement import only for periods from 2022 where SMS is missing. Existing transactions are matched before anything new is added.</p>
+    <p><b>Import window: January 2022 onward by default</b></p>
+    <p class="help">SMS remains the primary source. Bank statements can fill missing periods from 2022, and you can optionally import transactions before 1 January 2022 for older history. Existing transactions are matched before anything new is added.</p>
     <div id="historicalCoverage" class="help">Checking transaction coverage…</div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="historicalScan">Find missing months</button><button class="btn primary" id="statementImport">Import bank statement(s)</button></div>
+    <div class="row" style="margin-top:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="historicalScan">Find missing months</button><button class="btn primary" id="statementImport">Import bank statement(s)</button></div>
+    <label class="check" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="includePre2022Statements"> <span>Also import transactions before 1 Jan 2022</span></label>
     <div id="statementStatus" class="hint" style="margin-top:8px">Select one or multiple PDF, CSV, XLS/XLSX or text statements. Existing SMS transactions are matched first; overlapping statement files are also reconciled so the same transaction is not added twice.</div>
   </div>
   <h1 class="section-h">Data not from SMS</h1>
@@ -1984,7 +1985,7 @@ function importStatementText(text, fileName, done){
   const existing=state.txns||[];
   const used=new Set();
   rows.slice(1).forEach(r=>{
-    const date=statementDate(r[map.date]); if(!date || date<"2022-01-01") { if(date) skipped++; return; }
+    const date=statementDate(r[map.date]); const includePre2022=!!document.getElementById("includePre2022Statements")?.checked; if(!date || (!includePre2022 && date<"2022-01-01")) { if(date) skipped++; return; }
     let debit=map.debit>=0?statementAmount(r[map.debit]):null, credit=map.credit>=0?statementAmount(r[map.credit]):null;
     if(map.amount>=0 && debit==null && credit==null){ const a=statementAmount(r[map.amount]); const typ=statementNorm(map.type>=0?r[map.type]:""); if(/credit|cr|deposit|inward/.test(typ)) credit=a; else debit=a; }
     if((debit==null||debit===0)&&(credit==null||credit===0)) {skipped++;return;}
@@ -2011,7 +2012,7 @@ window.bankStatementFilesResult=function(payload){
   let i=0;
   const next=()=>{
     if(i>=ok.length){
-      if(status) status.textContent=`Processed ${ok.length} statement${ok.length===1?"":"s"}. Existing SMS transactions and overlapping statement transactions were reconciled before adding new entries.`;
+      if(status) { const pre=!!document.getElementById("includePre2022Statements")?.checked; status.textContent=`Processed ${ok.length} statement${ok.length===1?"":"s"}. ${pre?"Pre-2022 transactions were included. ":"Transactions before 1 Jan 2022 were skipped. "}Existing SMS transactions and overlapping statement transactions were reconciled before adding new entries.`; }
       return;
     }
     const f=ok[i++];
