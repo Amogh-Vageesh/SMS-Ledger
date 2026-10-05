@@ -72,14 +72,14 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         existing.documents.forEach { it.reference.delete().await() }
         if (raw.isBlank()) return
         val chunkSize = 450_000
-        val count = ((raw.length() + chunkSize - 1) / chunkSize).coerceAtLeast(1)
+        val count = ((raw.length + chunkSize - 1) / chunkSize).coerceAtLeast(1)
         val aud = mutableListOf<String>()
         if (audience != null) for (i in 0 until audience.length()) {
             audience.optString(i, "").takeIf { it.isNotBlank() }?.let { aud += it }
         }
         for (i in 0 until count) {
             val start = i * chunkSize
-            val end = minOf(raw.length(), start + chunkSize)
+            val end = minOf(raw.length, start + chunkSize)
             val data = mutableMapOf<String, Any>(
                 "ownerUid" to uid,
                 "updatedAt" to now,
