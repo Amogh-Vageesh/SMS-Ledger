@@ -114,55 +114,16 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         for (doc in existing.documents) if (doc.id !in keep) doc.reference.delete().await()
     }
 
-    suspend fun publishTransactionEdit(familyId: String, transactionId: String, ownerUid: String, patch: JSONObject) {
-        val editorUid = requireUid()
-        val root = db.collection("families").document(familyId)
-        val now = System.currentTimeMillis()
-        val fields = mutableMapOf<String, Any>()
-        patch.keys().forEach { k ->
-            if (k !in setOf("merchant", "category", "note", "assetId", "person", "event")) return@forEach
-            val v = patch.opt(k)
-            fields[k] = if (v == null || v == JSONObject.NULL) "" else v.toString()
-        }
-        val tx = root.collection("transactions").document(transactionId).get().await()
-        if (!tx.exists()) throw IllegalArgumentException("Shared transaction no longer exists.")
-        val txOwner = tx.getString("ownerUid") ?: ownerUid
-        val shareWith = tx.getString("shareWith") ?: ""
-        val audience = (tx.get("audienceUids") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
-        val allowEdit = tx.getBoolean("allowFamilyEdit") ?: true
-        if (txOwner != editorUid && (!allowEdit || (shareWith != "all" && !audience.contains(editorUid)))) throw IllegalAccessException("The owner has not allowed family editing for this transaction.")
-        val editor = auth.currentUser?.displayName ?: auth.currentUser?.email ?: "Family member"
-        root.collection("transactionEdits").document(transactionId).set(
-            mapOf(
-                "transactionId" to transactionId,
-                "ownerUid" to txOwner,
-                "editorUid" to editorUid,
-                "updatedByName" to editor,
-                "updatedAt" to now,
-                "shareWith" to shareWith,
-                "audienceUids" to audience,
-                "fields" to fields
-            ), SetOptions.merge()
-        ).await()
-    }
-
     fun listen(familyId: String) {
         stop()
         val root = db.collection("families").document(familyId)
         val buckets = mutableMapOf<String, MutableMap<String, JSONObject>>()
         fun watch(kind: String) {
             val collection = root.collection(kind)
-            val queries = when (kind) {
-                "members" -> listOf(collection)
-                "transactionEdits" -> listOf(
-                    collection.whereEqualTo("ownerUid", auth.currentUser?.uid ?: ""),
-                    collection.whereArrayContains("audienceUids", auth.currentUser?.uid ?: "")
-                )
-                else -> listOf(
-                    collection.whereEqualTo("shareWith", "all"),
-                    collection.whereArrayContains("audienceUids", auth.currentUser?.uid ?: "")
-                )
-            }
+            val queries = if (kind == "members") listOf(collection) else listOf(
+                collection.whereEqualTo("shareWith", "all"),
+                collection.whereArrayContains("audienceUids", auth.currentUser?.uid ?: "")
+            )
             queries.forEach { query ->
                 val reg = query.addSnapshotListener { snap, e ->
                     if (e != null) { onError(e.message ?: "Family sync error"); return@addSnapshotListener }
@@ -178,7 +139,7 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
                 listeners += reg
             }
         }
-        listOf("events","calendar","shopping","transactions","transactionEdits","completeData","members").forEach(::watch)
+        listOf("events","calendar","shopping","transactions","completeData","members").forEach(::watch)
     }
 
     suspend fun familyInfo(familyId: String): JSONObject {

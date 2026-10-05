@@ -1,34 +1,18 @@
-# SMS Ledger v1.72
+# SMS Ledger v1.75
 
-## Shared family transaction editing
+Bank statement import only. Gmail import/authorization UI and native bridge have been removed for now.
 
-v1.72 adds collaborative editing for transactions that are shared through Family Cloud.
+## Historical statement import
+- Historical window: January 2022 onward.
+- Select one or multiple bank statement files in one operation.
+- Supports PDF/text/CSV plus legacy Excel .xls (Apache POI HSSF).
+- Existing SMS transactions are matched first using date, amount, debit/credit, reference/UPI data and merchant/description.
+- Matching adds statement provenance to the existing transaction instead of creating a duplicate.
+- Multiple overlapping statement files are processed against the same ledger, so repeated rows are not intentionally added as separate transactions.
+- Statement-only rows are added as new ledger transactions.
+- Review is conservative when a possible match is found but cannot be confidently reconciled.
 
-- A transaction owner can share an expense with all family members or selected members.
-- The owner can choose **Allow shared family members to edit merchant, category, note, asset and event**.
-- Family members who have access and edit permission can open the shared transaction on their own device and update those metadata fields.
-- Amount, transaction type, date, currency, FX rate and original SMS remain read-only for another family member so the source financial fact cannot be silently changed.
-- Changes are stored as a separate Firestore `transactionEdits` record, so the original transaction is not duplicated or overwritten by another member.
-- The edit is pushed to all permitted family devices through the existing Firestore listener.
-- The owner device also receives the shared edit and applies it to its local transaction.
-- Sharing permissions are respected: `All family` or the selected audience. If editing is disabled, the transaction is view-only.
-- Shared transaction edits include merchant, category, note, linked asset, person/beneficiary tag and event tag.
-
-## Firebase rule update required
-
-The APK contains the updated `firestore.rules`, including the `transactionEdits` collection. The Firebase project must use these rules for collaborative editing to work.
-
-If deploying with Firebase CLI, run:
-
-```bash
-firebase deploy --only firestore:rules
-```
-
-or publish the contents of `firestore.rules` from the Firebase Console.
-
-## Build
-
-GitHub Actions uses Gradle 8.7 and JDK 17 to build the release APK.
-
-Version: **1.72**  
-Version code: **67**
+## Important
+- This build does not include Gmail access.
+- The attached sample .xls format is supported as an Excel workbook.
+- Run the GitHub Actions Android release build to verify the full Android/Gradle dependency resolution.

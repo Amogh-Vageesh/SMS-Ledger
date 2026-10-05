@@ -48,17 +48,6 @@ service cloud.firestore {
         allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
-      match /transactionEdits/{docId} {
-        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
-        allow create, update: if memberOf(familyId) && request.resource.data.editorUid == request.auth.uid &&
-          exists(/databases/$(database)/documents/families/$(familyId)/transactions/$(request.resource.data.transactionId)) && (
-            get(/databases/$(database)/documents/families/$(familyId)/transactions/$(request.resource.data.transactionId)).data.ownerUid == request.auth.uid ||
-            (get(/databases/$(database)/documents/families/$(familyId)/transactions/$(request.resource.data.transactionId)).data.allowFamilyEdit == true &&
-             (get(/databases/$(database)/documents/families/$(familyId)/transactions/$(request.resource.data.transactionId)).data.shareWith == "all" ||
-              get(/databases/$(database)/documents/families/$(familyId)/transactions/$(request.resource.data.transactionId)).data.audienceUids.hasAny([request.auth.uid])))
-          );
-        allow delete: if memberOf(familyId) && resource.data.editorUid == request.auth.uid;
-      }
       match /completeData/{docId} {
         allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
         allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;

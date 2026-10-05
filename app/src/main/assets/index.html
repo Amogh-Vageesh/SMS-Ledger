@@ -462,6 +462,14 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
     <p>Entries in other currencies are converted to ₹ at the rate on the day of the transaction. Entries with no rate yet aren't in your totals: <b id="fxPending">0</b>.</p>
     <div class="row" style="margin:0 0 12px"><button class="btn" id="fxConvert">Convert them now</button></div>
   </div>
+  <h1 class="section-h">Historical & missing-month import</h1>
+  <div class="set-block" id="historicalImportBlock">
+    <p><b>Import window: January 2022 onward</b></p>
+    <p class="help">SMS remains the primary source. Use bank statement import only for periods from 2022 where SMS is missing. Existing transactions are matched before anything new is added.</p>
+    <div id="historicalCoverage" class="help">Checking transaction coverage…</div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="historicalScan">Find missing months</button><button class="btn primary" id="statementImport">Import bank statement(s)</button></div>
+    <div id="statementStatus" class="hint" style="margin-top:8px">Select one or multiple PDF, CSV, XLS/XLSX or text statements. Existing SMS transactions are matched first; overlapping statement files are also reconciled so the same transaction is not added twice.</div>
+  </div>
   <h1 class="section-h">Data not from SMS</h1>
   <div class="set-block" id="importedBlock">
     <p id="importedNote">Checking for entries, bills and accounts that came from an earlier import rather than your phone's SMS…</p>
@@ -1891,43 +1899,14 @@ function publishFamilyCloud(force){
   const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeData:completeState?JSON.stringify(completeState):'',completeShareWith:(completeEnabled && fam.completeDataShareWith!=='all' ? 'some' : 'all'),completeAudienceUids:completeAudience};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
-function publishSharedTransactionEdit(t, patch){
-  const fam=state.family||{};
-  if(!(window.Android&&window.Android.publishFamilyTransactionEdit) || !fam.cloudId || !cloudUser || !t || !t.id || !t.shared || t.private) return;
-  const ownerUid=t.ownerUid||t._ownerUid||cloudUser.uid;
-  const allowed={};
-  ["merchant","category","note","assetId","person","event"].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch,k)) allowed[k]=patch[k]; });
-  try{ window.Android.publishFamilyTransactionEdit(fam.cloudId,t.id,ownerUid,JSON.stringify(allowed)); }catch(e){}
-}
-function mergeSharedTransactionPatch(t, patch){
-  if(!t || !patch) return t;
-  ["merchant","category","note","assetId","person","event"].forEach(k=>{
-    if(Object.prototype.hasOwnProperty.call(patch,k)){
-      if(patch[k]===null || patch[k]==="") delete t[k]; else t[k]=patch[k];
-    }
-  });
-  t.sharedEditAt=patch.updatedAt||t.sharedEditAt;
-  t.sharedEditedBy=patch.updatedByName||t.sharedEditedBy;
-  return t;
-}
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
 window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){return}; if(!r.ok){toast(r.error||"Couldn\'t load family");return;} state.family=state.family||{members:{}}; state.family.cloudName=r.name||"My Family"; state.family.cloudCode=r.inviteCode||""; state.family.members=state.family.members||{}; const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):""; (r.members||[]).forEach(m=>{const id=String(m.uid||uidGen()); if(selfUid && id===selfUid) return; state.family.members[id]={...(state.family.members[id]||{}),name:m.name||m.email||"Member",googleUid:m.uid||"",googleEmail:m.email||""};}); if(selfUid) delete state.family.members[selfUid]; Object.keys(state.family.members).forEach(id=>{if(state.family.members[id]&&String(state.family.members[id].googleUid||"")===selfUid) delete state.family.members[id];}); saveLocal(); render(); };
 window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
 window.familyCloudArrived=function(json){
   let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
   const kinds=["members","transactions","events","calendar","shopping","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
-  const editMap={}; (d.transactionEdits||[]).forEach(x=>{ const key=String(x.ownerUid||"")+"::"+String(x.transactionId||""); editMap[key]=x; });
   (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
-  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; if(k==="transactions"){ const ed=editMap[String(owner)+"::"+String(x.id||"")]; if(ed&&ed.fields) mergeSharedTransactionPatch(x,ed.fields); } (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
-  // Apply edits to this phone's own shared transactions too. The cloud edit record is
-  // authoritative for shared metadata (merchant/category/event/asset/person/note).
-  if(cloudUser?.uid){
-    (d.transactionEdits||[]).forEach(ed=>{
-      if(String(ed.ownerUid||"")!==String(cloudUser.uid) || !ed.fields) return;
-      const local=state.txns.find(t=>String(t.id)===String(ed.transactionId));
-      if(local && local.shared) mergeSharedTransactionPatch(local,ed.fields);
-    });
-  }
+  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
   Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
   saveLocal(); render();
 };
@@ -1968,6 +1947,80 @@ async function refreshSimBlock(){
       <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
   }).join("");
 }
+document.getElementById("historicalScan")?.addEventListener("click", startHistoricalScan);
+document.getElementById("statementImport")?.addEventListener("click", ()=>{
+  if(window.Android && window.Android.pickBankStatement) window.Android.pickBankStatement("bankStatementFilesResult");
+  else toast("Bank statement import is available in the Android build.");
+});
+function statementNorm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+function statementDate(s){
+  s=String(s||"").trim(); if(!s) return "";
+  let m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  if(m){ let y=+m[3]; if(y<100)y+=2000; return `${y}-${String(+m[2]).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}`; }
+  const d=new Date(s); if(!isNaN(d)) return iso(d); return "";
+}
+function statementAmount(s){
+  const v=String(s||"").replace(/₹|Rs\.?|INR/gi,"").replace(/,/g,"").replace(/[()]/g,"-").trim();
+  if(!v) return null; const n=parseFloat(v.replace(/[^0-9.\-]/g,"")); return isFinite(n)?Math.abs(n):null;
+}
+function parseStatementCsv(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i], n=text[i+1]; if(c==='"'){ if(q&&n==='"'){cell+='"';i++;}else q=!q; } else if(c===','&&!q){row.push(cell);cell="";} else if((c==='\n'||c==='\r')&&!q){ if(c==='\r'&&n==='\n')i++; row.push(cell);cell=""; if(row.some(x=>String(x).trim())) rows.push(row); row=[]; } else cell+=c; }
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+function statementHeaderMap(headers){
+  const h=headers.map(x=>statementNorm(x));
+  const find=(arr)=>{const i=h.findIndex(x=>arr.some(a=>x===a||x.includes(a)));return i;};
+  return {date:find(["date","transaction date","value date","txn date"]),desc:find(["description","narration","particulars","transaction details","remarks"]),debit:find(["debit","withdrawal","withdrawals","debit amount"]),credit:find(["credit","deposit","deposits","credit amount"]),amount:find(["amount","transaction amount"]),type:find(["type","dr cr","debit credit"]),ref:find(["reference","ref no","reference no","transaction id","utr","upi ref"])};
+}
+function importStatementText(text, fileName, done){
+  if(!text || text.startsWith("__ERROR__:")){ toast(text?text.slice(10):"Could not read the statement."); if(done) done(); return; }
+  const rows=parseStatementCsv(text);
+  let added=0, matched=0, review=0, skipped=0; const months=new Set();
+  if(rows.length<2){ toast(`No statement rows were found in ${fileName||"the statement"}. Please use a CSV, XLS/XLSX or text-based PDF statement.`); if(done) done(); return; }
+  const map=statementHeaderMap(rows[0]);
+  if(map.date<0 || (map.desc<0 && map.amount<0)){ toast(`I couldn't identify the statement columns in ${fileName||"the statement"}. Please use a bank statement with Date and Description/Narration columns.`); if(done) done(); return; }
+  const existing=state.txns||[];
+  const used=new Set();
+  rows.slice(1).forEach(r=>{
+    const date=statementDate(r[map.date]); if(!date || date<"2022-01-01") { if(date) skipped++; return; }
+    let debit=map.debit>=0?statementAmount(r[map.debit]):null, credit=map.credit>=0?statementAmount(r[map.credit]):null;
+    if(map.amount>=0 && debit==null && credit==null){ const a=statementAmount(r[map.amount]); const typ=statementNorm(map.type>=0?r[map.type]:""); if(/credit|cr|deposit|inward/.test(typ)) credit=a; else debit=a; }
+    if((debit==null||debit===0)&&(credit==null||credit===0)) {skipped++;return;}
+    const type=(credit!=null&&credit>0&&!(debit>0))?"credit":"debit"; const amount=type==="credit"?credit:debit;
+    const raw=r.join(" | "), desc=map.desc>=0?String(r[map.desc]||"").trim():raw, ref=map.ref>=0?String(r[map.ref]||"").trim():"";
+    const cand=existing.filter(t=>t&&t.date&&t.type===type&&Math.abs(Number(t.amount)-amount)<0.01&&Math.abs(daysBetween(t.date,date))<=1&&!used.has(t.id));
+    const exactRef=ref?cand.find(t=>statementNorm(t.raw||"").includes(statementNorm(ref))||statementNorm(t.note||"").includes(statementNorm(ref))):null;
+    const best=exactRef||cand.find(t=>mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(desc))||mkey(desc).includes(mkey(t.merchant||"")));
+    if(best){ best.statementSources=[...(best.statementSources||[]),{date,description:desc,reference:ref,importedAt:Date.now()}]; best.source="sms+statement"; used.add(best.id); matched++; months.add(best.date.slice(0,7)); return; }
+    const soft=cand[0]; if(soft){ review++; return; }
+    const merchant=desc.split(/\s{2,}|\/|\|/)[0].trim().slice(0,80)||"Bank transaction";
+    const t={id:uidGen(),date,amount,type,merchant,category:type==="credit"?"Other income":"Other",raw:`[Bank statement] ${raw}`,source:"statement",statementSources:[{date,description:desc,reference:ref,importedAt:Date.now()}],added:Date.now()};
+    state.txns.push(t); added++; months.add(date.slice(0,7));
+  });
+  persist([...months],false); render(); toast(`${fileName||"Statement"}: ${added} new, ${matched} matched${review?`, ${review} need review`:""}.`); if(done) done();
+}
+window.bankStatementFilesResult=function(payload){
+  let files=[]; try{ files=JSON.parse(payload||"[]"); }catch(e){ toast("Could not read the selected statement files."); return; }
+  if(!Array.isArray(files)||!files.length){ toast("No statement files selected."); return; }
+  const status=document.getElementById("statementStatus");
+  const ok=files.filter(f=>f&&f.text); const bad=files.filter(f=>f&&f.error);
+  if(!ok.length){ toast(bad[0]?.error||"Could not read the selected statements."); return; }
+  if(status) status.textContent=`Reading ${ok.length} statement${ok.length===1?"":"s"}${bad.length?`; ${bad.length} could not be read`:""}…`;
+  let i=0;
+  const next=()=>{
+    if(i>=ok.length){
+      if(status) status.textContent=`Processed ${ok.length} statement${ok.length===1?"":"s"}. Existing SMS transactions and overlapping statement transactions were reconciled before adding new entries.`;
+      return;
+    }
+    const f=ok[i++];
+    importStatementText(f.text, f.name, next);
+  };
+  next();
+};
+window.bankStatementFileResult=function(text){ importStatementText(text,"statement",()=>{}); };
+
 document.getElementById("simList").addEventListener("change", e=>{
   const nm = e.target.closest("[data-simname]");
   if(nm){
@@ -2257,7 +2310,7 @@ function openEventDetail(id){
   document.body.appendChild(scrim);
   scrim.addEventListener("click", e=>{
     if(e.target === scrim || e.target.closest("[data-s=cancel]")){ scrim.remove(); return; }
-    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx){ scrim.remove(); openSheet(tx, false); } return; }
+    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx && !tx.remote){ scrim.remove(); openSheet(tx, false); } else if(tx){ toast("This expense belongs to another family member and can be viewed here but edited on their phone."); } return; }
     const ed=e.target.closest('[data-editeventdetail]'); if(ed){scrim.remove();createEventForm(ed.dataset.editeventdetail);return;}
     const edit = e.target.closest("[data-edetail]");
     if(edit){ scrim.remove(); createEventForm(edit.dataset.edetail); return; }
@@ -2378,7 +2431,7 @@ function openEntriesSheet(){
   const scrim=document.createElement("div"); scrim.className="scrim";
   const tx=displayTxns().filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
-  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId)||allRemoteSharedTransactions().find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
+  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
 }
 /* ---------- Assets / net worth ---------- */
 const ASSET_TYPES = [
@@ -3010,8 +3063,22 @@ function openBudgetSheet(){
     }
   });
 }
+function renderHistoricalCoverage(){
+  const el=document.getElementById("historicalCoverage"); if(!el) return;
+  const start=new Date("2022-01-01T00:00:00"); const now=new Date(); const seen=new Set();
+  (state.txns||[]).forEach(t=>{ const d=new Date(t.date||t.ts||0); if(!isNaN(d)&&d>=start) seen.add(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")); });
+  const missing=[]; let d=new Date(2022,0,1); const end=new Date(now.getFullYear(),now.getMonth(),1);
+  while(d<=end){ const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); if(!seen.has(k)) missing.push(k); d.setMonth(d.getMonth()+1); }
+  el.innerHTML=missing.length ? `<b>${missing.length} month(s) have no imported transactions:</b> ${missing.slice(0,18).join(", ")}${missing.length>18?"…":""}` : "No completely empty months found from January 2022 onward.";
+}
+function startHistoricalScan(){
+  renderHistoricalCoverage();
+  const el=document.getElementById("historicalCoverage"); if(el) el.scrollIntoView({block:"nearest"});
+  toast("Missing months checked from January 2022.");
+}
 function renderSettings(){
   renderBudgetSummary();
+  renderHistoricalCoverage();
   document.getElementById("ruleCount").textContent = inr.format(new Set([...Object.keys(state.rules), ...Object.keys(state.names)]).size);
   document.getElementById("monthStart").value = String(state.monthStart || 1);
   refreshImportedBlock();
@@ -3081,13 +3148,10 @@ function openEventPicker(currentId, forName, forDate, onPick){
 }
 
 function openSheet(t, isNew){
-  const remoteShared = !isNew && !!(t._remote || (t.remote && t.ownerUid && cloudUser && t.ownerUid!==cloudUser.uid));
-  const remoteEditable = remoteShared && t.allowFamilyEdit !== false;
   const loanMatch = !isNew ? findLoanMatch(t) : null;
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${isNew?"New entry":"Edit entry"}">
-    <h2>${isNew?"New entry":(remoteShared?"Edit shared entry":"Edit entry")}</h2>
-    ${remoteShared?`<p class="help" style="margin-top:-4px">This transaction belongs to ${esc((t._ownerName)||"another family member")}. ${remoteEditable?"You can update its merchant name, category, note, asset and event. Amount, date and original SMS stay unchanged. Your change will sync to the family members who can see this shared transaction.":"The owner shared this transaction for viewing only. Editing is disabled."}</p>`:""}
+    <h2>${isNew?"New entry":"Edit entry"}</h2>
     <div class="two">
       <label class="field"><span>Amount</span><input id="e-amt" inputmode="decimal" value="${t.amount||""}"></label>
       <label class="field"><span>Type</span><select id="e-type"><option value="debit"${t.type!=="credit"?" selected":""}>Money out</option><option value="credit"${t.type==="credit"?" selected":""}>Money in</option></select></label>
@@ -3112,7 +3176,7 @@ function openSheet(t, isNew){
       <span id="e-evLabel" style="flex-grow:1;text-align:left;font-weight:600">${t.event && state.events[t.event] ? esc(state.events[t.event].name) : "None — tap to tag"}</span>
       <span style="color:var(--muted)">›</span>
     </button>
-    ${cloudUser && state.family?.cloudId && !remoteShared ? `<div class="switchrow"><span><b>Share this expense</b><small id="e-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(t))}</small></span><label class="switch"><input type="checkbox" id="e-shareToggle" ${t.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="e-shareArea" style="${t.shared?'':'display:none'}"><button type="button" class="mini" id="e-shareBtn">${t.shareWith==='all'?'All family':'Choose members'}</button></div><label class="check" id="e-allowEditRow" style="${t.shared?'':'display:none'}"><input type="checkbox" id="e-allowEdit" ${t.allowFamilyEdit!==false?'checked':''}>Allow shared family members to edit merchant, category, note, asset and event</label>` : ""}
+    ${cloudUser && state.family?.cloudId ? `<div class="switchrow"><span><b>Share this expense</b><small id="e-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(t))}</small></span><label class="switch"><input type="checkbox" id="e-shareToggle" ${t.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="e-shareArea" style="${t.shared?'':'display:none'}"><button type="button" class="mini" id="e-shareBtn">${t.shareWith==='all'?'All family':'Choose members'}</button></div>` : ""}
     ${loanMatch?`<label class="check"><input type="checkbox" id="e-loan">This looks like ${loanMatch.splitWith?esc(loanMatch.splitWith)+" ":""}paying back the ${money(loanMatch.amount-loanMatch.share,true)} you lent on ${esc(niceDate(loanMatch.date))}. Mark it as a repayment (not income) and settle it?</label>`:""}
     <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
     <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
@@ -3137,25 +3201,17 @@ function openSheet(t, isNew){
       ${!isNew?`<button class="btn danger" id="e-del" style="margin-left:auto">Delete</button>`:""}
     </div></div>`;
   document.body.appendChild(scrim);
-  if(remoteShared){
-    ["#e-amt","#e-type","#e-cur","#e-rate","#e-date","#e-shareToggle","#e-reimb","#e-split","#e-n","#e-share","#e-with","#e-settled","#e-rule","#e-ruleAmt","#e-recur","#e-same"].forEach(sel=>{ const el=scrim.querySelector(sel); if(el) el.disabled=true; });
-    if(!remoteEditable){ ["#e-mer","#e-cat","#e-asset","#e-note","#e-evBtn"].forEach(sel=>{ const el=scrim.querySelector(sel); if(el) el.disabled=true; }); const saveBtn=scrim.querySelector("#e-save"); if(saveBtn) saveBtn.disabled=true; }
-    const delRemote=scrim.querySelector("#e-del"); if(delRemote) delRemote.style.display="none";
-    const loanRemote=scrim.querySelector("#e-loan"); if(loanRemote) loanRemote.disabled=true;
-  }
   const close = ()=>scrim.remove();
   scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
   scrim.querySelector("#e-cancel").onclick = close;
   scrim.querySelector("#e-amt").focus();
   let selPerson = t.person || "";
   let selEvent = t.event || "";
-  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all", allowFamilyEdit:t.allowFamilyEdit!==false};
+  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
   const shareBtn = scrim.querySelector("#e-shareBtn");
   const shareToggle=scrim.querySelector("#e-shareToggle"), shareArea=scrim.querySelector("#e-shareArea");
-  const allowEditBox=scrim.querySelector("#e-allowEdit"), allowEditRow=scrim.querySelector("#e-allowEditRow");
-  if(allowEditBox) allowEditBox.onchange=e=>{selShare.allowFamilyEdit=!!e.target.checked;};
-  if(shareToggle) shareToggle.onchange=e=>{selShare.shared=e.target.checked;if(!selShare.shared)selShare.shareWith="all";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";if(allowEditRow)allowEditRow.style.display=selShare.shared?"block":"none";if(shareBtn)shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);};
-  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(allowEditBox)allowEditBox.checked=selShare.allowFamilyEdit!==false;if(allowEditRow)allowEditRow.style.display=selShare.shared?"block":"none";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
+  if(shareToggle) shareToggle.onchange=e=>{selShare.shared=e.target.checked;if(!selShare.shared)selShare.shareWith="all";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";if(shareBtn)shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);};
+  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
   const evBtn = scrim.querySelector("#e-evBtn");
   const refreshEvBtn = ()=>{
     const ev = eventById(selEvent);
@@ -3223,7 +3279,7 @@ function openSheet(t, isNew){
     const assetSel=scrim.querySelector("#e-asset"); if(assetSel&&assetSel.value) upd.assetId=assetSel.value; else delete upd.assetId;
     if(selPerson) upd.person = selPerson; else delete upd.person;
     if(selEvent) upd.event = selEvent; else delete upd.event;
-    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;upd.allowFamilyEdit=selShare.allowFamilyEdit!==false;} else {delete upd.shared;delete upd.shareWith;delete upd.allowFamilyEdit;} }
+    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;} else {delete upd.shared;delete upd.shareWith;} }
     if(scrim.querySelector("#e-split").checked && upd.type === "debit"){
       const share = parseFloat(shareIn.value.replace(/[,₹\s]/g,""));
       if(!(share >= 0) || share > amount){ toast("Your share should be between ₹0 and the full amount."); return; }
@@ -3236,18 +3292,6 @@ function openSheet(t, isNew){
     if(loanMatch && loanBox && loanBox.checked){
       upd.category = "Loan repayment"; upd.userCat = true;
       loanMatch.settled = true; months.add(loanMatch.date.slice(0,7)); settings = true;
-    }
-    if(remoteShared){
-      const patch={merchant:upd.merchant,category:upd.category,note:upd.note};
-      if(upd.assetId) patch.assetId=upd.assetId; else patch.assetId="";
-      if(selPerson) patch.person=selPerson; else patch.person="";
-      if(selEvent) patch.event=selEvent; else patch.event="";
-      publishSharedTransactionEdit(t,patch);
-      const localRemote={...t,...patch,sharedEditAt:Date.now(),sharedEditedBy:cloudUser?.name||cloudUser?.email||"Family member"};
-      // Keep the remote view immediately responsive without changing the owner's source transaction.
-      const rm=state.family&&state.family.members&&state.family.members[t.ownerUid];
-      if(rm&&Array.isArray(rm.txns)) rm.txns=rm.txns.map(x=>x.id===t.id?localRemote:x);
-      close(); render(); toast("Shared entry updated and synced to permitted family members."); return;
     }
     if(isNew){ upd.id = uidGen(); upd.added = Date.now(); state.txns.push(upd); }
     else {
@@ -3284,11 +3328,7 @@ function openSheet(t, isNew){
       const rc = scrim.querySelector("#e-recur");
       if(rc){ setRecurring(upd, rc.checked); settings = true; }
     }
-    persist([...months], settings);
-    if(!isNew && upd.shared && !upd.private && cloudUser && (!upd.ownerUid || upd.ownerUid===cloudUser.uid)){
-      publishSharedTransactionEdit(upd,{merchant:upd.merchant,category:upd.category,note:upd.note,assetId:upd.assetId||"",person:upd.person||"",event:upd.event||""});
-    }
-    close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
+    persist([...months], settings); close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
   };
   const del = scrim.querySelector("#e-del");
   if(del) del.onclick = ()=>{
@@ -3397,7 +3437,7 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   const hper=e.target.closest("[data-home-period]"); if(hper){ homePeriodMode=hper.dataset.homePeriod; if(homePeriodMode==="day")homePeriodDay=todayISO(); if(homePeriodMode==="month")homePeriodMonth=currentPK(); if(homePeriodMode==="year")homePeriodYear=new Date().getFullYear(); render(); return; }
   const hshift=e.target.closest("[data-home-period-shift]"); if(hshift){ const n=+hshift.dataset.homePeriodShift; if(homePeriodMode==="day"){const d=new Date(homePeriodDay+"T00:00:00");d.setDate(d.getDate()+n);const k=iso(d);if(k<=todayISO())homePeriodDay=k;} else if(homePeriodMode==="month"){const d=new Date(homePeriodMonth+"-01T00:00:00"); d.setMonth(d.getMonth()+n); const k=monthKey(d); if(k<=currentPK()){homePeriodMonth=k;}} else if(homePeriodMode==="year"){const y=homePeriodYear+n;if(y<=new Date().getFullYear())homePeriodYear=y;} render(); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
-  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); else { const rt=allRemoteSharedTransactions().find(x=>x.id===htx.dataset.homeEntry); if(rt) openSheet(rt,false); } return; }
+  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); return; }
   const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
@@ -3790,11 +3830,6 @@ document.getElementById("smsRescan").addEventListener("click", e=>{
   if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
 });
 function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
-function allRemoteSharedTransactions(){
-  const out=[]; const members=state.family&&state.family.members||{};
-  Object.entries(members).forEach(([uid,m])=>{ (m.txns||[]).forEach(t=>{ if(t&&t.shared&&!t.private) out.push({...t,remote:true,_remote:true,ownerUid:t.ownerUid||uid,_ownerUid:t.ownerUid||uid,_ownerName:m.name||"Family member"}); }); });
-  return out;
-}
 function displayTxns(){
   // Before the user grants Android SMS access and confirms the in-app consent, do not expose
   // previously stored SMS-derived entries in dashboards. Hand-entered entries remain usable.

@@ -26,14 +26,23 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.InputStreamReader
+import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
 import java.security.MessageDigest
 import kotlin.concurrent.thread
 
@@ -54,9 +63,65 @@ class MainActivity : ComponentActivity() {
 
     // <input type="file"> in the page (restore backup, FinArt import) needs a native picker.
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private var statementCallback: ValueCallback<String>? = null
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         fileCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
         fileCallback = null
+    }
+
+    private val pickStatement = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        val cb = statementCallback
+        statementCallback = null
+        if (uris.isNullOrEmpty()) { cb?.onReceiveValue("[]"); return@registerForActivityResult }
+        lifecycleScope.launch {
+            val payload = JSONArray()
+            uris.forEach { uri ->
+                try {
+                    val text = readStatementText(uri)
+                    payload.put(JSONObject().put("name", uri.lastPathSegment ?: "statement").put("text", text))
+                } catch (e: Throwable) {
+                    payload.put(JSONObject().put("name", uri.lastPathSegment ?: "statement").put("error", e.message ?: e.javaClass.simpleName))
+                }
+            }
+            cb?.onReceiveValue(payload.toString())
+        }
+    }
+
+    private fun readStatementText(uri: Uri): String {
+        val mime = contentResolver.getType(uri) ?: ""
+        val name = uri.lastPathSegment?.lowercase() ?: ""
+        if (mime.contains("pdf") || name.endsWith(".pdf")) {
+            PDFBoxResourceLoader.init(applicationContext)
+            contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "Unable to open statement." }
+                PDDocument.load(input).use { doc ->
+                    val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
+                    return stripper.getText(doc)
+                }
+            }
+        }
+        if (mime.contains("excel") || mime.contains("spreadsheet") || name.endsWith(".xls")) {
+            contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "Unable to open statement." }
+                HSSFWorkbook(input).use { workbook ->
+                    val sheet = workbook.getSheetAt(0)
+                    val out = StringBuilder()
+                    val formatter = org.apache.poi.ss.usermodel.DataFormatter()
+                    for (row in sheet) {
+                        val cells = (0 until row.lastCellNum.toInt().coerceAtLeast(0)).map { c ->
+                            val value = formatter.formatCellValue(row.getCell(c))
+                            """ + value.replace(""", """") + """
+                        }
+                        if (cells.isNotEmpty()) out.append(cells.joinToString(",")).append('\n')
+                    }
+                    return out.toString()
+                }
+            }
+        }
+        contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "Unable to open statement." }
+            return InputStreamReader(input, Charsets.UTF_8).readText()
+        }
     }
 
     private val cloudAuth by lazy { CloudAuth(this) }
@@ -588,6 +653,15 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun pickBankStatement(callbackName: String) = runOnUiThread {
+            statementCallback = ValueCallback { payload ->
+                val safe = JSONObject.quote(payload ?: "[]")
+                web.evaluateJavascript("window.bankStatementFilesResult && window.bankStatementFilesResult($safe)", null)
+            }
+            pickStatement.launch(arrayOf("application/pdf", "text/csv", "text/plain", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"))
+        }
+
+        @JavascriptInterface
         fun signIn() {
             lifecycleScope.launch {
                 try {
@@ -640,19 +714,6 @@ class MainActivity : ComponentActivity() {
         fun publishFamily(familyId: String, payload: String) {
             lifecycleScope.launch {
                 val json = try { familyCloud.publish(familyId, JSONObject(payload)); JSONObject().put("ok", true).toString() } catch (e: Throwable) { JSONObject().put("ok", false).put("error", e.message ?: "Could not sync family data").toString() }
-                web.evaluateJavascript("window.familyCloudPublishResult && window.familyCloudPublishResult(${JSONObject.quote(json)})", null)
-            }
-        }
-
-        @JavascriptInterface
-        fun publishFamilyTransactionEdit(familyId: String, transactionId: String, ownerUid: String, patch: String) {
-            lifecycleScope.launch {
-                val json = try {
-                    familyCloud.publishTransactionEdit(familyId, transactionId, ownerUid, JSONObject(patch))
-                    JSONObject().put("ok", true).toString()
-                } catch (e: Throwable) {
-                    JSONObject().put("ok", false).put("error", e.message ?: "Could not sync shared transaction edit").toString()
-                }
                 web.evaluateJavascript("window.familyCloudPublishResult && window.familyCloudPublishResult(${JSONObject.quote(json)})", null)
             }
         }
