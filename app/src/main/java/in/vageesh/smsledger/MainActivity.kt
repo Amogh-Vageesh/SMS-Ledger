@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                     for (row in sheet) {
                         val cells = (0 until row.lastCellNum.toInt().coerceAtLeast(0)).map { c ->
                             val value = formatter.formatCellValue(row.getCell(c))
-                            """ + value.replace(""", """") + """
+                            "\"" + value.replace("\"", "\"\"") + "\""
                         }
                         if (cells.isNotEmpty()) out.append(cells.joinToString(",")).append('\n')
                     }
