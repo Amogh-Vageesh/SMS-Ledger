@@ -1,17 +1,34 @@
-# SMS Ledger v1.68
+# SMS Ledger v1.72
 
-Changes in v1.68:
-- Fixed FamilyCloud.kt Kotlin compilation errors caused by calling String.length as a function.
-- Complete-data sharing chunk calculations now use the Kotlin String.length property.
-- Retains v1.67 complete family data sharing and all previous Family Hub/My Ledger fixes.
-- GitHub Actions workflow included for release APK build.
+## Shared family transaction editing
 
+v1.72 adds collaborative editing for transactions that are shared through Family Cloud.
 
-## v1.70 Asset Market Intelligence & Asset-Linked Spending
-- Added market intelligence fields: valuation range, confidence, outlook, source and freshness.
-- Gold supports live spot refresh using the existing market endpoint; the app retains manual values if the service is unavailable.
-- Added asset-linked transaction mapping for EMI/loan payments and indirect asset expenses such as repairs, upgrades, maintenance and insurance.
-- Added conservative asset-link suggestions based on merchant/SMS text; the user must confirm the suggested asset.
-- Loan accounts can now be linked to Property/Home, Vehicle or Gold assets; selecting an asset can set the corresponding loan category.
-- Asset detail now shows linked EMI/loan payments, indirect expenses and number of linked entries.
-- Property/vehicle values remain source-backed/manual rather than inventing a market price.
+- A transaction owner can share an expense with all family members or selected members.
+- The owner can choose **Allow shared family members to edit merchant, category, note, asset and event**.
+- Family members who have access and edit permission can open the shared transaction on their own device and update those metadata fields.
+- Amount, transaction type, date, currency, FX rate and original SMS remain read-only for another family member so the source financial fact cannot be silently changed.
+- Changes are stored as a separate Firestore `transactionEdits` record, so the original transaction is not duplicated or overwritten by another member.
+- The edit is pushed to all permitted family devices through the existing Firestore listener.
+- The owner device also receives the shared edit and applies it to its local transaction.
+- Sharing permissions are respected: `All family` or the selected audience. If editing is disabled, the transaction is view-only.
+- Shared transaction edits include merchant, category, note, linked asset, person/beneficiary tag and event tag.
+
+## Firebase rule update required
+
+The APK contains the updated `firestore.rules`, including the `transactionEdits` collection. The Firebase project must use these rules for collaborative editing to work.
+
+If deploying with Firebase CLI, run:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+or publish the contents of `firestore.rules` from the Firebase Console.
+
+## Build
+
+GitHub Actions uses Gradle 8.7 and JDK 17 to build the release APK.
+
+Version: **1.72**  
+Version code: **67**

@@ -645,6 +645,19 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun publishFamilyTransactionEdit(familyId: String, transactionId: String, ownerUid: String, patch: String) {
+            lifecycleScope.launch {
+                val json = try {
+                    familyCloud.publishTransactionEdit(familyId, transactionId, ownerUid, JSONObject(patch))
+                    JSONObject().put("ok", true).toString()
+                } catch (e: Throwable) {
+                    JSONObject().put("ok", false).put("error", e.message ?: "Could not sync shared transaction edit").toString()
+                }
+                web.evaluateJavascript("window.familyCloudPublishResult && window.familyCloudPublishResult(${JSONObject.quote(json)})", null)
+            }
+        }
+
+        @JavascriptInterface
         fun listenFamily(familyId: String) {
             if (familyId.isBlank()) return
             familyCloud.listen(familyId)

@@ -1891,14 +1891,43 @@ function publishFamilyCloud(force){
   const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeData:completeState?JSON.stringify(completeState):'',completeShareWith:(completeEnabled && fam.completeDataShareWith!=='all' ? 'some' : 'all'),completeAudienceUids:completeAudience};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
+function publishSharedTransactionEdit(t, patch){
+  const fam=state.family||{};
+  if(!(window.Android&&window.Android.publishFamilyTransactionEdit) || !fam.cloudId || !cloudUser || !t || !t.id || !t.shared || t.private) return;
+  const ownerUid=t.ownerUid||t._ownerUid||cloudUser.uid;
+  const allowed={};
+  ["merchant","category","note","assetId","person","event"].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch,k)) allowed[k]=patch[k]; });
+  try{ window.Android.publishFamilyTransactionEdit(fam.cloudId,t.id,ownerUid,JSON.stringify(allowed)); }catch(e){}
+}
+function mergeSharedTransactionPatch(t, patch){
+  if(!t || !patch) return t;
+  ["merchant","category","note","assetId","person","event"].forEach(k=>{
+    if(Object.prototype.hasOwnProperty.call(patch,k)){
+      if(patch[k]===null || patch[k]==="") delete t[k]; else t[k]=patch[k];
+    }
+  });
+  t.sharedEditAt=patch.updatedAt||t.sharedEditAt;
+  t.sharedEditedBy=patch.updatedByName||t.sharedEditedBy;
+  return t;
+}
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
 window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){return}; if(!r.ok){toast(r.error||"Couldn\'t load family");return;} state.family=state.family||{members:{}}; state.family.cloudName=r.name||"My Family"; state.family.cloudCode=r.inviteCode||""; state.family.members=state.family.members||{}; const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):""; (r.members||[]).forEach(m=>{const id=String(m.uid||uidGen()); if(selfUid && id===selfUid) return; state.family.members[id]={...(state.family.members[id]||{}),name:m.name||m.email||"Member",googleUid:m.uid||"",googleEmail:m.email||""};}); if(selfUid) delete state.family.members[selfUid]; Object.keys(state.family.members).forEach(id=>{if(state.family.members[id]&&String(state.family.members[id].googleUid||"")===selfUid) delete state.family.members[id];}); saveLocal(); render(); };
 window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
 window.familyCloudArrived=function(json){
   let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
   const kinds=["members","transactions","events","calendar","shopping","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  const editMap={}; (d.transactionEdits||[]).forEach(x=>{ const key=String(x.ownerUid||"")+"::"+String(x.transactionId||""); editMap[key]=x; });
   (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
-  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; if(k==="transactions"){ const ed=editMap[String(owner)+"::"+String(x.id||"")]; if(ed&&ed.fields) mergeSharedTransactionPatch(x,ed.fields); } (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  // Apply edits to this phone's own shared transactions too. The cloud edit record is
+  // authoritative for shared metadata (merchant/category/event/asset/person/note).
+  if(cloudUser?.uid){
+    (d.transactionEdits||[]).forEach(ed=>{
+      if(String(ed.ownerUid||"")!==String(cloudUser.uid) || !ed.fields) return;
+      const local=state.txns.find(t=>String(t.id)===String(ed.transactionId));
+      if(local && local.shared) mergeSharedTransactionPatch(local,ed.fields);
+    });
+  }
   Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
   saveLocal(); render();
 };
@@ -2228,7 +2257,7 @@ function openEventDetail(id){
   document.body.appendChild(scrim);
   scrim.addEventListener("click", e=>{
     if(e.target === scrim || e.target.closest("[data-s=cancel]")){ scrim.remove(); return; }
-    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx && !tx.remote){ scrim.remove(); openSheet(tx, false); } else if(tx){ toast("This expense belongs to another family member and can be viewed here but edited on their phone."); } return; }
+    const row = e.target.closest("[data-id]"); if(row){ const tx = eventTransactions(id).find(x=>x.id === row.dataset.id); if(tx){ scrim.remove(); openSheet(tx, false); } return; }
     const ed=e.target.closest('[data-editeventdetail]'); if(ed){scrim.remove();createEventForm(ed.dataset.editeventdetail);return;}
     const edit = e.target.closest("[data-edetail]");
     if(edit){ scrim.remove(); createEventForm(edit.dataset.edetail); return; }
@@ -2349,7 +2378,7 @@ function openEntriesSheet(){
   const scrim=document.createElement("div"); scrim.className="scrim";
   const tx=displayTxns().filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
-  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
+  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId)||allRemoteSharedTransactions().find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
 }
 /* ---------- Assets / net worth ---------- */
 const ASSET_TYPES = [
@@ -2388,6 +2417,51 @@ function netWorth(){ return totalAssetsValue()-totalLiabilities(); }
 function assetLinkedExpenses(a){ return a ? (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&t.assetId===a.id).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0)) : []; }
 function assetIndirectExpenseTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category!=="EMI & loans"&&t.category!=="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
 function assetLoanPaymentTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category==="EMI & loans"||t.category==="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
+function assetTxnLabel(t){ return `${niceDate(t.date)} · ${t.merchant||"Payment"} · ${money(spendAmt(t),true)}`; }
+function assetTxnTypeLabel(t){ return (t.category==="EMI & loans"||t.category==="Loan repayment") ? "EMI / loan" : (t.category||"Expense"); }
+function openAssetTxnPicker(assetId){
+  const a=(state.assets||[]).find(x=>x.id===assetId); if(!a) return;
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Link existing transactions"><h2>Link existing transactions</h2>
+    <p class="help">Select transactions already imported into Ledger. Linking does not create a duplicate transaction; it only attaches the existing entry to <b>${esc(a.name)}</b>.</p>
+    <div class="two" style="margin-top:10px"><label class="field"><span>Show</span><select id="at-filter"><option value="unlinked">Unlinked only</option><option value="this">Already linked to this asset</option><option value="other">Linked to another asset</option><option value="all">All eligible debits</option></select></label><label class="field"><span>Search</span><input id="at-search" placeholder="Merchant, note, SMS or amount"></label></div>
+    <div class="row" style="margin:6px 0 4px"><button class="btn" id="at-selectAll">Select visible</button><button class="btn" id="at-clear">Clear selection</button><span class="help" id="at-count" style="margin-left:auto">0 selected</span></div>
+    <div id="at-list" style="max-height:52vh;overflow:auto;border-top:1px solid var(--rule)" data-notr></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="at-link">Link selected</button><button class="btn" id="at-cancel">Cancel</button></div>
+  </div>`;
+  document.body.appendChild(scrim);
+  const close=()=>scrim.remove();
+  scrim.addEventListener("click",e=>{if(e.target===scrim)close();});
+  scrim.querySelector("#at-cancel").onclick=close;
+  const list=scrim.querySelector("#at-list"), count=scrim.querySelector("#at-count"), filter=scrim.querySelector("#at-filter"), search=scrim.querySelector("#at-search");
+  const selected=new Set();
+  const eligible=()=> (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t));
+  const renderList=()=>{
+    const q=mkey(search.value||""); const mode=filter.value;
+    let rows=eligible().filter(t=>{
+      const same=t.assetId===assetId, other=!!t.assetId&&!same;
+      if(mode==="unlinked" && t.assetId) return false; if(mode==="this"&&!same)return false; if(mode==="other"&&!other)return false;
+      if(!q)return true; return mkey((t.merchant||"")+" "+(t.note||"")+" "+(t.raw||"")+" "+(t.category||"")+" "+spendAmt(t)).includes(q);
+    }).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0));
+    if(rows.length>300) rows=rows.slice(0,300);
+    list.innerHTML=rows.length?rows.map(t=>{
+      const checked=selected.has(t.id); const owner=t.assetId ? ((state.assets||[]).find(x=>x.id===t.assetId)?.name||"Other asset") : "Unlinked";
+      return `<label class="check" style="display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 4px;border-bottom:1px solid var(--rule);margin:0"><input type="checkbox" data-at-id="${esc(t.id)}" ${checked?"checked":""}><span><b>${esc(t.merchant||"Payment")}</b> · ${money(spendAmt(t),true)}<br><small class="help">${esc(niceDate(t.date))} · ${esc(assetTxnTypeLabel(t))} · ${esc(owner)}</small></span></label>`;
+    }).join(""):'<p class="help" style="padding:14px 4px">No matching imported transactions.</p>';
+    count.textContent=`${selected.size} selected`;
+    list.querySelectorAll("[data-at-id]").forEach(cb=>cb.onchange=()=>{if(cb.checked)selected.add(cb.dataset.atId);else selected.delete(cb.dataset.atId);count.textContent=`${selected.size} selected`;});
+  };
+  filter.onchange=renderList; search.oninput=renderList;
+  scrim.querySelector("#at-selectAll").onclick=()=>{list.querySelectorAll("[data-at-id]").forEach(cb=>{cb.checked=true;selected.add(cb.dataset.atId);});count.textContent=`${selected.size} selected`;};
+  scrim.querySelector("#at-clear").onclick=()=>{selected.clear();list.querySelectorAll("[data-at-id]").forEach(cb=>cb.checked=false);count.textContent="0 selected";};
+  scrim.querySelector("#at-link").onclick=()=>{
+    if(!selected.size){toast("Select at least one transaction.");return;}
+    let n=0; (state.txns||[]).forEach(t=>{if(selected.has(t.id)){t.assetId=assetId;n++;}});
+    const months=[...new Set((state.txns||[]).filter(t=>selected.has(t.id)).map(t=>t.date&&t.date.slice(0,7)).filter(Boolean))];
+    persist(months); close(); render(); toast(`${n} transaction${n===1?"":"s"} linked to ${a.name}.`);
+  };
+  renderList();
+}
 function suggestAssetForTxn(t){
   if(!t||t.type!=="debit") return null; const text=mkey((t.merchant||"")+" "+(t.raw||"")+" "+(t.note||"")); const assets=state.assets||[];
   const keys=[["vehicle",/(car|bike|vehicle|automobile|tyre|tire|service|garage|petrol|diesel|fuel|insurance)/],["property",/(home|house|property|repair|renovation|plumb|electric|paint|furniture|interior|builder|maintenance)/],["gold",/(gold|jewell|jewel|ornament|muthoot|manappuram|malabar|tanishq)/]];
@@ -2427,7 +2501,7 @@ function openAssetSheet(id){
     <label class="field"><span>Market outlook</span><select id="as-outlook"><option${!a.marketOutlook?" selected":""}>Not set</option><option${a.marketOutlook==="Positive"?" selected":""}>Positive</option><option${a.marketOutlook==="Stable"?" selected":""}>Stable</option><option${a.marketOutlook==="Negative"?" selected":""}>Negative</option></select></label></div>
     <label class="field"><span>Market note / source</span><input id="as-source" value="${esc(a.marketSource||"")}" placeholder="e.g. local broker, dealer quote, portal, API"></label>
     <div class="card" style="margin-top:8px"><b>Market intelligence</b><p class="help" style="margin:6px 0 0">Gold can be refreshed from the live market service. Property, vehicle and other assets keep a source-backed/manual valuation so the app does not invent a price. Add a low/high range, confidence and outlook to make the estimate more useful.</p>${a.type==="gold"?`<button type="button" class="btn" id="as-refreshGold" style="margin-top:8px">Refresh live gold value</button>`:""}</div>
-    <div class="card" style="margin-top:8px"><b>Asset-linked spending</b><p class="help" style="margin:6px 0 0">EMI/loan payments and indirect costs such as repairs, upgrades, maintenance and insurance can be linked to this asset from each transaction.</p><div class="msum num" style="margin-top:8px"><div><small>EMI / loan payments</small><b>${money(assetLoanPaymentTotal(a))}</b></div><div><small>Indirect expenses</small><b>${money(assetIndirectExpenseTotal(a))}</b></div><div><small>Linked entries</small><b>${assetLinkedExpenses(a).length}</b></div></div></div>`;
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>Asset-linked spending</b><button type="button" class="mini" id="as-linkTxns">+ Link existing</button></div><p class="help" style="margin:6px 0 0">Link transactions that are already imported into Ledger. The transaction stays in your normal spending totals and is not duplicated.</p><div class="msum num" style="margin-top:8px"><div><small>EMI / loan payments</small><b>${money(assetLoanPaymentTotal(a))}</b></div><div><small>Indirect expenses</small><b>${money(assetIndirectExpenseTotal(a))}</b></div><div><small>Linked entries</small><b>${assetLinkedExpenses(a).length}</b></div></div>${assetLinkedExpenses(a).slice(0,8).map(t=>`<div class="due" style="grid-template-columns:1fr auto"><span class="n">${esc(t.merchant||"Payment")}</span><span class="num">${money(spendAmt(t),true)}</span><span class="w" style="grid-column:1/3"><span>${esc(niceDate(t.date))}</span><span>${esc(assetTxnTypeLabel(t))}</span></span></div>`).join("")}${assetLinkedExpenses(a).length>8?`<p class="help" style="margin-top:8px">Showing 8 of ${assetLinkedExpenses(a).length}. Tap “Link existing” to manage all linked transactions.</p>`:""}</div>`;
   sheet(id?"Edit asset":"Add asset",inner,sc=>{
     const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
     const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
@@ -2437,6 +2511,7 @@ function openAssetSheet(id){
   },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
   const scr=document.querySelector(".scrim:last-of-type"), rb=scr&&scr.querySelector("#as-refreshGold");
   if(rb) rb.onclick=()=>{ rb.disabled=true; rb.textContent="Refreshing…"; refreshGoldAsset(id).finally(()=>{if(document.body.contains(scr)){rb.disabled=false;rb.textContent="Refresh live gold value";}}); };
+  const linkBtn=scr&&scr.querySelector("#as-linkTxns"); if(linkBtn) linkBtn.onclick=()=>openAssetTxnPicker(id);
 }
 async function refreshGoldAsset(id){
   const a=(state.assets||[]).find(x=>x.id===id); if(!a||a.type!=="gold"||!(Number(a.quantity)>0)) return;
@@ -3006,10 +3081,13 @@ function openEventPicker(currentId, forName, forDate, onPick){
 }
 
 function openSheet(t, isNew){
+  const remoteShared = !isNew && !!(t._remote || (t.remote && t.ownerUid && cloudUser && t.ownerUid!==cloudUser.uid));
+  const remoteEditable = remoteShared && t.allowFamilyEdit !== false;
   const loanMatch = !isNew ? findLoanMatch(t) : null;
   const scrim = document.createElement("div"); scrim.className = "scrim";
   scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${isNew?"New entry":"Edit entry"}">
-    <h2>${isNew?"New entry":"Edit entry"}</h2>
+    <h2>${isNew?"New entry":(remoteShared?"Edit shared entry":"Edit entry")}</h2>
+    ${remoteShared?`<p class="help" style="margin-top:-4px">This transaction belongs to ${esc((t._ownerName)||"another family member")}. ${remoteEditable?"You can update its merchant name, category, note, asset and event. Amount, date and original SMS stay unchanged. Your change will sync to the family members who can see this shared transaction.":"The owner shared this transaction for viewing only. Editing is disabled."}</p>`:""}
     <div class="two">
       <label class="field"><span>Amount</span><input id="e-amt" inputmode="decimal" value="${t.amount||""}"></label>
       <label class="field"><span>Type</span><select id="e-type"><option value="debit"${t.type!=="credit"?" selected":""}>Money out</option><option value="credit"${t.type==="credit"?" selected":""}>Money in</option></select></label>
@@ -3034,7 +3112,7 @@ function openSheet(t, isNew){
       <span id="e-evLabel" style="flex-grow:1;text-align:left;font-weight:600">${t.event && state.events[t.event] ? esc(state.events[t.event].name) : "None — tap to tag"}</span>
       <span style="color:var(--muted)">›</span>
     </button>
-    ${cloudUser && state.family?.cloudId ? `<div class="switchrow"><span><b>Share this expense</b><small id="e-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(t))}</small></span><label class="switch"><input type="checkbox" id="e-shareToggle" ${t.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="e-shareArea" style="${t.shared?'':'display:none'}"><button type="button" class="mini" id="e-shareBtn">${t.shareWith==='all'?'All family':'Choose members'}</button></div>` : ""}
+    ${cloudUser && state.family?.cloudId && !remoteShared ? `<div class="switchrow"><span><b>Share this expense</b><small id="e-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(t))}</small></span><label class="switch"><input type="checkbox" id="e-shareToggle" ${t.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="e-shareArea" style="${t.shared?'':'display:none'}"><button type="button" class="mini" id="e-shareBtn">${t.shareWith==='all'?'All family':'Choose members'}</button></div><label class="check" id="e-allowEditRow" style="${t.shared?'':'display:none'}"><input type="checkbox" id="e-allowEdit" ${t.allowFamilyEdit!==false?'checked':''}>Allow shared family members to edit merchant, category, note, asset and event</label>` : ""}
     ${loanMatch?`<label class="check"><input type="checkbox" id="e-loan">This looks like ${loanMatch.splitWith?esc(loanMatch.splitWith)+" ":""}paying back the ${money(loanMatch.amount-loanMatch.share,true)} you lent on ${esc(niceDate(loanMatch.date))}. Mark it as a repayment (not income) and settle it?</label>`:""}
     <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
     <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
@@ -3059,17 +3137,25 @@ function openSheet(t, isNew){
       ${!isNew?`<button class="btn danger" id="e-del" style="margin-left:auto">Delete</button>`:""}
     </div></div>`;
   document.body.appendChild(scrim);
+  if(remoteShared){
+    ["#e-amt","#e-type","#e-cur","#e-rate","#e-date","#e-shareToggle","#e-reimb","#e-split","#e-n","#e-share","#e-with","#e-settled","#e-rule","#e-ruleAmt","#e-recur","#e-same"].forEach(sel=>{ const el=scrim.querySelector(sel); if(el) el.disabled=true; });
+    if(!remoteEditable){ ["#e-mer","#e-cat","#e-asset","#e-note","#e-evBtn"].forEach(sel=>{ const el=scrim.querySelector(sel); if(el) el.disabled=true; }); const saveBtn=scrim.querySelector("#e-save"); if(saveBtn) saveBtn.disabled=true; }
+    const delRemote=scrim.querySelector("#e-del"); if(delRemote) delRemote.style.display="none";
+    const loanRemote=scrim.querySelector("#e-loan"); if(loanRemote) loanRemote.disabled=true;
+  }
   const close = ()=>scrim.remove();
   scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
   scrim.querySelector("#e-cancel").onclick = close;
   scrim.querySelector("#e-amt").focus();
   let selPerson = t.person || "";
   let selEvent = t.event || "";
-  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
+  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all", allowFamilyEdit:t.allowFamilyEdit!==false};
   const shareBtn = scrim.querySelector("#e-shareBtn");
   const shareToggle=scrim.querySelector("#e-shareToggle"), shareArea=scrim.querySelector("#e-shareArea");
-  if(shareToggle) shareToggle.onchange=e=>{selShare.shared=e.target.checked;if(!selShare.shared)selShare.shareWith="all";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";if(shareBtn)shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);};
-  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
+  const allowEditBox=scrim.querySelector("#e-allowEdit"), allowEditRow=scrim.querySelector("#e-allowEditRow");
+  if(allowEditBox) allowEditBox.onchange=e=>{selShare.allowFamilyEdit=!!e.target.checked;};
+  if(shareToggle) shareToggle.onchange=e=>{selShare.shared=e.target.checked;if(!selShare.shared)selShare.shareWith="all";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";if(allowEditRow)allowEditRow.style.display=selShare.shared?"block":"none";if(shareBtn)shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);};
+  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(allowEditBox)allowEditBox.checked=selShare.allowFamilyEdit!==false;if(allowEditRow)allowEditRow.style.display=selShare.shared?"block":"none";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
   const evBtn = scrim.querySelector("#e-evBtn");
   const refreshEvBtn = ()=>{
     const ev = eventById(selEvent);
@@ -3137,7 +3223,7 @@ function openSheet(t, isNew){
     const assetSel=scrim.querySelector("#e-asset"); if(assetSel&&assetSel.value) upd.assetId=assetSel.value; else delete upd.assetId;
     if(selPerson) upd.person = selPerson; else delete upd.person;
     if(selEvent) upd.event = selEvent; else delete upd.event;
-    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;} else {delete upd.shared;delete upd.shareWith;} }
+    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;upd.allowFamilyEdit=selShare.allowFamilyEdit!==false;} else {delete upd.shared;delete upd.shareWith;delete upd.allowFamilyEdit;} }
     if(scrim.querySelector("#e-split").checked && upd.type === "debit"){
       const share = parseFloat(shareIn.value.replace(/[,₹\s]/g,""));
       if(!(share >= 0) || share > amount){ toast("Your share should be between ₹0 and the full amount."); return; }
@@ -3150,6 +3236,18 @@ function openSheet(t, isNew){
     if(loanMatch && loanBox && loanBox.checked){
       upd.category = "Loan repayment"; upd.userCat = true;
       loanMatch.settled = true; months.add(loanMatch.date.slice(0,7)); settings = true;
+    }
+    if(remoteShared){
+      const patch={merchant:upd.merchant,category:upd.category,note:upd.note};
+      if(upd.assetId) patch.assetId=upd.assetId; else patch.assetId="";
+      if(selPerson) patch.person=selPerson; else patch.person="";
+      if(selEvent) patch.event=selEvent; else patch.event="";
+      publishSharedTransactionEdit(t,patch);
+      const localRemote={...t,...patch,sharedEditAt:Date.now(),sharedEditedBy:cloudUser?.name||cloudUser?.email||"Family member"};
+      // Keep the remote view immediately responsive without changing the owner's source transaction.
+      const rm=state.family&&state.family.members&&state.family.members[t.ownerUid];
+      if(rm&&Array.isArray(rm.txns)) rm.txns=rm.txns.map(x=>x.id===t.id?localRemote:x);
+      close(); render(); toast("Shared entry updated and synced to permitted family members."); return;
     }
     if(isNew){ upd.id = uidGen(); upd.added = Date.now(); state.txns.push(upd); }
     else {
@@ -3186,7 +3284,11 @@ function openSheet(t, isNew){
       const rc = scrim.querySelector("#e-recur");
       if(rc){ setRecurring(upd, rc.checked); settings = true; }
     }
-    persist([...months], settings); close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
+    persist([...months], settings);
+    if(!isNew && upd.shared && !upd.private && cloudUser && (!upd.ownerUid || upd.ownerUid===cloudUser.uid)){
+      publishSharedTransactionEdit(upd,{merchant:upd.merchant,category:upd.category,note:upd.note,assetId:upd.assetId||"",person:upd.person||"",event:upd.event||""});
+    }
+    close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
   };
   const del = scrim.querySelector("#e-del");
   if(del) del.onclick = ()=>{
@@ -3295,7 +3397,7 @@ document.getElementById("homeBody").addEventListener("click", e=>{
   const hper=e.target.closest("[data-home-period]"); if(hper){ homePeriodMode=hper.dataset.homePeriod; if(homePeriodMode==="day")homePeriodDay=todayISO(); if(homePeriodMode==="month")homePeriodMonth=currentPK(); if(homePeriodMode==="year")homePeriodYear=new Date().getFullYear(); render(); return; }
   const hshift=e.target.closest("[data-home-period-shift]"); if(hshift){ const n=+hshift.dataset.homePeriodShift; if(homePeriodMode==="day"){const d=new Date(homePeriodDay+"T00:00:00");d.setDate(d.getDate()+n);const k=iso(d);if(k<=todayISO())homePeriodDay=k;} else if(homePeriodMode==="month"){const d=new Date(homePeriodMonth+"-01T00:00:00"); d.setMonth(d.getMonth()+n); const k=monthKey(d); if(k<=currentPK()){homePeriodMonth=k;}} else if(homePeriodMode==="year"){const y=homePeriodYear+n;if(y<=new Date().getFullYear())homePeriodYear=y;} render(); return; }
   const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
-  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); return; }
+  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); else { const rt=allRemoteSharedTransactions().find(x=>x.id===htx.dataset.homeEntry); if(rt) openSheet(rt,false); } return; }
   const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
   const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
@@ -3688,6 +3790,11 @@ document.getElementById("smsRescan").addEventListener("click", e=>{
   if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
 });
 function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
+function allRemoteSharedTransactions(){
+  const out=[]; const members=state.family&&state.family.members||{};
+  Object.entries(members).forEach(([uid,m])=>{ (m.txns||[]).forEach(t=>{ if(t&&t.shared&&!t.private) out.push({...t,remote:true,_remote:true,ownerUid:t.ownerUid||uid,_ownerUid:t.ownerUid||uid,_ownerName:m.name||"Family member"}); }); });
+  return out;
+}
 function displayTxns(){
   // Before the user grants Android SMS access and confirms the in-app consent, do not expose
   // previously stored SMS-derived entries in dashboards. Hand-entered entries remain usable.
