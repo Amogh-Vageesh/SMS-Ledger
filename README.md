@@ -1,18 +1,22 @@
-SMS Ledger v1.85 — Loan top-up and balance-transfer model
+SMS Ledger v1.86 — Dedicated loan document import
 
-New in v1.85:
-- Loans can contain multiple independent tranches.
-- Add a loan top-up without overwriting the original loan. Each top-up stores its own amount, interest rate, start date and tenure.
-- Weighted interest rate and total sanctioned/outstanding amounts are shown for multi-tranche loans.
-- Transfer a loan from one bank/lender to another. The old loan is marked transferred/closed and hidden from active liabilities; a new loan account is created with a transfer tranche and optional separate top-up tranche.
-- A balance transfer does not double-count the liability.
-- Loan disbursement/top-up credits are classified as Loan proceeds, not income.
-- Balance-transfer/takeover settlement messages are classified as Loan transfer, not spending.
-- If a loan balance SMS arrives for an existing loan with tranches, the tranche outstanding amounts are reconciled to the latest bank-reported balance.
-- Existing v1.84 asset-linked loan interest and transaction-linking behavior is retained.
+New in v1.86:
+- Added Settings → Loan documents as a dedicated import area, separate from normal bank-statement import.
+- Import one or multiple PDF, XLS/XLSX, CSV or text loan documents using the Android document picker.
+- Supported document types: payment/amortization schedule, loan account statement, top-up/enhancement document, and balance-transfer/takeover document.
+- Each imported document is classified with editable fields for lender, loan name, original/transferred amount, current outstanding, interest rate, EMI, start/transfer date, tenure and loan category.
+- Existing loans can be selected and updated; a new loan can be created directly from a document.
+- Top-up documents add a separate loan tranche with its own amount, rate, date, tenure and outstanding balance.
+- Balance-transfer documents close the old lender's active loan and create a new lender loan with a transfer tranche; optional transfer-time top-up is stored separately, preventing double-counting of liabilities.
+- Loan documents are metadata/audit records. Forecast payment schedules do not create artificial spending transactions. Actual cash transactions should still come from SMS or bank-statement import.
+- Extracted values are suggestions and must be reviewed before saving because lender PDFs can vary in layout.
+- Kannada labels were added for the new loan-document workflow.
 
-Version: 1.85 / versionCode 81.
+Version: 1.86 / versionCode 82.
 
-Important:
-- Loan statement/payment schedule imports remain the source of truth for actual principal/interest. Tranches are the structural model used to keep original loans, top-ups and lender transfers separate.
-- The app does not assume that a top-up has the same rate as the original loan.
+Existing v1.85 loan features retained:
+- Multiple independent loan tranches.
+- Original loan + top-ups with separate rates.
+- Bank-to-bank balance transfer/takeover.
+- Weighted interest rate and total sanctioned/outstanding values.
+- Loan proceeds and loan-transfer transaction classifications.

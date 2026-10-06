@@ -413,7 +413,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 
 <section id="v-settings" class="hidden">
   <h1 class="section-h" style="margin-top:4px" data-notr>Language · ಭಾಷೆ</h1>
-  <div class="settings-jump"><select id="settingsJump" aria-label="Settings quick navigation"><option value="">Jump to a setting…</option><option value="settings-categories">Categories</option><option value="settings-sms">Automatic SMS reading</option><option value="settings-cloud">Cloud account</option><option value="settings-import">Historical & missing-month import</option><option value="settings-backup">Automatic backup</option><option value="settings-data">Your data</option><option value="settings-rules">Merchant rules</option></select></div>
+  <div class="settings-jump"><select id="settingsJump" aria-label="Settings quick navigation"><option value="">Jump to a setting…</option><option value="settings-categories">Categories</option><option value="settings-sms">Automatic SMS reading</option><option value="settings-cloud">Cloud account</option><option value="settings-import">Historical & missing-month import</option><option value="settings-loan-docs">Loan documents</option><option value="settings-backup">Automatic backup</option><option value="settings-data">Your data</option><option value="settings-rules">Merchant rules</option></select></div>
   <div class="set-block" data-notr>
     <div class="seg wide" id="langSeg" role="group" aria-label="Language" style="margin:12px 0">
       <button data-lang="en">English</button><button data-lang="kn">ಕನ್ನಡ</button>
@@ -487,6 +487,14 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
   <div class="set-block">
     <p>Entries in other currencies are converted to ₹ at the rate on the day of the transaction. Entries with no rate yet aren't in your totals: <b id="fxPending">0</b>.</p>
     <div class="row" style="margin:0 0 12px"><button class="btn" id="fxConvert">Convert them now</button></div>
+  </div>
+  <h1 class="section-h" id="settings-loan-docs">Loan documents</h1>
+  <div class="set-block" id="loanDocumentBlock">
+    <p><b>Import loan documents separately from normal bank statements.</b></p>
+    <p class="help">Use this for a payment/amortization schedule, a lender account statement, a top-up/sanction letter, or a balance-transfer/takeover document. The document updates the loan structure; it does not create fake cash transactions from a forecast schedule.</p>
+    <div class="row" style="margin:10px 0 8px;align-items:center;flex-wrap:wrap"><button class="btn primary" id="loanDocumentImport">Import loan document(s)</button><button class="btn" id="loanDocumentAdd">Add loan manually</button></div>
+    <div id="loanDocumentStatus" class="hint">Select one or more PDF, XLS/XLSX, CSV or text files. Each document will be classified and you can choose which loan it belongs to before applying it.</div>
+    <div id="loanDocumentList" style="margin-top:10px"></div>
   </div>
   <h1 class="section-h" id="settings-import">Historical & missing-month import</h1>
   <div class="set-block" id="historicalImportBlock">
@@ -743,6 +751,7 @@ Object.assign(KN, {
   "Choose your Google account":"ನಿಮ್ಮ Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Choose Google account":"Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Skip for now":"ಈಗ ಬೇಡ","Opening Google…":"Google ತೆರೆಯಲಾಗುತ್ತಿದೆ…","Google sign-in failed:":"Google ಸೈನ್ ಇನ್ ವಿಫಲವಾಗಿದೆ:",
   "Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Categories":"ವರ್ಗಗಳು","Currencies":"ಕರೆನ್ಸಿಗಳು","Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Cloud account":"ಕ್ಲೌಡ್ ಖಾತೆ","Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign out":"ಸೈನ್ ಔಟ್","Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Allow SMS access":"SMS ಪ್ರವೇಶ ಅನುಮತಿಸಿ","Language · ಭಾಷೆ":"ಭಾಷೆ · Language","Month cycle":"ತಿಂಗಳ ಚಕ್ರ"
 });
+Object.assign(KN,{"Loan documents":"ಸಾಲದ ದಾಖಲೆಗಳು","Import loan document(s)":"ಸಾಲದ ದಾಖಲೆ(ಗಳನ್ನು) ಆಮದು ಮಾಡಿ","Add loan manually":"ಸಾಲವನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಿ","Payment / amortization schedule":"ಪಾವತಿ / ಅಮೋರ್ಟೈಸೇಶನ್ ವೇಳಾಪಟ್ಟಿ","Loan account statement":"ಸಾಲ ಖಾತೆ ಸ್ಟೇಟ್‌ಮೆಂಟ್","Top-up / enhancement document":"ಟಾಪ್-ಅಪ್ / ಹೆಚ್ಚುವರಿ ಸಾಲದ ದಾಖಲೆ","Balance transfer / takeover":"ಬ್ಯಾಲೆನ್ಸ್ ವರ್ಗಾವಣೆ / ಟೇಕ್‌ಓವರ್","Loan to update":"ನವೀಕರಿಸಬೇಕಾದ ಸಾಲ","+ Create a new loan":"+ ಹೊಸ ಸಾಲ ರಚಿಸಿ","Loan name / new lender":"ಸಾಲದ ಹೆಸರು / ಹೊಸ ಸಾಲದಾತ","Lender / bank":"ಸಾಲದಾತ / ಬ್ಯಾಂಕ್","Original / transferred amount (₹)":"ಮೂಲ / ವರ್ಗಾಯಿಸಿದ ಮೊತ್ತ (₹)","Current outstanding (₹)":"ಪ್ರಸ್ತುತ ಬಾಕಿ (₹)","Interest rate (% p.a.)":"ಬಡ್ಡಿ ದರ (% ವಾರ್ಷಿಕ)","EMI (₹)":"EMI (₹)","Start / transfer date":"ಪ್ರಾರಂಭ / ವರ್ಗಾವಣೆ ದಿನಾಂಕ","Tenure (months)":"ಅವಧಿ (ತಿಂಗಳು)","Optional top-up during transfer (₹)":"ವರ್ಗಾವಣೆಯ ಸಮಯದ ಐಚ್ಛಿಕ ಟಾಪ್-ಅಪ್ (₹)","Top-up rate (% p.a.)":"ಟಾಪ್-ಅಪ್ ದರ (% ವಾರ್ಷಿಕ)","Loan document imported and linked.":"ಸಾಲದ ದಾಖಲೆ ಆಮದು ಮಾಡಿ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ.","Give the loan a name.":"ಸಾಲಕ್ಕೆ ಹೆಸರು ನೀಡಿ.","Enter the top-up amount.":"ಟಾಪ್-ಅಪ್ ಮೊತ್ತ ನಮೂದಿಸಿ.","Enter the new lender and transferred principal.":"ಹೊಸ ಸಾಲದಾತ ಮತ್ತು ವರ್ಗಾಯಿಸಿದ ಮೂಲಧನ ನಮೂದಿಸಿ."});
 Object.assign(KN,{"Jump to a setting…":"ಸೆಟ್ಟಿಂಗ್‌ಗೆ ಹೋಗಿ…","Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Cloud account":"ಕ್ಲೌಡ್ ಖಾತೆ","Historical & missing-month import":"ಹಿಂದಿನ ಮತ್ತು ಕಾಣೆಯಾದ ತಿಂಗಳ ಆಮದು","Automatic backup":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್","Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು","Link existing transactions":"ಈಗಿರುವ ವಹಿವಾಟುಗಳನ್ನು ಲಿಂಕ್ ಮಾಡಿ","Unlinked only":"ಲಿಂಕ್ ಆಗದವು ಮಾತ್ರ","Already linked to this asset":"ಈ ಆಸ್ತಿಗೆ ಈಗಾಗಲೇ ಲಿಂಕ್ ಆಗಿರುವುದು","Linked to another asset":"ಬೇರೆ ಆಸ್ತಿಗೆ ಲಿಂಕ್ ಆಗಿರುವುದು","All eligible debits":"ಎಲ್ಲಾ ಸೂಕ್ತ ಡೆಬಿಟ್‌ಗಳು","All months":"ಎಲ್ಲಾ ತಿಂಗಳುಗಳು","Exact date":"ನಿಖರ ದಿನಾಂಕ","Type to search category…":"ವರ್ಗ ಹುಡುಕಲು ಟೈಪ್ ಮಾಡಿ…","No matching category":"ಹೊಂದುವ ವರ್ಗ ಇಲ್ಲ","Close card":"ಕಾರ್ಡ್ ಮುಚ್ಚಿ","Reopen card":"ಕಾರ್ಡ್ ಮತ್ತೆ ತೆರೆಯಿರಿ","Credit card closed.":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್ ಮುಚ್ಚಲಾಗಿದೆ.","Credit card reopened.":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್ ಮತ್ತೆ ತೆರೆಯಲಾಗಿದೆ.","Remove duplicate recurring transactions":"ನಕಲಿ ಪುನರಾವರ್ತಿತ ವಹಿವಾಟುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ","No duplicate recurring transactions found.":"ನಕಲಿ ಪುನರಾವರ್ತಿತ ವಹಿವಾಟುಗಳು ಕಂಡುಬಂದಿಲ್ಲ.","Daily spending":"ದೈನಂದಿನ ಖರ್ಚು"});
 const KN_RX = [
   [/^Saved in the last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳ ಉಳಿತಾಯ`],
@@ -879,7 +888,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [] }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [] }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
@@ -3604,6 +3613,9 @@ document.getElementById("overviewBody").addEventListener("click", e=>{
 });
 document.getElementById("q").addEventListener("input", renderList);
 document.getElementById("catFilter").addEventListener("change", e=>{ listCat = e.target.value; renderList(); });
+document.getElementById("loanDocumentImport")?.addEventListener("click", startLoanDocumentImport);
+document.getElementById("loanDocumentAdd")?.addEventListener("click", ()=>openAcctSheet(null));
+
 const settingsJump=document.getElementById("settingsJump"); if(settingsJump) settingsJump.addEventListener("change",e=>{const id=e.target.value;if(!id)return;const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});e.target.value="";});
 const accountsBodyEl=document.getElementById("accountsBody");
 
@@ -3698,6 +3710,84 @@ function openLoanTransferSheet(key){
     a.transferredTo=nk;a.closed=true;a.hidden=true;a.transferredOn=date;a.balance=0;a.asOf=date;state.accounts[nk]=na;persist([],true);toast(`Loan transferred to ${name}.`);
   });
 }
+function loanDocGuess(name,text){
+  const t=String(text||""), n=String(name||""); const low=(n+"\n"+t).toLowerCase();
+  let type="statement";
+  if(/amort|repayment schedule|payment schedule|instalment schedule|installment schedule/.test(low)) type="schedule";
+  if(/top.?up|enhancement|additional loan|additional amount/.test(low)) type="topup";
+  if(/balance transfer|takeover|loan transfer|foreclosure.{0,40}(letter|statement)|closure.{0,30}transfer/.test(low)) type="transfer";
+  const num=(re)=>{const m=t.match(re);return m?Number(String(m[1]).replace(/,/g,"")):null;};
+  const amount=num(/(?:amt\.?\s*financed|amount\s+financed|loan\s+amount|sanctioned\s+amount|amount\s+sanctioned|principal\s+amount|facility\s+amount)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const outstanding=num(/(?:outstanding(?:\s+principal|\s+balance)?|principal\s+outstanding|loan\s+outstanding|closing\s+principal|balance\s+outstanding|current\s+outstanding)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const emi=num(/(?:emi|installment|instalment)\s*(?:amount)?\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const rate=num(/(?:interest\s+rate|rate\s+of\s+interest|roi|rate)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%/i);
+  const lender=(n.match(/(axis|hdfc|icici|sbi|kotak|idfc|yes|indusind|bajaj|tata|aditya|pnb|bank of baroda|canara|union|federal)/i)||[])[1]||((t.match(/(?:lender|bank|financial institution)\s*[:\-]?\s*([A-Za-z][A-Za-z .&-]{2,50})/i)||[])[1]||"");
+  let category="Other"; if(/home loan|housing loan|mortgage|property loan/.test(low)) category="Home"; else if(/car loan|vehicle loan|auto loan|corolla|altis/.test(low)) category="Vehicle"; else if(/personal loan/.test(low)) category="Personal"; else if(/gold loan/.test(low)) category="Gold"; else if(/education loan|student loan/.test(low)) category="Education";
+  return {type,amount,outstanding,emi,rate,lender:lender.trim(),category};
+}
+function loanDocTypeLabel(x){return x==="schedule"?"Payment / amortization schedule":x==="statement"?"Loan account statement":x==="topup"?"Top-up / enhancement document":"Balance transfer / takeover";}
+function loanDocumentOptions(selected){
+  return Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden).map(([k,a])=>`<option value="${esc(k)}"${selected===k?" selected":""}>${esc(a.label||a.bank||"Loan")} · ${money(Number(a.balance)||0,true)}</option>`).join("");
+}
+let pendingLoanDocs=[];
+function renderLoanDocuments(){
+  const el=document.getElementById("loanDocumentList"); if(!el)return;
+  const docs=Array.isArray(state.loanDocuments)?state.loanDocuments.slice().sort((a,b)=>(b.importedAt||0)-(a.importedAt||0)):[];
+  if(!docs.length){el.innerHTML=`<p class="help">No loan documents imported yet.</p>`;return;}
+  el.innerHTML=docs.slice(0,20).map(d=>`<div class="due"><span class="n">${esc(d.name||"Loan document")}</span><span class="num">${esc(loanDocTypeLabel(d.type||"statement"))}</span><span class="w" style="grid-column:1/3"><span>${d.loanKey&&state.accounts[d.loanKey]?esc(state.accounts[d.loanKey].label||"Linked loan"):"Not linked"}</span>${d.amount!=null?`<span>Amount ${money(d.amount,true)}</span>`:""}${d.outstanding!=null?`<span>Outstanding ${money(d.outstanding,true)}</span>`:""}${d.rate!=null?`<span>${Number(d.rate).toFixed(2)}% p.a.</span>`:""}${d.importedAt?`<span>Imported ${esc(new Date(d.importedAt).toLocaleDateString())}</span>`:""}</span></div>`).join("");
+}
+function createLoanFromDocument(sc,doc){
+  const type=sc.querySelector("#ld-type").value, name=sc.querySelector("#ld-name").value.trim(), lender=sc.querySelector("#ld-lender").value.trim(), category=sc.querySelector("#ld-cat").value, amount=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||0, outstanding=parseFloat(sc.querySelector("#ld-outstanding").value.replace(/[,₹\s]/g,"")), rate=parseFloat(sc.querySelector("#ld-rate").value), date=sc.querySelector("#ld-date").value||todayISO(), tenure=parseInt(sc.querySelector("#ld-tenure").value||"0",10)||null;
+  if(!name){toast("Give the loan a name.");return false;}
+  if(type==="transfer") return applyLoanTransferFromDoc(sc,doc);
+  const key="manual"+uidGen(), bal=Number.isFinite(outstanding)?outstanding:(amount||0);
+  const a={label:name,kind:"loan",bank:lender,account:"",balance:bal,asOf:date,originalAmount:amount||bal,loanCategory:category,loanTranches:[{id:"original-"+uidGen(),type:"original",lender:lender||name,amount:amount||bal,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:bal,active:true}]};
+  if(Number.isFinite(parseFloat(sc.querySelector("#ld-emi").value)))a.emi=Number(sc.querySelector("#ld-emi").value);
+  state.accounts[key]=a; doc.loanKey=key; return true;
+}
+function applyLoanTransferFromDoc(sc,doc){
+  const oldKey=sc.querySelector("#ld-loan").value, old=state.accounts[oldKey], name=sc.querySelector("#ld-name").value.trim(), lender=sc.querySelector("#ld-lender").value.trim()||name, amt=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||0, top=parseFloat(sc.querySelector("#ld-topup").value.replace(/[,₹\s]/g,""))||0, rate=parseFloat(sc.querySelector("#ld-rate").value), topRate=parseFloat(sc.querySelector("#ld-toprate").value), date=sc.querySelector("#ld-date").value||todayISO(), tenure=parseInt(sc.querySelector("#ld-tenure").value||"0",10)||null;
+  if(!name||!(amt>0)){toast("Enter the new lender and transferred principal.");return false;}
+  const nk="manual"+uidGen(), na={label:name,kind:"loan",bank:lender,account:"",balance:amt+top,asOf:date,originalAmount:amt+top,loanCategory:old?.loanCategory||"Other",assetId:old?.assetId||null,transferredFrom:oldKey,loanTranches:[{id:"transfer-"+uidGen(),type:"transfer",lender,amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:amt,active:true}]};
+  if(top>0)na.loanTranches.push({id:"topup-"+uidGen(),type:"topup",lender,amount:top,rate:Number.isFinite(topRate)?topRate:(Number.isFinite(rate)?rate:null),startDate:date,tenureMonths:tenure,outstanding:top,active:true});
+  if(old){old.transferredTo=nk;old.closed=true;old.hidden=true;old.transferredOn=date;old.balance=0;old.asOf=date;}
+  state.accounts[nk]=na; doc.loanKey=nk; return true;
+}
+function openLoanDocumentSheet(doc){
+  const g=loanDocGuess(doc.name,doc.text), existing=Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden), likely=existing.find(([k,a])=>g.lender&&mkey(a.bank||a.label).includes(mkey(g.lender)))?.[0]||existing[0]?.[0]||"";
+  const opts=loanDocumentOptions(likely), initialAmt=g.amount||g.outstanding||"", initialOut=g.outstanding||"", initialRate=g.rate||"", initialEmi=g.emi||"";
+  const transferFields=`<div id="ld-transfer-fields" style="display:${g.type==="transfer"?"":"none"}"><label class="field"><span>Optional top-up during transfer (₹)</span><input id="ld-topup" inputmode="decimal" value="0"></label><label class="field"><span>Top-up rate (% p.a.)</span><input id="ld-toprate" inputmode="decimal"></label></div>`;
+  const inner=`<label class="field"><span>Document type</span><select id="ld-type"><option value="schedule"${g.type==="schedule"?" selected":""}>Payment / amortization schedule</option><option value="statement"${g.type==="statement"?" selected":""}>Loan account statement</option><option value="topup"${g.type==="topup"?" selected":""}>Top-up / enhancement document</option><option value="transfer"${g.type==="transfer"?" selected":""}>Balance transfer / takeover</option></select></label><label class="field"><span>Loan to update</span><select id="ld-loan"><option value="">+ Create a new loan</option>${opts}</select></label><div class="two"><label class="field"><span>Loan name / new lender</span><input id="ld-name" value="${esc((g.lender?g.lender+" ":"")+loanDocTypeLabel(g.type).replace("Payment / amortization schedule","Loan").replace("Loan account statement","Loan"))}" placeholder="e.g. Axis Home Loan"></label><label class="field"><span>Lender / bank</span><input id="ld-lender" value="${esc(g.lender)}" placeholder="e.g. Axis Bank"></label></div><div class="two"><label class="field"><span>Original / transferred amount (₹)</span><input id="ld-amount" inputmode="decimal" value="${initialAmt}"></label><label class="field"><span>Current outstanding (₹)</span><input id="ld-outstanding" inputmode="decimal" value="${initialOut}"></label></div><div class="two"><label class="field"><span>Interest rate (% p.a.)</span><input id="ld-rate" inputmode="decimal" value="${initialRate}"></label><label class="field"><span>EMI (₹)</span><input id="ld-emi" inputmode="decimal" value="${initialEmi}"></label></div><div class="two"><label class="field"><span>Start / transfer date</span><input id="ld-date" type="date" value="${todayISO()}"></label><label class="field"><span>Tenure (months)</span><input id="ld-tenure" inputmode="numeric"></label></div><label class="field"><span>Loan category</span><select id="ld-cat">${["Home","Vehicle","Gold","Education","Personal","Business","Other"].map(x=>`<option${x===g.category?" selected":""}>${x}</option>`).join("")}</select></label>${transferFields}<p class="help">Source: ${esc(doc.name||"loan document")}. The extracted values are suggestions only; review them before saving. A schedule is treated as a forecast/baseline, while a statement can update the current outstanding.</p>`;
+  sheet("Import loan document",inner,sc=>{
+    const type=sc.querySelector("#ld-type").value, oldKey=sc.querySelector("#ld-loan").value;
+    doc.type=type; doc.amount=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||null; doc.outstanding=parseFloat(sc.querySelector("#ld-outstanding").value.replace(/[,₹\s]/g,""))||null; doc.rate=parseFloat(sc.querySelector("#ld-rate").value)||null; doc.loanKey=oldKey||null; doc.importedAt=Date.now();
+    if(type==="transfer") return applyLoanTransferFromDoc(sc,doc);
+    if(!oldKey){ const ok=createLoanFromDocument(sc,doc); if(!ok)return false; }
+    else{
+      const a=state.accounts[oldKey]; if(!a)return false; loanEnsureStored(a); const amount=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||0, out=parseFloat(sc.querySelector("#ld-outstanding").value.replace(/[,₹\s]/g,"")), rate=parseFloat(sc.querySelector("#ld-rate").value), date=sc.querySelector("#ld-date").value||todayISO();
+      if(type==="topup"){
+        if(!(amount>0)){toast("Enter the top-up amount.");return false;} a.loanTranches.push({id:"topup-"+uidGen(),type:"topup",lender:sc.querySelector("#ld-lender").value.trim()||a.bank||a.label,amount,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:parseInt(sc.querySelector("#ld-tenure").value||"0",10)||null,outstanding:Number.isFinite(out)?out:amount,active:true});
+      } else { if(type==="statement"&&Number.isFinite(out))a.balance=out; if(Number.isFinite(amount)&&amount>0&&!a.originalAmount)a.originalAmount=amount; if(Number.isFinite(rate))a.loanRate=rate; if(Number.isFinite(parseFloat(sc.querySelector("#ld-emi").value)))a.emi=parseFloat(sc.querySelector("#ld-emi").value); a.asOf=date; }
+      if(Array.isArray(a.loanTranches)&&a.loanTranches.length){ if(type!=="topup"&&Number.isFinite(out)&&a.loanTranches.length===1)a.loanTranches[0].outstanding=out; a.balance=loanTrancheTotal(a); a.originalAmount=loanTrancheOriginal(a); }
+      doc.loanKey=oldKey;
+    }
+    state.loanDocuments=state.loanDocuments||[]; state.loanDocuments.push({...doc,rawText:undefined}); persist([],true); renderLoanDocuments(); toast("Loan document imported and linked.");
+    if(pendingLoanDocs.length){const next=pendingLoanDocs.shift();setTimeout(()=>openLoanDocumentSheet(next),80);} return true;
+  });
+  const scr=document.querySelector(".scrim:last-of-type"),typeSel=scr?.querySelector("#ld-type"),loanSel=scr?.querySelector("#ld-loan"),tf=scr?.querySelector("#ld-transfer-fields");
+  if(typeSel)typeSel.onchange=()=>{if(tf)tf.style.display=typeSel.value==="transfer"?"":"none";};
+  if(loanSel)loanSel.onchange=()=>{const a=state.accounts[loanSel.value];if(a){scr.querySelector("#ld-name").value=a.label||a.bank||"Loan";scr.querySelector("#ld-lender").value=a.bank||"";scr.querySelector("#ld-outstanding").value=loanTrancheTotal(a)||a.balance||"";scr.querySelector("#ld-amount").value=a.originalAmount||"";scr.querySelector("#ld-cat").value=a.loanCategory||"Other";}};
+}
+function startLoanDocumentImport(){
+  if(window.Android&&window.Android.pickLoanDocuments)window.Android.pickLoanDocuments("loanDocumentFilesResult");else toast("Loan document import is available in the Android build.");
+}
+window.loanDocumentFilesResult=function(payload){
+  let files=[];try{files=JSON.parse(payload||"[]");}catch(e){toast("Could not read the selected loan documents.");return;}
+  const ok=files.filter(f=>f&&f.text),bad=files.filter(f=>f&&f.error); if(!ok.length){toast(bad[0]?.error||"No loan documents selected.");return;}
+  pendingLoanDocs=ok.map(f=>({id:"ldoc-"+uidGen(),name:f.name,text:String(f.text||"").slice(0,120000),error:null}));
+  const st=document.getElementById("loanDocumentStatus");if(st)st.innerHTML=`<b>${ok.length} document${ok.length===1?"":"s"} ready.</b> Review each document before applying it to a loan.${bad.length?` ${bad.length} file${bad.length===1?"":"s"} could not be read.`:""}`;
+  const first=pendingLoanDocs.shift();if(first)openLoanDocumentSheet(first);
+};
 function openAcctSheet(key){
   const a=key?state.accounts[key]:{kind:"bank"},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"];
   const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
