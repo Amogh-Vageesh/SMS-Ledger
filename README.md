@@ -1,10 +1,13 @@
-SMS Ledger v1.77.1
+SMS Ledger v1.80
 
-Fix: Bank statement Excel importer now uses Apache POI WorkbookFactory and supports both legacy .xls and Office Open XML .xlsx/.xlsm files. Added poi-ooxml dependency. Version code 73.
+Fixes:
+- Transaction edit category selector is now a visible searchable picker with up to 40 categories and tap-to-select behavior.
+- Improved My Ledger daily spending graph with a cleaner trend/area presentation and total-spend KPI.
+- Version 1.80 / versionCode 76.
+
+iPhone note:
+The current project is Android-specific because SMS ingestion uses Android SMS APIs and Kotlin/Android WebView. It cannot be installed directly on iPhone. A future iOS companion app should use SwiftUI with the same Firebase backend; iOS can support shared ledger, manual transactions, bank-statement import, assets, family sync, etc., but automatic SMS reading like Android is not available in the same way.
 
 
-## v1.78 changes
-- Asset details are collapsed on My Ledger; tap an asset to open full details.
-- Asset transaction linking now supports year and month filters plus search.
-- My Ledger category filter is rebuilt from the full category list, including custom categories, with All categories.
-- Kannada translation is applied to the full document and dynamic sheets.
+## v1.81 category picker
+The transaction edit screen restores the earlier simple Category dropdown. Tap Category and choose directly from the full category list; no typing/search is required.

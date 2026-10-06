@@ -269,7 +269,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .hbars .ht{height:18px;border-radius:6px;background:var(--raise);overflow:hidden;display:block}
 .hbars .ht i{display:block;height:100%;border-radius:6px}
 .hbars b{font-size:1.05rem;min-width:44px;text-align:right}
-.lchart{width:100%;height:auto;display:block;margin-top:6px}
+.lchart{width:100%;height:auto;display:block;margin-top:6px}.fancy-chart{overflow:hidden}.fancy-chart .card-h{align-items:center}.chart-kpi{font-size:1rem;font-weight:800;color:var(--brass);white-space:nowrap}.daily-chart{min-height:180px}
 .agroup{border:1px solid var(--rule);border-radius:14px;margin:0 0 10px;background:var(--panel)}
 .agroup summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:600;min-height:44px}
 .agroup summary::-webkit-details-marker{display:none}
@@ -299,7 +299,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
 .empty .btn{margin-top:12px}
 
-/* v1.79 UI polish */
+/* v1.80 UI polish */
 .settings-jump{position:sticky;top:0;z-index:4;padding:8px 0;background:var(--bg);border-bottom:1px solid var(--rule);margin-bottom:10px}
 .settings-jump select{width:100%;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;color:var(--text)}
 .asset-compact{display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:center;padding:13px 4px;border-top:1px solid var(--rule);text-align:left;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;color:var(--text)}
@@ -311,6 +311,11 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .cat-search-wrap{position:relative}
 .cat-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:120px;overflow:auto}
 .cat-suggestions button{border:1px solid var(--rule);background:var(--raise);border-radius:999px;padding:7px 10px;color:var(--text);font-size:.8rem}
+.cat-current{margin-top:7px;border:1px solid var(--rule);background:var(--panel);border-radius:10px;padding:9px 11px;font-size:.84rem;color:var(--text);cursor:pointer}
+.cat-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px;max-height:170px;overflow:auto;padding:2px}
+.cat-suggestions button{cursor:pointer;touch-action:manipulation}
+.cat-suggestions button[aria-selected="true"]{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
+
 .chart-card{border:1px solid var(--rule);border-radius:16px;padding:14px;background:linear-gradient(145deg,var(--raise),var(--bg))}
 .days{height:150px;align-items:flex-end;gap:3px;padding:14px 6px 4px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);overflow:hidden}
 .days i{min-width:3px;flex:1;max-width:12px;border-radius:7px 7px 2px 2px;box-shadow:0 3px 8px rgba(0,0,0,.12);transition:height .2s ease}
@@ -2843,9 +2848,14 @@ function renderOverview(){
   out.forEach(t=>{ const i = daysBetween(startISO, t.date); if(i>=0 && i<dim) daily[i] += spendAmt(t); });
   const max = Math.max(...daily, 1);
   const dayLbl = i => { const d = new Date(pStart); d.setDate(d.getDate()+i); return d.getDate() + (i===0 || d.getDate()===1 ? " " + mShort(d.getMonth()) : ""); };
-  html += `<div class="chart-card"><div class="card-h"><h2 style="margin:0">Day by day</h2><span class="chart-note">Daily spending</span></div><div class="days" role="img" aria-label="Daily spending bars for ${esc(monthLabel(cursor))}">` +
-    daily.map((v,i)=>`<i class="${v?"":"zero"}" style="height:${v ? Math.max(4, v/max*100) : 2}%" title="${dayLbl(i)}: ${money(v)}"></i>`).join("") +
-    `</div><div class="days-x"><span>${dayLbl(0)}</span><span>${dayLbl(Math.floor(dim/2))}</span><span>${dayLbl(dim-1)}</span></div>`;
+  const CW=360, CH=190, CL=34, CR=10, CT=16, CB=30;
+  const px=i=>dim<=1?(CW-CL-CR)/2+CL:CL+i*(CW-CL-CR)/(dim-1);
+  const py=v=>CT+(CH-CT-CB)*(1-v/max);
+  const linePts=daily.map((v,i)=>`${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ");
+  const areaPts=`${CL},${CH-CB} ${linePts} ${CW-CR},${CH-CB}`;
+  const grid=[0,.5,1].map(r=>{const v=max*r;return `<line x1="${CL}" x2="${CW-CR}" y1="${py(v)}" y2="${py(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${CL-6}" y="${py(v)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${esc(chartNum(v,chartScale(max).div))}</text>`;}).join("");
+  const dots=daily.map((v,i)=>v>0?`<circle cx="${px(i)}" cy="${py(v)}" r="2.8" fill="var(--brass)"><title>${esc(dayLbl(i))}: ${money(v)}</title></circle>`:"").join("");
+  html += `<div class="chart-card fancy-chart"><div class="card-h"><div><h2 style="margin:0">Spending trend</h2><span class="chart-note">${esc(monthLabel(cursor))} · daily</span></div><span class="chart-kpi">${money(spent)}</span></div><svg viewBox="0 0 ${CW} ${CH}" class="lchart daily-chart" role="img" aria-label="Daily spending trend for ${esc(monthLabel(cursor))}"><defs><linearGradient id="spendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--brass)" stop-opacity=".32"/><stop offset="100%" stop-color="var(--brass)" stop-opacity=".02"/></linearGradient></defs>${grid}<polygon points="${areaPts}" fill="url(#spendFill)"/><polyline points="${linePts}" fill="none" stroke="var(--brass)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${[0,Math.floor(dim/2),dim-1].map(i=>`<text x="${px(i)}" y="${CH-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(dayLbl(i))}</text>`).join("")}</svg></div>`;
 
   // top merchants
   const byM = {};
@@ -3228,7 +3238,7 @@ function openSheet(t, isNew){
     <label class="field"><span>Paid to / received from</span><input id="e-mer" value="${esc(t.merchant||"")}"></label>
     <div class="two">
       <label class="field"><span>Date</span><input id="e-date" type="date" value="${t.date||todayISO()}"></label>
-      <label class="field"><span>Category</span><div class="cat-search-wrap"><input id="e-cat-search" value="${esc(t.category||"")}" placeholder="Type to search category…" autocomplete="off"><input id="e-cat" type="hidden" value="${esc(t.category||"")}"><div id="e-cat-suggest" class="cat-suggestions"></div></div></label>
+      <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
     </div>
     <label class="field"><span>Link to asset / EMI / indirect expense</span><select id="e-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${t.assetId===a.id?" selected":""}>${esc(a.name)} · ${esc(assetTypeLabel(a.type))}${a.loanAccount?" · linked loan":""}</option>`).join("")}</select></label>
     ${(()=>{const sug=suggestAssetForTxn(t); return sug&&!t.assetId?`<p class="help" id="e-assetSuggest">Suggested asset: <b>${esc(sug.name)}</b> based on merchant/message. Please confirm by selecting it.</p>`:"";})()}
@@ -3269,12 +3279,8 @@ function openSheet(t, isNew){
   scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
   scrim.querySelector("#e-cancel").onclick = close;
   scrim.querySelector("#e-amt").focus();
-  const catSearch=scrim.querySelector("#e-cat-search"), catHidden=scrim.querySelector("#e-cat"), catSuggest=scrim.querySelector("#e-cat-suggest");
-  const catAllowed=()=>CATS.map(x=>x[0]);
-  const drawCatSuggestions=()=>{ const q=mkey(catSearch.value||""); const opts=catAllowed().filter(c=>!q||mkey(c).includes(q)).slice(0,24); catSuggest.innerHTML=opts.map(c=>`<button type="button" data-catpick="${esc(c)}">${esc(c)}</button>`).join("")||`<span class="help">No matching category</span>`; };
-  catSearch.oninput=()=>{catHidden.value=catSearch.value.trim();drawCatSuggestions();};
-  catSuggest.onclick=e=>{const b=e.target.closest("[data-catpick]");if(!b)return;catSearch.value=b.dataset.catpick;catHidden.value=b.dataset.catpick;drawCatSuggestions();};
-  drawCatSuggestions();
+  const catSelect=scrim.querySelector("#e-cat");
+  catSelect.value=t.category||"Other";
   let selPerson = t.person || "";
   let selEvent = t.event || "";
   let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
@@ -3321,7 +3327,7 @@ function openSheet(t, isNew){
   const syncSplitRow = ()=>{ const deb = scrim.querySelector("#e-type").value === "debit"; scrim.querySelector("#e-splitRow").classList.toggle("hidden", !deb); if(!deb){ scrim.querySelector("#e-split").checked = false; splitBox.classList.add("hidden"); } };
   scrim.querySelector("#e-split").onchange = e=>{ splitBox.classList.toggle("hidden", !e.target.checked); if(e.target.checked && !shareIn.value) evenShare(); };
   nIn.oninput = evenShare;
-  scrim.querySelector("#e-type").onchange = ()=>{ syncSplitRow(); drawCatSuggestions(); }; syncSplitRow();
+  scrim.querySelector("#e-type").onchange = ()=>{ syncSplitRow(); }; syncSplitRow();
   const ruleBox = scrim.querySelector("#e-rule"), ruleAmtRow = scrim.querySelector("#e-ruleAmtRow");
   if(ruleBox){ const syncRule = ()=>ruleAmtRow.classList.toggle("hidden", !ruleBox.checked); ruleBox.onchange = syncRule; syncRule(); }
   scrim.querySelector("#e-save").onclick = ()=>{
@@ -3332,8 +3338,8 @@ function openSheet(t, isNew){
       type: scrim.querySelector("#e-type").value,
       merchant: scrim.querySelector("#e-mer").value.trim() || "Payment",
       date: scrim.querySelector("#e-date").value || todayISO(),
-      category: scrim.querySelector("#e-cat").value || catSearch.value.trim() || "Other",
-      userCat: t.userCat || (!isNew && (scrim.querySelector("#e-cat").value || catSearch.value.trim()) !== t.category) || undefined,
+      category: scrim.querySelector("#e-cat").value || "Other",
+      userCat: t.userCat || (!isNew && scrim.querySelector("#e-cat").value !== t.category) || undefined,
       note: scrim.querySelector("#e-note").value.trim() };
     const cur = scrim.querySelector("#e-cur").value;
     if(cur === "INR"){ delete upd.currency; delete upd.fxRate; delete upd.fxAuto; }
