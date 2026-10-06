@@ -8,7 +8,7 @@ const CATS = [
   ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
   ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
   ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
-  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Income","#93b98c"],["Refunds","#77b3b0"]
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
 ];
 const BASE_CAT_COUNT = CATS.length;
 const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
@@ -27,10 +27,10 @@ function addCustomCat(name){
 }
 // Paying a card bill moves money between your own accounts; a loan repayment is just getting your
 // own money back; money to or from someone you know isn't new spending or new income either.
-const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment","Payment confirmation"]);
+const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment","Loan proceeds","Loan transfer","Payment confirmation"]);
 const SUB_WORDS = ["netflix","spotify","hotstar","jiohotstar","prime","youtube","apple","icloud","google","zee5","sonyliv","jiocinema","linkedin","openai","chatgpt","anthropic","claude","adobe","microsoft","office","notion","canva","swiggy one","zomato gold","audible","kindle","gaana","wynk","times prime","cult","gym","dropbox","github","figma","tata play","airtel xstream","disney"];
 const CAT_COLOR = Object.fromEntries(CATS);
-const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Friends and family transfers","Card payments","Loan repayment","Other"];
+const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Friends and family transfers","Card payments","Loan repayment","Loan proceeds","Loan transfer","Other"];
 
 const KEYWORDS = {
   "Food & dining":["swiggy","zomato","eatsure","restaurant","cafe","coffee","starbucks","dominos","domino","pizza","mcdonald","kfc","burger","subway","chaayos","third wave","blue tokai","bakery","darshini","hotel ","dine","biryani","eat","udupi","kitchen","dosa","sagar","bhavan","bhavana","vadapav","canteen","tiffin","juice","mess","sweets","chai","tea ","food","dhaba","eatery","caterers","mcdonald","haldiram","barbeque","bbq","box8","faasos","behrouz","ovenstory","freshmenu","rebel foods","wow momo","cafe coffee day","barista","costa coffee","tim hortons","burger king","pizza hut","la pino","taco bell","wendys","krispy kreme","baskin","naturals ice","corner house","meghana","empire restaurant","adyar ananda","a2b","saravana bhavan","mtr ","vidyarthi bhavan","rameshwaram cafe","truffles","chai point","eazydiner","dineout","magicpin","haldirams","bikanervala","paradise biryani","behrouz biryani","hard rock","barbeque nation"],
@@ -79,7 +79,7 @@ const KN = {
   "Nothing matches here.":"ಇಲ್ಲಿ ಯಾವುದೂ ಹೊಂದುತ್ತಿಲ್ಲ.","rate pending":"ದರ ಬಾಕಿ ಇದೆ",
   "Food & dining":"ಊಟ ಮತ್ತು ಹೋಟೆಲ್","Groceries":"ದಿನಸಿ","Transport":"ಸಾರಿಗೆ","Fuel":"ಇಂಧನ","Shopping":"ಶಾಪಿಂಗ್","Bills & utilities":"ಬಿಲ್‌ಗಳು ಮತ್ತು ಸೇವೆಗಳು",
   "Entertainment":"ಮನರಂಜನೆ","Health":"ಆರೋಗ್ಯ","Travel":"ಪ್ರವಾಸ","Education":"ಶಿಕ್ಷಣ","Investments":"ಹೂಡಿಕೆಗಳು","EMI & loans":"EMI ಮತ್ತು ಸಾಲಗಳು","Rent":"ಬಾಡಿಗೆ",
-  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Payment confirmation":"ಪಾವತಿ ದೃಢೀಕರಣ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
+  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Payment confirmation":"ಪಾವತಿ ದೃಢೀಕರಣ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Loan proceeds":"ಸಾಲದ ಹಣ","Loan transfer":"ಸಾಲ ವರ್ಗಾವಣೆ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
   "Household":"ಮನೆ ಖರ್ಚು","Sports":"ಕ್ರೀಡೆ","Vehicles":"ವಾಹನಗಳು","Office":"ಕಚೇರಿ","Grooming":"ಸೌಂದರ್ಯ ಆರೈಕೆ",
   "Card":"ಕಾರ್ಡ್","Bank transfer":"ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆ","Auto-debit":"ಸ್ವಯಂ ಡೆಬಿಟ್","ATM withdrawal":"ATM ಹಣ ತೆಗೆತ","Card payment received":"ಕಾರ್ಡ್ ಪಾವತಿ ಬಂದಿದೆ","Money received":"ಬಂದ ಹಣ","Payment":"ಪಾವತಿ",
   "Paste bank SMS":"ಬ್ಯಾಂಕ್ SMS ಅಂಟಿಸಿ","Read messages":"ಸಂದೇಶಗಳನ್ನು ಓದಿ","Paste from clipboard":"ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ನಿಂದ ಅಂಟಿಸಿ","Try sample SMS":"ಮಾದರಿ SMS ಪ್ರಯತ್ನಿಸಿ",
@@ -676,6 +676,9 @@ const OWN_INVEST_MOVE = /\b(?:sip|mutual fund|mf|folio|groww|zerodha|coin|kuvera
 // a SIP, it IS new money and is treated as Income (see also the dedicated EPFO passbook parser).
 const SIP_CONFIRM = /sip (payment|instal?ment|amount).{0,30}(credited|received|processed)|units? (have been |has been )?allot|allotment of units/i;
 const PENSION_CONTRIB = /epfo|provident fund|pf contribution|\bepf\b|passbook|nps contribution|\bpran\b.{0,60}(contribution|credited)|contribution (of|for) .{0,40}(credited|received)|tier.?i.{0,20}(contribution|credited)/i;
+// Loan disbursements and balance-transfer settlement are financing movements, not income or spending.
+const LOAN_PROCEEDS = /(?:loan|top.?up).{0,100}(?:disburs|sanctioned|credited|credit(?:ed)?|amount released)|(?:disburs|credited|credit(?:ed)?).{0,100}(?:loan|top.?up)/i;
+const LOAN_TRANSFER = /balance transfer|loan takeover|takeover (?:of|from) (?:your )?(?:home|car|vehicle|personal|property)? ?loan|loan transfer|loan closure.{0,40}(?:transfer|takeover)/i;
 // One set of merchant rules (name and category). Rules imported from a backup are kept as the
 // starting point, so "undo my changes" can go back to them. A merchant matches exactly, or when one
 // name starts with the other and the shared part is at least 6 letters ("swiggyinstamart" ~ "swiggy").
@@ -710,6 +713,8 @@ function migrateRules(){
 function categorize(merchant, low, isCredit, mode, vpa){
   // what the message says about the money beats what the merchant is usually filed as
   if(isCardBillMove(low, merchant, isCredit)) return "Card payments";
+  if(LOAN_TRANSFER.test(low)) return "Loan transfer";
+  if(isCredit && LOAN_PROCEEDS.test(low)) return "Loan proceeds";
   if(OWN_MOVE.test(low)) return "Self transfer";
   if(!isCredit && OWN_INVEST_MOVE.test(low) && !/fee|charge|penalty|tax|interest|redemption|withdrawal|sell|dividend/i.test(low)) return "Self transfer";
   if(SIP_CONFIRM.test(low)) return "Self transfer";
@@ -966,6 +971,20 @@ function parseOneCore(msg, fallbackDate){
   return { txn };
 }
 
+function syncLoanTranchesToBalance(a,newBalance){
+  if(!a || a.kind!=="loan" || !Array.isArray(a.loanTranches) || !a.loanTranches.length) return;
+  let target=Math.max(0,Number(newBalance)||0);
+  let current=a.loanTranches.reduce((s,t)=>s+Math.max(0,Number(t.outstanding)||0),0);
+  if(Math.abs(current-target)<0.01) return;
+  if(target<current){
+    let reduce=current-target;
+    a.loanTranches.slice().sort((x,y)=>String(x.startDate||"").localeCompare(String(y.startDate||""))).forEach(t=>{
+      if(reduce<=0)return; const v=Math.max(0,Number(t.outstanding)||0),d=Math.min(v,reduce); t.outstanding=v-d; reduce-=d;
+    });
+  }else{
+    let add=target-current; const t=a.loanTranches[a.loanTranches.length-1]; if(t) t.outstanding=Math.max(0,Number(t.outstanding)||0)+add;
+  }
+}
 function updateAccount(a){
   if(!a || !a.account) return false;
   const key = mkey(a.bank) + a.account;
@@ -973,7 +992,7 @@ function updateAccount(a){
   if(cur?.closed) return false;
   if(cur && cur.asOf > a.asOf) return false;
   const next = { ...(cur||{}), bank: a.bank || (cur && cur.bank) || "", account: a.account, kind: a.kind || (cur && cur.kind) || "bank", asOf: a.asOf };
-  if(a.balance != null) next.balance = a.balance;
+  if(a.balance != null){ next.balance = a.balance; if(next.kind==="loan") syncLoanTranchesToBalance(next,a.balance); }
   if(a.availLimit != null){ next.availLimit = a.availLimit; next.kind = "card"; }
   if(a.typeLabel) next.typeLabel = a.typeLabel;
   state.accounts[key] = next; return true;
@@ -1753,7 +1772,7 @@ function renderAccounts(){
       const known = group.map(a=>(a.kind === "card" ? a.availLimit : a.balance)).filter(v=>v != null && (a => true)());
       const tot = group.reduce((sum,a)=>{ const v = a.kind === "card" ? a.availLimit : a.balance; return v != null && a.kind !== "loan" ? sum + v : sum; }, 0);
       html += `<details class="agroup" data-g="${gid}" ${acctOpen[gid] === false ? "" : "open"}><summary><span>${label} <small>${group.length}</small></span><span class="num">${known.length ? "<b>" + money(tot) + "</b>" + (gid==="card" ? " available" : "") : ""}</span></summary>`;
-      const renderAcct=a=>{ const kind=a.kind||"bank", v=kind==="card"?a.availLimit:a.balance, age=a.asOf?daysBetween(a.asOf,today):null; return `<button class="due" data-acct="${esc(a.key)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(a.label || ((a.bank || "Account") + (a.account ? " ··" + a.account : "")))}</span><span class="num" style="font-weight:600">${v!=null?money(v,true):"–"}</span><span class="w" style="grid-column:1/3"><span>${kind==="card"?"Available limit":a.typeLabel||KIND_LABEL[kind]||"Balance"}</span>${kind==="loan"&&a.loanCategory?`<span>${esc(a.loanCategory)}</span>`:""}${kind==="loan"&&a.originalAmount!=null?`<span>Original ${money(a.originalAmount)}</span>`:""}${kind==="loan"?`<span>Paid ${money(state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0))}</span>`:""}${a.asOf&&a.asOf>"2000"?`<span>as of ${esc(niceDate(a.asOf))}</span>`:""}${age!=null&&age>30&&a.asOf>"2000"?`<span class="late">Not updated for ${age} days</span>`:""}</span></button>`; };
+      const renderAcct=a=>{ const kind=a.kind||"bank", v=kind==="card"?a.availLimit:a.balance, age=a.asOf?daysBetween(a.asOf,today):null; return `<button class="due" data-acct="${esc(a.key)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(a.label || ((a.bank || "Account") + (a.account ? " ··" + a.account : "")))}</span><span class="num" style="font-weight:600">${v!=null?money(v,true):"–"}</span><span class="w" style="grid-column:1/3"><span>${kind==="card"?"Available limit":a.typeLabel||KIND_LABEL[kind]||"Balance"}</span>${kind==="loan"&&a.loanCategory?`<span>${esc(a.loanCategory)}</span>`:""}${kind==="loan"&&a.originalAmount!=null?`<span>Original ${money(a.originalAmount)}</span>`:""}${kind==="loan"&&Array.isArray(a.loanTranches)?`<span>${a.loanTranches.length} tranche${a.loanTranches.length===1?"":"s"}${loanWeightedRate(a)!=null?` · ${loanWeightedRate(a).toFixed(2)}% weighted`:""}</span>`:""}${kind==="loan"&&a.transferredFrom?`<span>Transferred in</span>`:""}${kind==="loan"&&a.transferredTo?`<span>Transferred to another lender</span>`:""}${kind==="loan"?`<span>Paid ${money(state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0))}</span>`:""}${a.asOf&&a.asOf>"2000"?`<span>as of ${esc(niceDate(a.asOf))}</span>`:""}${age!=null&&age>30&&a.asOf>"2000"?`<span class="late">Not updated for ${age} days</span>`:""}</span></button>`; };
       if(gid==="card"){ const byBank={}; group.forEach(a=>{const b=a.bank||((BANKS.find(x=>x[1].test((a.label||"")))||[])[0]||"Other bank"); (byBank[b]??=[]).push(a);}); Object.keys(byBank).sort().forEach(b=>{ html+=`<div class="card-bank-subhead">${esc(b)}</div>`+byBank[b].map(renderAcct).join(""); }); } else html+=group.map(renderAcct).join("");
       html += `</details>`;
     });
@@ -2067,8 +2086,16 @@ function openAssetSheet(id){
     <label class="field"><span>Other ownership costs (₹)</span><input id="as-costs" inputmode="decimal" value="${a.ownershipCosts||""}"></label></div>
     <div class="two"><label class="field"><span>Income received (₹)</span><input id="as-income" inputmode="decimal" value="${a.incomeReceived||""}" placeholder="Rent, dividends, etc."></label>
     <label class="field"><span>Estimated sale costs (₹)</span><input id="as-sale" inputmode="decimal" value="${a.saleCosts||""}"></label></div>
-    <div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="as-loan" inputmode="decimal" value="${a.originalLoan||""}"></label>
-    <label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label></div>
+    <div class="two"><label class="field"><span>Initial amount paid (₹)</span><input id="as-down" type="number" step="0.01" min="0" inputmode="decimal" value="${a.initialPaid!=null?a.initialPaid:""}" placeholder="e.g. 2000000"><small class="help">Your own/down-payment amount paid at purchase. The app can calculate the financed amount from this.</small></label>
+    <label class="field"><span>Original loan amount (₹)</span><input id="as-loan" type="number" step="0.01" min="0" inputmode="decimal" value="${a.originalLoan!=null?a.originalLoan:(a.loanAccount&&state.accounts?.[a.loanAccount]?.originalAmount!=null?state.accounts[a.loanAccount].originalAmount:"")}"><small class="help" id="as-loan-help">${a.loanAccount?"Linked loan selected. You can edit the original loan amount here.":"Enter the loan amount, or use Initial amount paid to calculate it."}</small></label></div>
+    <div class="two"><label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label>
+    <label class="field"><span>Loan start date</span><input id="as-loanstart" type="date" value="${esc(a.loanStartDate||a.purchaseDate||todayISO())}"></label></div>
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>EMI calculator</b><button type="button" class="mini" id="as-calcEmi">Calculate EMI</button></div>
+      <div class="two" style="margin-top:8px"><label class="field"><span>Interest rate (% p.a.)</span><input id="as-rate" type="number" step="0.01" min="0" inputmode="decimal" value="${a.loanRate!=null?a.loanRate:""}" placeholder="e.g. 8.5"></label>
+      <label class="field"><span>Tenure (years)</span><input id="as-tenure" type="number" step="1" min="1" inputmode="numeric" value="${a.loanTenureYears!=null?a.loanTenureYears:""}" placeholder="e.g. 20"></label></div>
+      <div id="as-emi-result" class="msum num" style="margin-top:8px"><div><small>Calculated EMI</small><b>${a.calculatedEmi?money(a.calculatedEmi):"–"}</b></div><div><small>Total interest</small><b>${a.calculatedInterest?money(a.calculatedInterest):"–"}</b></div><div><small>Total repayment</small><b>${a.calculatedTotal?money(a.calculatedTotal):"–"}</b></div></div>
+      <p class="help" style="margin:8px 0 0">EMI uses the reducing-balance method. Each payment is split between interest and principal, with interest reducing as the outstanding balance falls.</p>
+    </div>
     <div class="two"><label class="field"><span>Quantity (optional)</span><input id="as-qty" inputmode="decimal" value="${a.quantity||""}" placeholder="e.g. 100"></label>
     <label class="field"><span>Purity % (for gold)</span><input id="as-purity" inputmode="decimal" value="${a.purity||""}" placeholder="e.g. 22"></label></div>
     <div class="two"><label class="field"><span>Market value — low (₹)</span><input id="as-low" inputmode="decimal" value="${a.marketLow||""}" placeholder="Optional"></label>
@@ -2081,11 +2108,51 @@ function openAssetSheet(id){
   sheet(id?"Edit asset":"Add asset",inner,sc=>{
     const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
     const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
-    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice:num("#as-purchase"),currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),originalLoan:num("#as-loan"),loanAccount:sc.querySelector("#as-loanacct").value||"",quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim()};
+    const linkedLoanAccount=sc.querySelector("#as-loanacct").value||"";
+    const purchasePrice=num("#as-purchase");
+    const initialPaid=num("#as-down");
+    let originalLoan=num("#as-loan");
+    if(!originalLoan && purchasePrice>0 && initialPaid>0 && initialPaid<=purchasePrice) originalLoan=Math.max(0,purchasePrice-initialPaid);
+    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice,currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),initialPaid,originalLoan,loanAccount:linkedLoanAccount,loanStartDate:sc.querySelector("#as-loanstart").value||null,loanRate:num("#as-rate"),loanTenureYears:num("#as-tenure"),calculatedEmi:Number(a.calculatedEmi)||0,calculatedInterest:Number(a.calculatedInterest)||0,calculatedTotal:Number(a.calculatedTotal)||0,quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim()};
+    // Keep the asset's manually entered original loan amount authoritative. If a loan account is linked,
+    // also initialise/update that account's original amount so asset calculations and the account agree.
+    if(linkedLoanAccount){
+      const linkedLoan=state.accounts&&state.accounts[linkedLoanAccount];
+      if(linkedLoan&&linkedLoan.kind==="loan"&&originalLoan>0) linkedLoan.originalAmount=originalLoan;
+    }
     next.marketUpdated=todayISO(); next.marketTrend=next.currentValue>next.purchasePrice?"Upward":next.currentValue<next.purchasePrice?"Downward":"Stable";
     state.assets=state.assets||[]; const i=state.assets.findIndex(x=>x.id===next.id); if(i>=0) state.assets[i]=next; else state.assets.push(next); persist([],true); toast("Asset saved."); if(next.type==="gold" && next.quantity>0){ refreshGoldAsset(next.id); }
   },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
   const scr=document.querySelector(".scrim:last-of-type"), rb=scr&&scr.querySelector("#as-refreshGold");
+  const loanAmountEl=scr&&scr.querySelector("#as-loan"), loanAccountEl=scr&&scr.querySelector("#as-loanacct"), loanHelpEl=scr&&scr.querySelector("#as-loan-help");
+  if(loanAccountEl){
+    loanAccountEl.onchange=()=>{
+      const key=loanAccountEl.value, ac=key&&state.accounts?state.accounts[key]:null;
+      if(ac&&ac.kind==="loan"){
+        if(ac.originalAmount!=null && Number(ac.originalAmount)>0) loanAmountEl.value=ac.originalAmount;
+        if(loanHelpEl) loanHelpEl.textContent="Linked loan selected. You can edit the original loan amount here.";
+      }else if(loanHelpEl){
+        loanHelpEl.textContent="Optional — enter the original loan amount if this asset was financed.";
+      }
+    };
+  }
+  const downEl=scr&&scr.querySelector("#as-down"), purchaseEl=scr&&scr.querySelector("#as-purchase"), loanEl=scr&&scr.querySelector("#as-loan");
+  if(downEl&&purchaseEl&&loanEl){
+    const suggestLoan=()=>{ const purchase=parseFloat(String(purchaseEl.value||"").replace(/,/g,""))||0; const down=parseFloat(String(downEl.value||"").replace(/,/g,""))||0; if(purchase>0&&down>0&&down<=purchase&&!loanEl.value) loanEl.value=(purchase-down).toFixed(2).replace(/\.00$/,"" ); };
+    downEl.oninput=suggestLoan; purchaseEl.oninput=()=>{ if(!loanEl.value) suggestLoan(); };
+  }
+  const calcEmiBtn=scr&&scr.querySelector("#as-calcEmi");
+  if(calcEmiBtn){
+    calcEmiBtn.onclick=()=>{
+      const p=parseFloat(String((loanEl?.value||"")).replace(/,/g,""))||0, rate=parseFloat(String(scr.querySelector("#as-rate")?.value||"").replace(/,/g,""))||0, years=parseFloat(String(scr.querySelector("#as-tenure")?.value||"").replace(/,/g,""))||0;
+      if(p<=0||rate<0||years<=0){toast("Enter loan amount, interest rate and tenure.");return;}
+      const n=Math.round(years*12), r=rate/12/100; const emi=r===0?p/n:(p*r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+      const total=emi*n, interest=total-p, result=scr.querySelector("#as-emi-result");
+      if(result) result.innerHTML=`<div><small>Calculated EMI</small><b>${money(emi)}</b></div><div><small>Total interest</small><b>${money(interest)}</b></div><div><small>Total repayment</small><b>${money(total)}</b></div>`;
+      a.calculatedEmi=emi; a.calculatedInterest=interest; a.calculatedTotal=total;
+      toast(`Estimated EMI ${money(emi)} per month.`);
+    };
+  }
   if(rb) rb.onclick=()=>{ rb.disabled=true; rb.textContent="Refreshing…"; refreshGoldAsset(id).finally(()=>{if(document.body.contains(scr)){rb.disabled=false;rb.textContent="Refresh live gold value";}}); };
   const linkBtn=scr&&scr.querySelector("#as-linkTxns"); if(linkBtn) linkBtn.onclick=()=>openAssetTxnPicker(id);
 }
@@ -2302,9 +2369,14 @@ function renderOverview(){
   out.forEach(t=>{ const i = daysBetween(startISO, t.date); if(i>=0 && i<dim) daily[i] += spendAmt(t); });
   const max = Math.max(...daily, 1);
   const dayLbl = i => { const d = new Date(pStart); d.setDate(d.getDate()+i); return d.getDate() + (i===0 || d.getDate()===1 ? " " + mShort(d.getMonth()) : ""); };
-  html += `<div class="chart-card"><div class="card-h"><h2 style="margin:0">Day by day</h2><span class="chart-note">Daily spending</span></div><div class="days" role="img" aria-label="Daily spending bars for ${esc(monthLabel(cursor))}">` +
-    daily.map((v,i)=>`<i class="${v?"":"zero"}" style="height:${v ? Math.max(4, v/max*100) : 2}%" title="${dayLbl(i)}: ${money(v)}"></i>`).join("") +
-    `</div><div class="days-x"><span>${dayLbl(0)}</span><span>${dayLbl(Math.floor(dim/2))}</span><span>${dayLbl(dim-1)}</span></div>`;
+  const CW=360, CH=190, CL=34, CR=10, CT=16, CB=30;
+  const px=i=>dim<=1?(CW-CL-CR)/2+CL:CL+i*(CW-CL-CR)/(dim-1);
+  const py=v=>CT+(CH-CT-CB)*(1-v/max);
+  const linePts=daily.map((v,i)=>`${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ");
+  const areaPts=`${CL},${CH-CB} ${linePts} ${CW-CR},${CH-CB}`;
+  const grid=[0,.5,1].map(r=>{const v=max*r;return `<line x1="${CL}" x2="${CW-CR}" y1="${py(v)}" y2="${py(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${CL-6}" y="${py(v)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${esc(chartNum(v,chartScale(max).div))}</text>`;}).join("");
+  const dots=daily.map((v,i)=>v>0?`<circle cx="${px(i)}" cy="${py(v)}" r="2.8" fill="var(--brass)"><title>${esc(dayLbl(i))}: ${money(v)}</title></circle>`:"").join("");
+  html += `<div class="chart-card fancy-chart"><div class="card-h"><div><h2 style="margin:0">Spending trend</h2><span class="chart-note">${esc(monthLabel(cursor))} · daily</span></div><span class="chart-kpi">${money(spent)}</span></div><svg viewBox="0 0 ${CW} ${CH}" class="lchart daily-chart" role="img" aria-label="Daily spending trend for ${esc(monthLabel(cursor))}"><defs><linearGradient id="spendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--brass)" stop-opacity=".32"/><stop offset="100%" stop-color="var(--brass)" stop-opacity=".02"/></linearGradient></defs>${grid}<polygon points="${areaPts}" fill="url(#spendFill)"/><polyline points="${linePts}" fill="none" stroke="var(--brass)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${[0,Math.floor(dim/2),dim-1].map(i=>`<text x="${px(i)}" y="${CH-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(dayLbl(i))}</text>`).join("")}</svg></div>`;
 
   // top merchants
   const byM = {};
@@ -2687,7 +2759,7 @@ function openSheet(t, isNew){
     <label class="field"><span>Paid to / received from</span><input id="e-mer" value="${esc(t.merchant||"")}"></label>
     <div class="two">
       <label class="field"><span>Date</span><input id="e-date" type="date" value="${t.date||todayISO()}"></label>
-      <label class="field"><span>Category</span><div class="cat-search-wrap"><input id="e-cat-search" value="${esc(t.category||"")}" placeholder="Type to search category…" autocomplete="off"><input id="e-cat" type="hidden" value="${esc(t.category||"")}"><div id="e-cat-suggest" class="cat-suggestions"></div></div></label>
+      <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
     </div>
     <label class="field"><span>Link to asset / EMI / indirect expense</span><select id="e-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${t.assetId===a.id?" selected":""}>${esc(a.name)} · ${esc(assetTypeLabel(a.type))}${a.loanAccount?" · linked loan":""}</option>`).join("")}</select></label>
     ${(()=>{const sug=suggestAssetForTxn(t); return sug&&!t.assetId?`<p class="help" id="e-assetSuggest">Suggested asset: <b>${esc(sug.name)}</b> based on merchant/message. Please confirm by selecting it.</p>`:"";})()}
@@ -2728,12 +2800,8 @@ function openSheet(t, isNew){
   scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
   scrim.querySelector("#e-cancel").onclick = close;
   scrim.querySelector("#e-amt").focus();
-  const catSearch=scrim.querySelector("#e-cat-search"), catHidden=scrim.querySelector("#e-cat"), catSuggest=scrim.querySelector("#e-cat-suggest");
-  const catAllowed=()=>CATS.map(x=>x[0]);
-  const drawCatSuggestions=()=>{ const q=mkey(catSearch.value||""); const opts=catAllowed().filter(c=>!q||mkey(c).includes(q)).slice(0,24); catSuggest.innerHTML=opts.map(c=>`<button type="button" data-catpick="${esc(c)}">${esc(c)}</button>`).join("")||`<span class="help">No matching category</span>`; };
-  catSearch.oninput=()=>{catHidden.value=catSearch.value.trim();drawCatSuggestions();};
-  catSuggest.onclick=e=>{const b=e.target.closest("[data-catpick]");if(!b)return;catSearch.value=b.dataset.catpick;catHidden.value=b.dataset.catpick;drawCatSuggestions();};
-  drawCatSuggestions();
+  const catSelect=scrim.querySelector("#e-cat");
+  catSelect.value=t.category||"Other";
   let selPerson = t.person || "";
   let selEvent = t.event || "";
   let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
@@ -2780,7 +2848,7 @@ function openSheet(t, isNew){
   const syncSplitRow = ()=>{ const deb = scrim.querySelector("#e-type").value === "debit"; scrim.querySelector("#e-splitRow").classList.toggle("hidden", !deb); if(!deb){ scrim.querySelector("#e-split").checked = false; splitBox.classList.add("hidden"); } };
   scrim.querySelector("#e-split").onchange = e=>{ splitBox.classList.toggle("hidden", !e.target.checked); if(e.target.checked && !shareIn.value) evenShare(); };
   nIn.oninput = evenShare;
-  scrim.querySelector("#e-type").onchange = ()=>{ syncSplitRow(); drawCatSuggestions(); }; syncSplitRow();
+  scrim.querySelector("#e-type").onchange = ()=>{ syncSplitRow(); }; syncSplitRow();
   const ruleBox = scrim.querySelector("#e-rule"), ruleAmtRow = scrim.querySelector("#e-ruleAmtRow");
   if(ruleBox){ const syncRule = ()=>ruleAmtRow.classList.toggle("hidden", !ruleBox.checked); ruleBox.onchange = syncRule; syncRule(); }
   scrim.querySelector("#e-save").onclick = ()=>{
@@ -2791,8 +2859,8 @@ function openSheet(t, isNew){
       type: scrim.querySelector("#e-type").value,
       merchant: scrim.querySelector("#e-mer").value.trim() || "Payment",
       date: scrim.querySelector("#e-date").value || todayISO(),
-      category: scrim.querySelector("#e-cat").value || catSearch.value.trim() || "Other",
-      userCat: t.userCat || (!isNew && (scrim.querySelector("#e-cat").value || catSearch.value.trim()) !== t.category) || undefined,
+      category: scrim.querySelector("#e-cat").value || "Other",
+      userCat: t.userCat || (!isNew && scrim.querySelector("#e-cat").value !== t.category) || undefined,
       note: scrim.querySelector("#e-note").value.trim() };
     const cur = scrim.querySelector("#e-cur").value;
     if(cur === "INR"){ delete upd.currency; delete upd.fxRate; delete upd.fxAuto; }
@@ -3051,39 +3119,53 @@ function sheet(title, inner, onSave, extraBtn){
   return scrim;
 }
 const KIND_OPTS = [["bank","Bank account"],["card","Credit card"],["wallet","Wallet / prepaid"],["fastag","FASTag"],["invest","Investment / PF / pension"],["loan","Loan"]];
+function loanTranchesFor(a){
+  if(!a || a.kind!=="loan") return [];
+  if(Array.isArray(a.loanTranches) && a.loanTranches.length) return a.loanTranches;
+  const amt=Number(a.originalAmount)||Number(a.balance)||0;
+  if(!amt) return [];
+  return [{id:"orig-"+String(a.account||a.label||"loan"),type:"original",lender:a.bank||"",amount:amt,rate:a.loanRate!=null?Number(a.loanRate):null,startDate:a.loanStartDate||null,tenureMonths:a.loanTenureMonths||null,outstanding:a.balance!=null?Math.max(0,Number(a.balance)||0):amt,active:true}];
+}
+function loanTrancheTotal(a){return loanTranchesFor(a).reduce((s,t)=>s+Math.max(0,Number(t.outstanding)||0),0);}
+function loanTrancheOriginal(a){return loanTranchesFor(a).reduce((s,t)=>s+Math.max(0,Number(t.amount)||0),0);}
+function loanWeightedRate(a){const ts=loanTranchesFor(a).filter(t=>Number(t.rate)>0&&Number(t.outstanding)>0);const den=ts.reduce((s,t)=>s+Number(t.outstanding),0);if(!den)return null;return ts.reduce((s,t)=>s+Number(t.outstanding)*Number(t.rate),0)/den;}
+function loanEnsureStored(a){if(!a||a.kind!=="loan")return;if(!Array.isArray(a.loanTranches)||!a.loanTranches.length){const ts=loanTranchesFor(a);if(ts.length)a.loanTranches=ts;}}
+function loanStructureHtml(a){
+  const ts=loanTranchesFor(a); if(!ts.length)return `<p class="help">No loan tranche yet. Save the loan first, then add the original tranche, a top-up, or a balance transfer.</p>`;
+  const rows=ts.map(t=>`<div class="due loan-tranche" style="grid-template-columns:1fr auto"><span class="n">${esc(t.type==="topup"?"Top-up":t.type==="transfer"?"Balance transfer":"Original loan")}${t.lender?` · ${esc(t.lender)}`:""}</span><span class="num" style="font-weight:700">${money(Number(t.outstanding)||0,true)}</span><span class="w" style="grid-column:1/3"><span>Started ${t.startDate?esc(niceDate(t.startDate)):"—"}</span>${t.rate!=null?`<span>${Number(t.rate).toFixed(2)}% p.a.</span>`:""}<span>Original ${money(Number(t.amount)||0,true)}</span>${t.tenureMonths?`<span>${Math.round(Number(t.tenureMonths)/12*10)/10} yr</span>`:""}</span></div>`).join("");
+  const total=loanTrancheTotal(a), original=loanTrancheOriginal(a), wr=loanWeightedRate(a);
+  return `<div class="card" style="margin-top:8px"><div class="card-h"><b>Loan structure</b><span class="chart-note">${ts.length} tranche${ts.length===1?"":"s"}</span></div><div class="msum num"><div><small>Total sanctioned</small><b>${money(original)}</b></div><div><small>Outstanding</small><b>${money(total)}</b></div><div><small>Weighted rate</small><b>${wr!=null?wr.toFixed(2)+"%":"–"}</b></div></div>${rows}<div class="row" style="margin-top:8px"><button class="btn" type="button" id="loanAddTopup">+ Add top-up</button><button class="btn" type="button" id="loanTransfer">Transfer to another bank</button></div><p class="help">Top-ups are stored as separate loan tranches with their own rate and start date. A balance transfer closes the old lender and creates a new loan account, so the liability is not counted twice.</p></div>`;
+}
+function openLoanTopupSheet(key){
+  const a=state.accounts[key];if(!a||a.kind!=="loan")return;
+  sheet("Add loan top-up",`<label class="field"><span>Top-up amount (₹)</span><input id="lt-amt" inputmode="decimal"></label><div class="two"><label class="field"><span>New interest rate (% p.a.)</span><input id="lt-rate" inputmode="decimal"></label><label class="field"><span>Start date</span><input id="lt-date" type="date" value="${todayISO()}"></label></div><div class="two"><label class="field"><span>Tenure (months)</span><input id="lt-tenure" inputmode="numeric" placeholder="e.g. 60"></label><label class="field"><span>Lender / tranche label</span><input id="lt-label" value="${esc(a.bank||a.label||"")}" placeholder="e.g. Axis top-up"></label></div><p class="help">This does not replace the original loan. It creates a separate tranche with its own rate, tenure and outstanding amount.</p>`,sc=>{
+    const amt=parseFloat(sc.querySelector("#lt-amt").value.replace(/[,₹\s]/g,"")),rate=parseFloat(sc.querySelector("#lt-rate").value),tenure=parseInt(sc.querySelector("#lt-tenure").value||"0",10)||null;if(!(amt>0)){toast("Enter the top-up amount.");return false;}
+    const t={id:"topup-"+uidGen(),type:"topup",lender:sc.querySelector("#lt-label").value.trim()||a.bank||"",amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:sc.querySelector("#lt-date").value||todayISO(),tenureMonths:tenure,outstanding:amt,active:true};loanEnsureStored(a);a.loanTranches.push(t);a.balance=loanTrancheTotal(a);a.originalAmount=loanTrancheOriginal(a);a.asOf=todayISO();persist([],true);toast(`Top-up of ${money(amt)} added.`);
+  });
+}
+function openLoanTransferSheet(key){
+  const a=state.accounts[key];if(!a||a.kind!=="loan")return;const outstanding=loanTrancheTotal(a)||Number(a.balance)||0;
+  sheet("Transfer loan to another bank",`<label class="field"><span>New lender / loan name</span><input id="lb-name" placeholder="e.g. HDFC Home Loan"></label><div class="two"><label class="field"><span>Transferred principal (₹)</span><input id="lb-amt" inputmode="decimal" value="${outstanding||""}"></label><label class="field"><span>New interest rate (% p.a.)</span><input id="lb-rate" inputmode="decimal"></label></div><div class="two"><label class="field"><span>Transfer date</span><input id="lb-date" type="date" value="${todayISO()}"></label><label class="field"><span>New tenure (months)</span><input id="lb-tenure" inputmode="numeric" placeholder="e.g. 120"></label></div><div class="two"><label class="field"><span>Optional top-up (₹)</span><input id="lb-topup" inputmode="decimal" value="0"></label><label class="field"><span>Top-up rate (% p.a.)</span><input id="lb-toprate" inputmode="decimal"></label></div><p class="help">The old loan will be marked transferred/closed. The new loan carries the transferred principal and optional top-up as separate tranches. The transfer itself is not income or expense.</p>`,sc=>{
+    const name=sc.querySelector("#lb-name").value.trim(),amt=parseFloat(sc.querySelector("#lb-amt").value.replace(/[,₹\s]/g,"")),rate=parseFloat(sc.querySelector("#lb-rate").value),top=parseFloat(sc.querySelector("#lb-topup").value.replace(/[,₹\s]/g,""))||0,topRate=parseFloat(sc.querySelector("#lb-toprate").value),date=sc.querySelector("#lb-date").value||todayISO(),tenure=parseInt(sc.querySelector("#lb-tenure").value||"0",10)||null;if(!name||!(amt>0)){toast("Enter the new lender and transferred principal.");return false;}
+    const nk="manual"+uidGen(),na={label:name,kind:"loan",bank:name,account:"",balance:amt+top,asOf:date,originalAmount:amt+top,loanCategory:a.loanCategory||"Other",assetId:a.assetId||null,transferredFrom:key,loanTranches:[{id:"transfer-"+uidGen(),type:"transfer",lender:name,amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:amt,active:true}]};
+    if(top>0)na.loanTranches.push({id:"topup-"+uidGen(),type:"topup",lender:name,amount:top,rate:Number.isFinite(topRate)?topRate:(Number.isFinite(rate)?rate:null),startDate:date,tenureMonths:tenure,outstanding:top,active:true});
+    a.transferredTo=nk;a.closed=true;a.hidden=true;a.transferredOn=date;a.balance=0;a.asOf=date;state.accounts[nk]=na;persist([],true);toast(`Loan transferred to ${name}.`);
+  });
+}
 function openAcctSheet(key){
-  const a = key ? state.accounts[key] : { kind: "bank" };
-  const v = a.kind === "card" ? a.availLimit : a.balance;
-  const loanCat=a.loanCategory||"Other";
-  const loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"];
+  const a=key?state.accounts[key]:{kind:"bank"},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"];
   const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
-  const loanPaid=key && a.kind==="loan" ? state.txns.filter(t=>t.type==="debit" && counts(t) && (t.category==="EMI & loans" || t.category==="Loan repayment") && ((!a.account || t.account===a.account) || mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0) : 0;
-  sheet(key ? "Edit account" : "Add an account", `
-    <label class="field"><span>Name</span><input id="a-name" value="${esc(a.label || [a.bank, a.account ? "··" + a.account : ""].join(" ").trim())}" placeholder="e.g. Axis home loan"></label>
-    <div class="two"><label class="field"><span>Type</span><select id="a-kind">${KIND_OPTS.map(([k,l])=>`<option value="${k}"${k===(a.kind||"bank")?" selected":""}>${l}</option>`).join("")}</select></label>
-    <label class="field"><span>Balance or limit (₹)</span><input id="a-bal" inputmode="decimal" value="${v != null ? v : ""}"></label></div>
-    <div id="loanFields" style="${a.kind==="loan"?"":"display:none"}"><div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="a-original" inputmode="decimal" value="${a.originalAmount!=null?a.originalAmount:""}"></label><label class="field"><span>Loan category</span><select id="a-loanCat">${loanCats.map(c=>`<option${c===loanCat?" selected":""}>${c}</option>`).join("")}</select></label></div><label class="field"><span>Linked asset</span><select id="a-asset"><option value="">None</option>${assetLoanOpts}</select></label>${key&&a.kind==="loan"?`<div class="card" style="margin-top:8px"><div class="msum num"><div><small>Original amount</small><b>${a.originalAmount!=null?money(a.originalAmount):"–"}</b></div><div><small>Total paid</small><b style="color:var(--brass)">${money(loanPaid)}</b></div><div><small>Remaining estimate</small><b>${a.originalAmount!=null?money(Math.max(0,a.originalAmount-loanPaid)):"–"}</b></div></div><p class="hint">Paid is calculated from matched EMI/loan repayments already imported.</p></div>`:""}</div>
-    <p class="help">New SMS for this account will keep updating the balance.</p>`,
-  sc=>{
-    const name = sc.querySelector("#a-name").value.trim(), kind = sc.querySelector("#a-kind").value;
-    const originalEl=sc.querySelector("#a-original"), loanCatEl=sc.querySelector("#a-loanCat"), loanAssetEl=sc.querySelector("#a-asset");
-    const original=originalEl && originalEl.value.trim()!=="" ? parseFloat(originalEl.value.replace(/[,₹\s]/g,"")) : null;
-    const loanCategory=loanCatEl ? loanCatEl.value : "Other";
-    const raw = sc.querySelector("#a-bal").value.replace(/[,₹\s]/g,""), bal = raw === "" ? null : parseFloat(raw);
-    if(!name){ toast("Give the account a name."); return false; }
-    const k = key || "manual" + uidGen();
-    const cur = state.accounts[k] || { bank: "", account: "" };
-    const next = { ...cur, label: name, kind, asOf: todayISO() };
-    delete next.balance; delete next.availLimit;
-    if(bal != null && !isNaN(bal)){ if(kind === "card") next.availLimit = bal; else next.balance = bal; }
-    if(kind === "loan"){ if(original!=null && !isNaN(original)) next.originalAmount=original; else delete next.originalAmount; next.loanCategory=loanCategory; if(loanAssetEl&&loanAssetEl.value) next.assetId=loanAssetEl.value; else delete next.assetId; } else { delete next.originalAmount; delete next.loanCategory; delete next.assetId; }
-    state.accounts[k] = next; persist([], true); toast("Account saved.");
-  }, key ? [[a.kind==="card" ? (a.closed ? "Reopen card" : "Close card") : "Hide", ()=>{ if(a.kind==="card"){ state.accounts[key].closed=!a.closed; state.accounts[key].hidden=!!state.accounts[key].closed; persist([], true); toast(state.accounts[key].closed?"Credit card closed.":"Credit card reopened."); } else { state.accounts[key].hidden=true; persist([], true); } }],
-             ["Remove", ()=>{ if(!confirm("Remove this account? Its balance history isn't kept, but new SMS for it will add it back.")) return; delete state.accounts[key]; persist([], true); }]] : null);
-  const kindSel=document.querySelector(".scrim:last-of-type #a-kind");
-  if(kindSel){ kindSel.onchange=()=>{ const lf=document.querySelector(".scrim:last-of-type #loanFields"); if(lf) lf.style.display=kindSel.value==="loan"?"":"none"; }; }
-  const loanAssetSel=document.querySelector(".scrim:last-of-type #a-asset"), loanCatSel=document.querySelector(".scrim:last-of-type #a-loanCat");
-  if(loanAssetSel&&loanCatSel) loanAssetSel.onchange=()=>{const x=(state.assets||[]).find(v=>v.id===loanAssetSel.value);if(x)loanCatSel.value=x.type==="property"?"Home":x.type==="vehicle"?"Vehicle":x.type==="gold"?"Gold":loanCatSel.value;};
+  const loanPaid=key&&a.kind==="loan"?state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0):0;
+  const loanInfo=a.kind==="loan"?loanStructureHtml(a):"";
+  sheet(key?"Edit account":"Add an account",`<label class="field"><span>Name</span><input id="a-name" value="${esc(a.label||[a.bank,a.account?"··"+a.account:""].join(" ").trim())}" placeholder="e.g. Axis home loan"></label><div class="two"><label class="field"><span>Type</span><select id="a-kind">${KIND_OPTS.map(([k,l])=>`<option value="${k}"${k===(a.kind||"bank")?" selected":""}>${l}</option>`).join("")}</select></label><label class="field"><span>Balance or limit (₹)</span><input id="a-bal" inputmode="decimal" value="${v!=null?v:""}"></label></div><div id="loanFields" style="${a.kind==="loan"?"":"display:none"}"><div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="a-original" inputmode="decimal" value="${a.originalAmount!=null?a.originalAmount:""}"></label><label class="field"><span>Loan category</span><select id="a-loanCat">${loanCats.map(c=>`<option${c===loanCat?" selected":""}>${c}</option>`).join("")}</select></label></div><label class="field"><span>Linked asset</span><select id="a-asset"><option value="">None</option>${assetLoanOpts}</select></label>${key&&a.kind==="loan"?`<div class="card" style="margin-top:8px"><div class="msum num"><div><small>Original amount</small><b>${a.originalAmount!=null?money(a.originalAmount):"–"}</b></div><div><small>Total EMI / loan payments</small><b style="color:var(--brass)">${money(loanPaid)}</b></div><div><small>Outstanding</small><b>${a.balance!=null?money(Math.max(0,Number(a.balance)||0)):"–"}</b></div></div><p class="hint">Payments are calculated from matched EMI/loan repayments already imported.</p></div>${loanInfo}`:""}</div><p class="help">New SMS for this account will keep updating the balance. For loans, use the structure below when the lender adds a top-up or you transfer the loan to another bank.</p>`,sc=>{
+    const name=sc.querySelector("#a-name").value.trim(),kind=sc.querySelector("#a-kind").value,originalEl=sc.querySelector("#a-original"),loanCatEl=sc.querySelector("#a-loanCat"),loanAssetEl=sc.querySelector("#a-asset"),original=originalEl&&originalEl.value.trim()!==""?parseFloat(originalEl.value.replace(/[,₹\s]/g,"")):null,loanCategory=loanCatEl?loanCatEl.value:"Other",raw=sc.querySelector("#a-bal").value.replace(/[,₹\s]/g,""),bal=raw===""?null:parseFloat(raw);if(!name){toast("Give the account a name.");return false;}
+    const k=key||"manual"+uidGen(),cur=state.accounts[k]||{bank:"",account:""},next={...cur,label:name,kind,asOf:todayISO()};delete next.balance;delete next.availLimit;if(bal!=null&&!isNaN(bal)){if(kind==="card")next.availLimit=bal;else next.balance=bal;}
+    if(kind==="loan"){if(original!=null&&!isNaN(original))next.originalAmount=original;else if(!next.originalAmount)delete next.originalAmount;next.loanCategory=loanCategory;if(loanAssetEl&&loanAssetEl.value)next.assetId=loanAssetEl.value;else delete next.assetId;if(key)loanEnsureStored(next);if(Array.isArray(next.loanTranches)&&next.loanTranches.length){const total=loanTrancheTotal(next);if(total>0)next.balance=total;next.originalAmount=loanTrancheOriginal(next);}}else{delete next.originalAmount;delete next.loanCategory;delete next.assetId;delete next.loanTranches;}
+    state.accounts[k]=next;persist([],true);toast("Account saved.");
+  },key?[[a.kind==="card"?(a.closed?"Reopen card":"Close card"):"Hide",()=>{if(a.kind==="card"){state.accounts[key].closed=!a.closed;state.accounts[key].hidden=!!state.accounts[key].closed;persist([],true);toast(state.accounts[key].closed?"Credit card closed.":"Credit card reopened.");}else{state.accounts[key].hidden=true;persist([],true);toast("Account hidden.");}}],["Remove",()=>{if(!confirm("Remove this account? Its balance history isn't kept, but new SMS for it will add it back."))return;delete state.accounts[key];persist([],true);}]]:null);
+  const scr=document.querySelector(".scrim:last-of-type"),kindSel=scr&&scr.querySelector("#a-kind");if(kindSel)kindSel.onchange=()=>{const lf=scr.querySelector("#loanFields");if(lf)lf.style.display=kindSel.value==="loan"?"":"none";};
+  const loanAssetSel=scr&&scr.querySelector("#a-asset"),loanCatSel=scr&&scr.querySelector("#a-loanCat");if(loanAssetSel&&loanCatSel)loanAssetSel.onchange=()=>{const x=(state.assets||[]).find(v=>v.id===loanAssetSel.value);if(x)loanCatSel.value=x.type==="property"?"Home":x.type==="vehicle"?"Vehicle":x.type==="gold"?"Gold":loanCatSel.value;};
+  if(scr&&a.kind==="loan"&&key){const top=scr.querySelector("#loanAddTopup"),tr=scr.querySelector("#loanTransfer");if(top)top.onclick=()=>openLoanTopupSheet(key);if(tr)tr.onclick=()=>openLoanTransferSheet(key);}
 }
 function openSubSheet(){
   sheet("Add a subscription", `
