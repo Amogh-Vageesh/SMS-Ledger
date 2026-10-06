@@ -2613,8 +2613,16 @@ function openAssetSheet(id){
     <label class="field"><span>Other ownership costs (₹)</span><input id="as-costs" inputmode="decimal" value="${a.ownershipCosts||""}"></label></div>
     <div class="two"><label class="field"><span>Income received (₹)</span><input id="as-income" inputmode="decimal" value="${a.incomeReceived||""}" placeholder="Rent, dividends, etc."></label>
     <label class="field"><span>Estimated sale costs (₹)</span><input id="as-sale" inputmode="decimal" value="${a.saleCosts||""}"></label></div>
-    <div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="as-loan" inputmode="decimal" value="${a.originalLoan||""}"></label>
-    <label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label></div>
+    <div class="two"><label class="field"><span>Initial amount paid (₹)</span><input id="as-down" type="number" step="0.01" min="0" inputmode="decimal" value="${a.initialPaid!=null?a.initialPaid:""}" placeholder="e.g. 2000000"><small class="help">Your own/down-payment amount paid at purchase. The app can calculate the financed amount from this.</small></label>
+    <label class="field"><span>Original loan amount (₹)</span><input id="as-loan" type="number" step="0.01" min="0" inputmode="decimal" value="${a.originalLoan!=null?a.originalLoan:(a.loanAccount&&state.accounts?.[a.loanAccount]?.originalAmount!=null?state.accounts[a.loanAccount].originalAmount:"")}"><small class="help" id="as-loan-help">${a.loanAccount?"Linked loan selected. You can edit the original loan amount here.":"Enter the loan amount, or use Initial amount paid to calculate it."}</small></label></div>
+    <div class="two"><label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label>
+    <label class="field"><span>Loan start date</span><input id="as-loanstart" type="date" value="${esc(a.loanStartDate||a.purchaseDate||todayISO())}"></label></div>
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>EMI calculator</b><button type="button" class="mini" id="as-calcEmi">Calculate EMI</button></div>
+      <div class="two" style="margin-top:8px"><label class="field"><span>Interest rate (% p.a.)</span><input id="as-rate" type="number" step="0.01" min="0" inputmode="decimal" value="${a.loanRate!=null?a.loanRate:""}" placeholder="e.g. 8.5"></label>
+      <label class="field"><span>Tenure (years)</span><input id="as-tenure" type="number" step="1" min="1" inputmode="numeric" value="${a.loanTenureYears!=null?a.loanTenureYears:""}" placeholder="e.g. 20"></label></div>
+      <div id="as-emi-result" class="msum num" style="margin-top:8px"><div><small>Calculated EMI</small><b>${a.calculatedEmi?money(a.calculatedEmi):"–"}</b></div><div><small>Total interest</small><b>${a.calculatedInterest?money(a.calculatedInterest):"–"}</b></div><div><small>Total repayment</small><b>${a.calculatedTotal?money(a.calculatedTotal):"–"}</b></div></div>
+      <p class="help" style="margin:8px 0 0">EMI uses the reducing-balance method. Each payment is split between interest and principal, with interest reducing as the outstanding balance falls.</p>
+    </div>
     <div class="two"><label class="field"><span>Quantity (optional)</span><input id="as-qty" inputmode="decimal" value="${a.quantity||""}" placeholder="e.g. 100"></label>
     <label class="field"><span>Purity % (for gold)</span><input id="as-purity" inputmode="decimal" value="${a.purity||""}" placeholder="e.g. 22"></label></div>
     <div class="two"><label class="field"><span>Market value — low (₹)</span><input id="as-low" inputmode="decimal" value="${a.marketLow||""}" placeholder="Optional"></label>
@@ -2627,11 +2635,51 @@ function openAssetSheet(id){
   sheet(id?"Edit asset":"Add asset",inner,sc=>{
     const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
     const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
-    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice:num("#as-purchase"),currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),originalLoan:num("#as-loan"),loanAccount:sc.querySelector("#as-loanacct").value||"",quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim()};
+    const linkedLoanAccount=sc.querySelector("#as-loanacct").value||"";
+    const purchasePrice=num("#as-purchase");
+    const initialPaid=num("#as-down");
+    let originalLoan=num("#as-loan");
+    if(!originalLoan && purchasePrice>0 && initialPaid>0 && initialPaid<=purchasePrice) originalLoan=Math.max(0,purchasePrice-initialPaid);
+    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice,currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),initialPaid,originalLoan,loanAccount:linkedLoanAccount,loanStartDate:sc.querySelector("#as-loanstart").value||null,loanRate:num("#as-rate"),loanTenureYears:num("#as-tenure"),calculatedEmi:Number(a.calculatedEmi)||0,calculatedInterest:Number(a.calculatedInterest)||0,calculatedTotal:Number(a.calculatedTotal)||0,quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim()};
+    // Keep the asset's manually entered original loan amount authoritative. If a loan account is linked,
+    // also initialise/update that account's original amount so asset calculations and the account agree.
+    if(linkedLoanAccount){
+      const linkedLoan=state.accounts&&state.accounts[linkedLoanAccount];
+      if(linkedLoan&&linkedLoan.kind==="loan"&&originalLoan>0) linkedLoan.originalAmount=originalLoan;
+    }
     next.marketUpdated=todayISO(); next.marketTrend=next.currentValue>next.purchasePrice?"Upward":next.currentValue<next.purchasePrice?"Downward":"Stable";
     state.assets=state.assets||[]; const i=state.assets.findIndex(x=>x.id===next.id); if(i>=0) state.assets[i]=next; else state.assets.push(next); persist([],true); toast("Asset saved."); if(next.type==="gold" && next.quantity>0){ refreshGoldAsset(next.id); }
   },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
   const scr=document.querySelector(".scrim:last-of-type"), rb=scr&&scr.querySelector("#as-refreshGold");
+  const loanAmountEl=scr&&scr.querySelector("#as-loan"), loanAccountEl=scr&&scr.querySelector("#as-loanacct"), loanHelpEl=scr&&scr.querySelector("#as-loan-help");
+  if(loanAccountEl){
+    loanAccountEl.onchange=()=>{
+      const key=loanAccountEl.value, ac=key&&state.accounts?state.accounts[key]:null;
+      if(ac&&ac.kind==="loan"){
+        if(ac.originalAmount!=null && Number(ac.originalAmount)>0) loanAmountEl.value=ac.originalAmount;
+        if(loanHelpEl) loanHelpEl.textContent="Linked loan selected. You can edit the original loan amount here.";
+      }else if(loanHelpEl){
+        loanHelpEl.textContent="Optional — enter the original loan amount if this asset was financed.";
+      }
+    };
+  }
+  const downEl=scr&&scr.querySelector("#as-down"), purchaseEl=scr&&scr.querySelector("#as-purchase"), loanEl=scr&&scr.querySelector("#as-loan");
+  if(downEl&&purchaseEl&&loanEl){
+    const suggestLoan=()=>{ const purchase=parseFloat(String(purchaseEl.value||"").replace(/,/g,""))||0; const down=parseFloat(String(downEl.value||"").replace(/,/g,""))||0; if(purchase>0&&down>0&&down<=purchase&&!loanEl.value) loanEl.value=(purchase-down).toFixed(2).replace(/\.00$/,"" ); };
+    downEl.oninput=suggestLoan; purchaseEl.oninput=()=>{ if(!loanEl.value) suggestLoan(); };
+  }
+  const calcEmiBtn=scr&&scr.querySelector("#as-calcEmi");
+  if(calcEmiBtn){
+    calcEmiBtn.onclick=()=>{
+      const p=parseFloat(String((loanEl?.value||"")).replace(/,/g,""))||0, rate=parseFloat(String(scr.querySelector("#as-rate")?.value||"").replace(/,/g,""))||0, years=parseFloat(String(scr.querySelector("#as-tenure")?.value||"").replace(/,/g,""))||0;
+      if(p<=0||rate<0||years<=0){toast("Enter loan amount, interest rate and tenure.");return;}
+      const n=Math.round(years*12), r=rate/12/100; const emi=r===0?p/n:(p*r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+      const total=emi*n, interest=total-p, result=scr.querySelector("#as-emi-result");
+      if(result) result.innerHTML=`<div><small>Calculated EMI</small><b>${money(emi)}</b></div><div><small>Total interest</small><b>${money(interest)}</b></div><div><small>Total repayment</small><b>${money(total)}</b></div>`;
+      a.calculatedEmi=emi; a.calculatedInterest=interest; a.calculatedTotal=total;
+      toast(`Estimated EMI ${money(emi)} per month.`);
+    };
+  }
   if(rb) rb.onclick=()=>{ rb.disabled=true; rb.textContent="Refreshing…"; refreshGoldAsset(id).finally(()=>{if(document.body.contains(scr)){rb.disabled=false;rb.textContent="Refresh live gold value";}}); };
   const linkBtn=scr&&scr.querySelector("#as-linkTxns"); if(linkBtn) linkBtn.onclick=()=>openAssetTxnPicker(id);
 }
