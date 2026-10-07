@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var statementCallback: ValueCallback<String>? = null
     private var loanDocumentCallback: ValueCallback<String>? = null
+    private var insurancePolicyCallback: ValueCallback<String>? = null
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         fileCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
         fileCallback = null
@@ -82,6 +83,24 @@ class MainActivity : ComponentActivity() {
                     payload.put(JSONObject().put("name", uri.lastPathSegment ?: "statement").put("text", text))
                 } catch (e: Throwable) {
                     payload.put(JSONObject().put("name", uri.lastPathSegment ?: "statement").put("error", e.message ?: e.javaClass.simpleName))
+                }
+            }
+            cb?.onReceiveValue(payload.toString())
+        }
+    }
+
+    private val pickInsurancePolicyFiles = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        val cb = insurancePolicyCallback
+        insurancePolicyCallback = null
+        if (uris.isNullOrEmpty()) { cb?.onReceiveValue("[]"); return@registerForActivityResult }
+        lifecycleScope.launch {
+            val payload = JSONArray()
+            uris.forEach { uri ->
+                try {
+                    val text = readStatementText(uri)
+                    payload.put(JSONObject().put("name", uri.lastPathSegment ?: "policy-document").put("text", text))
+                } catch (e: Throwable) {
+                    payload.put(JSONObject().put("name", uri.lastPathSegment ?: "policy-document").put("error", e.message ?: e.javaClass.simpleName))
                 }
             }
             cb?.onReceiveValue(payload.toString())
@@ -678,6 +697,15 @@ class MainActivity : ComponentActivity() {
                 web.evaluateJavascript("window.bankStatementFilesResult && window.bankStatementFilesResult($safe)", null)
             }
             pickStatement.launch(arrayOf("application/pdf", "text/csv", "text/plain", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"))
+        }
+
+        @JavascriptInterface
+        fun pickInsurancePolicy(callbackName: String) = runOnUiThread {
+            insurancePolicyCallback = ValueCallback { payload ->
+                val safe = JSONObject.quote(payload ?: "[]")
+                web.evaluateJavascript("window.insurancePolicyFilesResult && window.insurancePolicyFilesResult($safe)", null)
+            }
+            pickInsurancePolicyFiles.launch(arrayOf("application/pdf", "text/plain", "text/csv", "application/octet-stream"))
         }
 
         @JavascriptInterface
