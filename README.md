@@ -1,15 +1,28 @@
-# SMS Ledger v1.88
+# SMS Ledger v1.89
 
-## Loan document batch import and processed-data backup
+Version: 1.89 / versionCode 85
 
-- Import loan documents from an existing Asset → Loan → Import documents.
-- Select multiple yearly statements/schedules together and review once.
-- No automatic new-loan creation during document import.
-- Extracts loan start date where clearly labeled and uses the latest applicable document for current interest rate/outstanding/EMI.
-- Reconciles statement payment rows with existing SMS and creates statement-only Ledger entries only when no matching transaction exists.
-- Retains document metadata and reconciliation history after the source file is removed.
-- Remove document record without deleting processed Ledger, loan or asset data.
-- JSON/manual and automatic backups contain processed transactions, accounts/loans, assets, loan document metadata, reconciliation and family data. Original PDF/XLS bytes are not included in the processed backup.
-- Restore brings back processed loan/asset/document data in addition to Ledger entries.
+## Loan document extraction and asset update fixes
+- Loan documents imported from an existing asset update that asset and its linked loan instead of creating a new loan.
+- Axis-style repayment schedules are parsed row-by-row.
+- Current rate/outstanding/EMI are taken from the latest schedule row applicable as of the document date, not a future repayment row.
+- Loan start date prefers the earliest statement-period start date; otherwise disbursement/start date; otherwise earliest schedule due date.
+- Lender detection prioritizes known lender names from the filename/document and normalizes Axis/HDFC/ICICI/etc.
+- Interest-rate history is retained for parsed schedule rows.
+- Asset now exposes current outstanding, current interest rate and current EMI fields.
+- Imported document data remains after removing the original document record.
 
-Version: 1.88 / versionCode 84
+## Backup
+Backups retain processed financial data, loan/asset metadata, statement reconciliation and document metadata. Original source PDFs/XLS files are not required to restore processed data.
+
+## Update
+Install v1.89 over v1.88; do not uninstall first. The package ID and release signing key are retained, so the Android app can be updated in place when the APK is signed with the same release key.
+
+
+## v1.90 UI update
+- Renamed bottom Accounts tab to **Assets**.
+- Assets moved out of the monthly Summary/Overview and into the Assets tab.
+- Assets tab now groups: Assets, Bank accounts, Other accounts, Loan accounts, Bills due.
+- Each section can be expanded/collapsed and explicitly hidden/shown.
+- Monthly expense summary now uses a donut chart with category amount and percentage, matching the requested first graph design.
+- Existing asset/loan/account data structures are retained.
