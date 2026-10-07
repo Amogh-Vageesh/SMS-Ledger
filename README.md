@@ -51,3 +51,11 @@ Install v1.89 over v1.88; do not uninstall first. The package ID and release sig
 - Net worth calculation is isolated from asset/account list rendering.
 - Added safe fallbacks for individual asset/account/bill rows.
 - Current-month Bills Due remains in My Ledger; Assets only shows future bills.
+
+
+## v1.94 Assets renderer fix
+- Reworked the Assets tab renderer to normalize legacy/corrupt state arrays and account objects before rendering.
+- Net worth, assets, bank accounts, other accounts, loan accounts, future bills and subscriptions render independently.
+- Individual malformed records fall back to a safe row instead of aborting the entire Assets page.
+- Added a last-resort technical-details panel rather than replacing the page with the previous generic loading error.
+- Current-month unpaid bills remain in My Ledger; only future bills are shown in Assets.
