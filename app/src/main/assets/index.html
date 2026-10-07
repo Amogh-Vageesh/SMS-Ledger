@@ -447,6 +447,17 @@ body{font-size:var(--fs-body);line-height:1.45}
 .asset-loan-list,.loan-linked-txns{max-height:42vh;overflow:auto;border-top:1px solid var(--rule);margin:8px 0}
 .asset-loan-entry,.loan-linked-txns .trow{width:100%;text-align:left}
 .asset-loan-summary .btn{width:100%}
+
+/* v1.103 asset/account alignment and liability drill-down */
+.networth-stat{border:0;background:none;color:inherit;text-align:left;font:inherit;padding:12px 10px 4px 12px;cursor:pointer;min-width:0;width:100%;}
+.networth-stat span{display:block;color:var(--muted);font-size:.68rem;margin-top:4px;}
+.pane-action{padding:10px 15px;border-bottom:1px solid var(--rule);display:flex;justify-content:flex-start;}
+.pane-action .btn{min-width:190px;}
+.asset-value-wrap{display:flex;flex-direction:column;align-items:flex-end;min-width:92px}.asset-current-label{font-size:.6rem;color:var(--muted);line-height:1.1;}
+.asset-value-indicator{font-size:.66rem;line-height:1.15;margin-top:3px;white-space:nowrap;}
+.asset-positive{color:var(--good);}.asset-negative{color:var(--over);}
+.liability-detail-row{width:100%;text-align:left;border:0;background:none;color:var(--text);padding:12px 0;border-bottom:1px solid var(--rule);}
+@media(max-width:390px){.pane-action .btn{min-width:0;width:100%;}.asset-value-wrap{min-width:82px}.asset-value-indicator{font-size:.6rem;}.networth-stat{padding-left:8px;}}
 </style>
 </head>
 <body>
@@ -2441,7 +2452,7 @@ function detectSubs(){
 function renderNetWorthCard(){
   try{
     const physical=physicalAssetTotal(), financial=totalHeldBalance(), liabilities=totalLiabilities(), nw=netWorth();
-    return `<div class="card networth-card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num networth-big">${money(Number.isFinite(Number(nw))?Number(nw):0)}</div><div class="networth-grid"><div><small>Financial assets</small><b>${money(Number(financial)||0)}</b></div><div><small>Other assets</small><b>${money(Number(physical)||0)}</b></div><div><small>Liabilities</small><b class="over">−${money(Number(liabilities)||0)}</b></div></div></div>`;
+    return `<div class="card networth-card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num networth-big">${money(Number.isFinite(Number(nw))?Number(nw):0)}</div><div class="networth-grid"><div><small>Financial assets</small><b>${money(Number(financial)||0)}</b></div><div><small>Other assets</small><b>${money(Number(physical)||0)}</b></div><button type="button" class="networth-stat networth-liability" id="openLiabilityDetails"><small>Liabilities</small><b class="over">−${money(Number(liabilities)||0)}</b><span>Tap to see who is owed</span></button></div></div>`;
   }catch(e){
     console.warn("Net worth card render",e);
     return `<div class="card networth-card"><div class="card-h"><h2>Net worth</h2></div><p class="help">Net worth is temporarily unavailable, but your accounts and assets are still shown below.</p></div>`;
@@ -2505,19 +2516,18 @@ function renderAccounts(){
 
     // Render the shell first. Each section is appended independently so one malformed record cannot blank the whole tab.
     let html=renderNetWorthCard();
-    html+=`<div class="asset-tab-actions"><button class="btn primary" id="addAssetAccounts">+ Add asset</button><button class="btn" id="addAcct">+ Add account</button></div>`;
 
     try{
       html+=`<div class="asset-account-switch"><button class="btn ${assetFilter==="Active"?"active":""}" id="assetActiveFilter">Active accounts</button><button class="btn ${accountView==="Credit"?"active":""}" id="assetCreditFilter">Credit cards</button><button class="btn ${assetFilter==="Closed"?"active":""}" id="assetClosedFilter">Closed accounts</button></div>`;
       html+=`<div class="asset-loan-callout"><b>Asset financing / loans</b><div class="loan-add-row"><p class="help">For any asset, add separate loans from a bank, family member, friend or other lender. Each loan is tracked as its own liability.</p><button type="button" class="btn primary" id="addAssetLoan">+ Add loan for an asset</button></div></div>`;
-      html+=`<details class="asset-pane collapsible-pane"><summary><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p><div class="asset-pane-desc">${assetFilter==="Closed"?'Closed / sold assets are retained for history.':'Your homes, land, vehicles, gold and other assets. Tap to expand.'}</div></div><span class="pane-icon">◆</span></summary>`;
+      html+=`<details class="asset-pane collapsible-pane"><summary><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p><div class="asset-pane-desc">${assetFilter==="Closed"?'Closed / sold assets are retained for history.':'Your homes, land, vehicles, gold and other assets. Tap to expand.'}</div></div><span class="pane-icon">◆</span></summary>${assetFilter!=="Closed"?`<div class="pane-action"><button type="button" class="btn primary" id="addAssetInPane">+ Add asset</button></div>`:''}`;
       if(assets.length){
         html+=assets.map(a=>{
           try{
             const linked=assetLinkedExpenses(a).length;
             const loanAgg=assetLoanAggregate(a);
             const icon=a?.type==="vehicle"?'🚗':a?.type==="gold"?'◈':a?.type==="land"?'⌂':'▦';
-            return `<div class="asset-card-row" data-asset-row="${esc(a?.id||"")}"><button type="button" class="asset-main-button" data-asset="${esc(a?.id||"")}"><span class="asset-icon">${icon}</span><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a?.type))}${linked?` · ${linked} linked`:''}${loanAgg.loans.length?` · ${loanAgg.loans.length} loan${loanAgg.loans.length===1?'':'s'} · liability ${safeMoney(loanAgg.outstanding)}`:''}${assetLoanInterestPaid(a)>0?` · Interest paid ${safeMoney(assetLoanInterestPaid(a))}`:''}</small></span><strong class="num">${safeMoney(assetCurrentValue(a))}</strong><span class="chev">›</span></button><button type="button" class="mini asset-loan-btn" data-add-loan-asset="${esc(a?.id||"")}">+ Add loan / lender</button></div>`;
+            return `<div class="asset-card-row" data-asset-row="${esc(a?.id||"")}"><button type="button" class="asset-main-button" data-asset="${esc(a?.id||"")}"><span class="asset-icon">${icon}</span><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a?.type))}${linked?` · ${linked} linked`:''}${loanAgg.loans.length?` · ${loanAgg.loans.length} loan${loanAgg.loans.length===1?'':'s'} · liability ${safeMoney(loanAgg.outstanding)}`:''}${assetLoanInterestPaid(a)>0?` · Interest paid ${safeMoney(assetLoanInterestPaid(a))}`:''}</small></span><span class="asset-value-wrap"><small class="asset-current-label">Current value</small><strong class="num">${safeMoney(assetCurrentValue(a))}</strong>${assetValueIndicator(a)}</span><span class="chev">›</span></button><button type="button" class="mini asset-loan-btn" data-add-loan-asset="${esc(a?.id||"")}">+ Add loan / lender</button></div>`;
           }catch(e){ diag.push("asset row"); return `<div class="pane-empty">${esc(a?.name||"Asset")} · ${safeMoney(a?.currentValue)}</div>`; }
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
@@ -2529,7 +2539,10 @@ function renderAccounts(){
         let rows="";
         if(items.length) rows=items.map(a=>accountRowHtml(a,today)).join('');
         else rows=`<div class="pane-empty">No ${subtitle.toLowerCase()}s yet.</div>`;
-        const open=id==='bank'; const desc={bank:'Active bank balances currently held.',other:'Wallets, FASTag and investment / PF / pension balances.',card:'Credit-card outstanding is a liability; limits are never counted as assets.',loan:'Loans and other borrowings. Add multiple loan accounts, including banks or Friends & Family.'}[id]||''; return `<details class="asset-pane collapsible-pane" ${open?'open':''}><summary><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p><div class="asset-pane-desc">${desc}</div></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${rows}</details>`;
+        const open=id==='bank'; const desc={bank:'Active bank balances currently held.',other:'Wallets, FASTag and investment / PF / pension balances.',card:'Credit-card outstanding is a liability; limits are never counted as assets.',loan:'Loans and other borrowings. Each loan can be linked to an asset and a lender/source.'}[id]||'';
+        const addLabel={bank:'+ Add bank account',other:'+ Add investment / other account',card:'+ Add credit card',loan:'+ Add loan account'}[id]||'';
+        const addHtml=addLabel?`<div class="pane-action"><button type="button" class="btn ${id==='loan'?'primary':''}" data-add-account-kind="${id}">${addLabel}</button></div>`:'';
+        return `<details class="asset-pane collapsible-pane" ${open?'open':''}><summary><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p><div class="asset-pane-desc">${desc}</div></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${addHtml}${rows}</details>`;
       }catch(e){ diag.push(title); return `<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2></div></div><div class="pane-empty">This section could not be displayed.</div></section>`; }
     };
     if(accountView==="Credit"){
@@ -2574,7 +2587,7 @@ function renderAccounts(){
     console.error("Assets tab render failed",err);
     // Last-resort UI: never hide the page behind a generic error. Show actionable controls and the exact error in a details block.
     let msg="Unknown error"; try{msg=String(err?.message||err);}catch(e){}
-    el.innerHTML=`<div class="card"><div class="card-h"><h2>Assets</h2></div><p class="help">The Assets data could not be calculated. Your saved data is still on this phone.</p><div class="row"><button class="btn primary" id="addAssetAccounts">+ Add asset</button><button class="btn" id="addAcct">+ Add account</button></div><details style="margin-top:12px"><summary>Technical details</summary><pre style="white-space:pre-wrap;color:var(--muted);font-size:.75rem">${esc(msg)}</pre></details></div>`;
+    el.innerHTML=`<div class="card"><div class="card-h"><h2>Assets</h2></div><p class="help">The Assets data could not be calculated. Your saved data is still on this phone.</p><details style="margin-top:12px"><summary>Technical details</summary><pre style="white-space:pre-wrap;color:var(--muted);font-size:.75rem">${esc(msg)}</pre></details></div>`;
   }
 }
 /* ---------- Reminders (phone app only) ---------- */
@@ -2741,6 +2754,21 @@ function assetOriginalLoan(a){
   return agg.original>0?agg.original:Number(a.originalLoan)||0;
 }
 function assetCurrentValue(a){ return Math.max(0,Number(a&&a.currentValue)||0); }
+function assetTotalSpent(a){
+  if(!a) return 0;
+  const purchase=Number(a.purchasePrice)||0, acq=Number(a.acquisitionCosts)||0, ownership=Number(a.ownershipCosts)||0, interest=Number(a.interestPaid)||assetLoanInterestPaid(a)||0;
+  const explicit=Number(a.totalSpent);
+  if(Number.isFinite(explicit) && explicit>0) return explicit;
+  return Math.max(0,purchase+acq+ownership+interest);
+}
+function assetValueIndicator(a){
+  const spent=assetTotalSpent(a), current=assetCurrentValue(a);
+  if(!(spent>0)) return '';
+  const diff=current-spent, pct=(diff/spent)*100;
+  const cls=diff>=0?'asset-positive':'asset-negative';
+  const sign=diff>=0?'+':'−';
+  return `<span class="asset-value-indicator ${cls}">${sign}${money(Math.abs(diff),true)} · ${sign}${Math.abs(pct).toFixed(1)}% vs spent</span>`;
+}
 function assetLoanInterestPaid(a){
   if(!a) return 0;
   const agg=assetLoanAggregate(a);
@@ -4051,8 +4079,10 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   if(rb){ const t = state.txns.find(x=>x.id === rb.dataset.reimb); if(t){ t.reimbDone = true; persist([t.date.slice(0,7)]); render(); toast("Marked as received."); } return; }
   if(e.target.id === "unhideAccts"){ Object.values(state.accounts).forEach(a=>delete a.hidden); persist([], true); render(); return; }
   const stg=e.target.closest("[data-section-toggle]"); if(stg){ const k=stg.dataset.sectionToggle; acctSectionHidden[k]=!acctSectionHidden[k]; render(); return; }
-  if(e.target.id === "addAssetAccounts"){ openAssetSheet(null); return; }
-  if(e.target.id === "addAssetLoan"){ const first=(state.assets||[]).find(a=>!a.closed); if(first) openAcctSheet(null,first.id); else toast("Add an asset first."); return; }
+  if(e.target.id === "addAssetInPane"){ openAssetSheet(null); return; }
+  if(e.target.id === "addAssetLoan"){ const first=(state.assets||[]).find(a=>!a.closed); if(first) openAcctSheet(null,first.id,"loan"); else toast("Add an asset first."); return; }
+  const addKind=e.target.closest("[data-add-account-kind]"); if(addKind){ const kind=addKind.dataset.addAccountKind; openAcctSheet(null,"",kind); return; }
+  if(e.target.id === "openLiabilityDetails"){ openLiabilityDetails(); return; }
   const al=e.target.closest("[data-add-loan-asset]"); if(al){ openAcctSheet(null,al.dataset.addLoanAsset); return; }
   const at=e.target.closest("[data-asset-txn]"); if(at){ const t=state.txns.find(x=>x.id===at.dataset.assetTxn); if(t){ const scr=at.closest('.scrim'); if(scr) scr.remove(); openSheet(t,false); } return; }
   const alt=e.target.closest("[data-add-loan-asset]"); if(alt){ openAcctSheet(null,alt.dataset.addLoanAsset); return; }
@@ -4298,8 +4328,16 @@ window.loanDocumentFilesResult=function(payload){
     console.error('Loan document import failed',e);
   }
 };
-function openAcctSheet(key, preAssetId=""){
-  const a=key?state.accounts[key]:{kind:"loan",assetId:preAssetId},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"], lenderTypes=["Bank","NBFC","Family Member","Friend","Employer","Other"];
+function openLiabilityDetails(){
+  const rows=Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==='loan'&&!a.hidden).map(([k,a])=>({k,a,source:a.lenderType||'Other',name:a.lenderName||a.bank||a.label||'Unspecified lender',amount:Math.max(0,Number(a.balance)||0)})).filter(x=>x.amount>0);
+  const cards=Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==='card'&&!a.hidden).map(([k,a])=>({k,a,source:'Credit card',name:a.bank||a.label||'Credit card',amount:Math.max(0,Number(a.outstanding)||0)})).filter(x=>x.amount>0);
+  const all=[...rows,...cards].sort((a,b)=>b.amount-a.amount);
+  const body=all.length?all.map(x=>`<button type="button" class="trow liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="l1"><span><b>${esc(x.name)}</b></span><b class="num over">${money(x.amount,true)}</b></div><div class="l2"><span>${esc(x.a.loanCategory||x.source)}</span><span>${esc(x.source)}</span></div></button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
+  sheet('Liabilities',`<p class="help">Amounts currently pending, grouped by lender/source.</p><div class="asset-loan-list">${body}</div>`,null);
+  const scr=document.querySelector('.scrim:last-of-type'); if(scr) scr.addEventListener('click',e=>{const b=e.target.closest('[data-liability-acct]');if(!b)return;const s=b.closest('.scrim');if(s)s.remove();openAcctSheet(b.dataset.liabilityAcct);});
+}
+function openAcctSheet(key, preAssetId="", preKind=""){
+  const a=key?state.accounts[key]:{kind:preKind||"loan",assetId:preAssetId},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"], lenderTypes=["Bank","NBFC","Family Member","Friend","Employer","Other"];
   const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
   const loanPaid=key&&a.kind==="loan"?state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0):0;
   const loanInfo=a.kind==="loan"?loanStructureHtml(a):"";
