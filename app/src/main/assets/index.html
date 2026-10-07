@@ -355,6 +355,40 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .insurance-main b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.insurance-main small{display:block;color:var(--muted);font-size:.74rem;margin-top:3px}
 .insurance-filter{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 12px}.insurance-filter button{border:1px solid var(--rule);background:var(--panel);color:var(--muted);border-radius:10px;padding:9px}.insurance-filter button.active{background:var(--raise);color:var(--brass);font-weight:700}
 @media(max-width:390px){.networth-grid{gap:0}.networth-grid>div{padding-right:6px}.networth-grid>div+div{padding-left:8px}.networth-grid b{font-size:.86rem}.asset-tab-actions{grid-template-columns:1fr 1fr}.asset-tab-actions .primary{grid-column:1/-1}.asset-card-row{grid-template-columns:auto minmax(0,1fr) auto auto}.asset-row-main small{font-size:.7rem}}
+
+/* v1.97 unified typography system: one font family across every page and component. */
+:root{
+  --app-font:"Figtree","Noto Sans Kannada",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --fs-body:16px; --fs-title:20px; --fs-section:18px; --fs-card:16px;
+  --fs-label:14px; --fs-small:13px; --fs-tiny:12px;
+}
+body,button,input,select,textarea{font-family:var(--app-font)!important}
+body{font-size:var(--fs-body);line-height:1.45}
+.month h1,.yr-h b,.section-h,.sheet h2,.card h2,.toplist h2,.mtop h1,.finance-hub .fh-title,
+.home-top h1,.spent,.saved-big,.donut b{font-family:var(--app-font)!important;font-weight:600!important}
+.month h1,.home-top h1,.mtop h1{font-size:var(--fs-title)!important}
+.section-h,.sheet h2,.card h2,.toplist h2{font-size:var(--fs-section)!important}
+.btn,.mini,.summary-cats button,.finance-hub .fh-chip,.insurance-filter button,.tabs button,
+.field span,.help,.hint,.chart-note,.spent-label,.sub,.dayhead,.tx .d,.account-meta,.asset-row-main small,
+.insurance-main small,.insurance-summary small,.fh-sub,.fh-note,.donut-label,.donut-pct{font-size:var(--fs-small)!important}
+.tabs button{font-weight:600!important}
+.btn,.mini{min-height:42px}
+.asset-tab-actions .btn,.row>.btn{min-height:44px}
+.field input,.field select,.field textarea,.filters input,.filters select{font-size:var(--fs-body)!important}
+/* consistent action sizing across all pages */
+.asset-tab-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.asset-tab-actions .btn{width:100%!important}
+.row>.btn{flex:1 1 0;min-width:120px}
+@media(max-width:390px){.row>.btn{min-width:0}.asset-tab-actions{grid-template-columns:1fr 1fr!important}.asset-tab-actions .primary{grid-column:1/-1}}
+/* Re-enable collapsible asset/account sections in v1.97. */
+.collapsible-pane{padding:0!important}
+.collapsible-pane>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:15px 16px 11px;min-height:58px;border-bottom:1px solid var(--rule);font-weight:600}
+.collapsible-pane>summary::-webkit-details-marker{display:none}
+.collapsible-pane>summary .pane-icon{margin-left:auto}
+.collapsible-pane[open]>summary{border-bottom:1px solid var(--rule)}
+.collapsible-pane>summary:after{content:"›";font-size:22px;color:var(--muted);margin-left:10px;transform:rotate(90deg);transition:transform .15s}
+.collapsible-pane:not([open])>summary:after{transform:rotate(0deg)}
+
 </style>
 </head>
 <body>
@@ -2417,7 +2451,7 @@ function renderAccounts(){
 
     try{
       html+=`<div class="insurance-filter" style="margin-top:0"><button class="${assetFilter==="Active"?"active":""}" id="assetActiveFilter">Active</button><button class="${assetFilter==="Closed"?"active":""}" id="assetClosedFilter">Closed</button></div>`;
-      html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p></div><span class="pane-icon">◆</span></div>`;
+      html+=`<details class="asset-pane collapsible-pane" open><summary><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p></div><span class="pane-icon">◆</span></summary>`;
       if(assets.length){
         html+=assets.map(a=>{
           try{
@@ -2428,7 +2462,7 @@ function renderAccounts(){
           }catch(e){ diag.push("asset row"); return `<div class="pane-empty">${esc(a?.name||"Asset")} · ${safeMoney(a?.currentValue)}</div>`; }
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
-      html+=`</section>`;
+      html+=`</details>`;
     }catch(e){ diag.push("assets section"); html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Assets</h2></div></div><div class="pane-empty">Assets could not be fully calculated, but saved data was not deleted.</div></section>`; }
 
     const accountPane=(title,subtitle,items,total,id)=>{
@@ -2436,7 +2470,7 @@ function renderAccounts(){
         let rows="";
         if(items.length) rows=items.map(a=>accountRowHtml(a,today)).join('');
         else rows=`<div class="pane-empty">No ${subtitle.toLowerCase()}s yet.</div>`;
-        return `<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></div>${rows}</section>`;
+        return `<details class="asset-pane collapsible-pane" open><summary><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${rows}</details>`;
       }catch(e){ diag.push(title); return `<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2></div></div><div class="pane-empty">This section could not be displayed.</div></section>`; }
     };
     html+=accountPane('Bank accounts','account',bank,bankTotal,'bank');
@@ -2958,6 +2992,14 @@ function renderHome(){
     const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
     const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
     const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
+    // v1.97: Home Total Balance is the actual money/value held across owned financial accounts.
+    // Credit-card limits are not assets; card outstanding and loans are liabilities. Internal transfers
+    // do not change this balance because account balances are point-in-time holdings, not income.
+    const homeFinancialBalance = totalHeldBalance();
+    const homePhysicalValue = physicalAssetTotal();
+    const homeLiabilities = totalLiabilities();
+    const homeNetWorth = netWorth();
+    const totalBalanceCard = `<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held</span></div><span class="pane-icon">₹</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(homeFinancialBalance)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(homeFinancialBalance)}</b></div><div><small>Other assets</small><b>${money(homePhysicalValue)}</b></div><div><small>Net worth</small><b>${money(homeNetWorth)}</b></div></div><p class="hint">Includes bank, wallet, investment, EPF/PF and pension balances. Credit-card limits are excluded; loans and card outstanding remain liabilities.</p></div>`;
     const eventHtml=items.events.length ? items.events.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>{
       let spend=0; try{ spend=eventSpend(e.id); }catch(_){ spend=0; }
       return `<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name||'Event')}</span><span class="num" style="font-weight:600">${money(Number(spend)||0,true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`;
@@ -2966,6 +3008,7 @@ function renderHome(){
     const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
     const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
     body.innerHTML=`
+      ${totalBalanceCard}
       <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
         <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
         <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>

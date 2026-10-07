@@ -1,4 +1,4 @@
-# SMS Ledger v1.96 — Family Finance Extension
+# SMS Ledger v1.97 — Fix Ledger Issues + Family Finance
 
 This build starts from the supplied SMS Ledger v1.95 project and preserves the existing UI/design language rather than replacing it with a new prototype.
 
@@ -31,3 +31,14 @@ Assets can be marked Active or Closed/Sold. Closed/Sold records retain sale/clos
 
 ## Insurance
 Insurance types include Health, Term/Life, Vehicle, Property, Travel & One-Time and Other. Expired/one-time policies remain in history.
+
+
+## v1.97 release fixes
+- Implements the complete Fix Ledger Issues pass across Home/My Ledger, Assets, Summary, SMS classification, transfers, cards, bills, mandates, family sharing and Google sign-in diagnostics.
+- Home Total Balance is based on actual held financial-account balances; investment/retirement/EPF/PF balances are included, while credit-card limits are excluded.
+- Internal transfers and credit-card bill payments do not inflate income or expenses.
+- Asset/account sections are expandable/collapsible.
+- Action buttons use consistent sizing.
+- All pages use one unified Figtree/Noto Sans typography system with standardized title, section, body and small-text sizes.
+- Family views show only each person's chosen/display name; relationship labels are not used.
+- Version code/name are 92 / 1.97.
