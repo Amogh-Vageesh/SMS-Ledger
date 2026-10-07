@@ -1,31 +1,10 @@
-# SMS Ledger v1.100
+SMS Ledger v1.106 — Loan reconciliation, safe SMS deduplication and liabilities UI
 
-Release update based on v1.99.
-
-## UI and Ledger
-- Moved Total Balance from the Ledger/Family home page to My Ledger.
-- Standardized mobile typography and spacing retained from prior release.
-- Enlarged the My Ledger expense donut/chart area for better mobile readability.
-- My Ledger now shows only the top 5 expense categories in the category visualization and category list.
-
-## Assets and liabilities
-- Added a highlighted Asset financing / loans area in Assets.
-- Each active asset has a visible "+ Add loan / lender" action.
-- Loans can be created for a specific asset and tracked separately by purpose and lender/source.
-- Lender source can be Bank, NBFC, Family Member, Friend, Employer or Other, with a lender/source name.
-- Existing linked transaction history and loan/interest calculations are retained.
-
-## Build metadata
-- versionCode: 97
-- versionName: 1.103
-
-The project intentionally does not require any check_v*.js or extracted inspection files for APK building.
-
-
-## Build fix in v1.103
-
-The previous v1.100 package used Android Gradle Plugin 8.7.3 but the GitHub Actions workflow requested Gradle 8.7. AGP 8.7.x requires Gradle 8.9, so the workflow has been corrected to Gradle 8.9.
-
-For Android Studio, use JDK 17 and Gradle 8.9 (or let Android Studio use its configured compatible Gradle distribution). The ZIP is a complete Android project; `check_v*.js` files are not required.
-
-Important: `app/release.keystore` is included because the project currently uses it for release signing. Keep it private.
+- Scan & reconcile existing Ledger: safe duplicate merge preserving corrected categories, loan links, asset links and notes.
+- Loan-linked credits can establish the verified original loan amount; tagged repayments reduce verified outstanding when no newer statement balance overrides it.
+- Loan account linked transactions include both loan receipts and repayments.
+- Loan statement outstanding date is retained so post-statement verified repayments are reflected without double-counting earlier statement payments.
+- EMI / loan transactions show a loan-account link selector; bank/NBFC statement matching can populate the link.
+- Liabilities modal uses a consistent mobile two-column layout.
+- Credit-card outstanding is included in liabilities; credit-card limits are excluded.
+- v1.106 / versionCode 101.

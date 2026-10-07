@@ -540,6 +540,21 @@ body{font-size:var(--fs-body);line-height:1.45}
 .account-row .account-meta{font-size:11px!important;}
 .asset-account-switch{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
 @media(max-width:390px){.asset-account-switch{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;}.asset-account-switch .btn{padding:10px 6px!important;font-size:12px!important;}.asset-value-wrap{min-width:94px!important;}.asset-card-row .asset-main-button{grid-template-columns:30px minmax(0,1fr) auto auto!important;gap:6px!important;}.asset-card-row .asset-loan-btn{margin-left:36px!important;max-width:calc(100% - 36px)!important;}}
+
+/* v1.106 */
+.liability-detail-row{padding:14px 0!important;width:100%!important;box-sizing:border-box!important;}
+.liability-main{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;}
+.liability-left{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;}
+.liability-left .liability-name{font-size:16px;font-weight:700;white-space:normal;overflow-wrap:anywhere;text-align:left;}
+.liability-left small{font-size:12px;color:var(--muted);line-height:1.25;text-align:left;}
+.liability-amount{font-size:16px;white-space:nowrap;text-align:right;}
+.liability-numbers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;color:var(--muted);font-size:12px;text-align:left;}
+.liability-numbers span{min-width:0;}
+.liability-numbers b{display:block;color:var(--text);font-size:13px;margin-top:2px;}
+@media(max-width:390px){.liability-main{gap:8px}.liability-left .liability-name,.liability-amount{font-size:14px}.liability-left small,.liability-numbers{font-size:11px}.liability-numbers b{font-size:12px;}}
+#accountsBody .asset-pane,#accountsBody .account-row,#accountsBody .asset-card-row{overflow:hidden;}
+.account-row .n{min-width:0!important;overflow-wrap:anywhere!important;}
+.account-row .account-value{max-width:45vw!important;}
 </style>
 </head>
 <body>
@@ -676,7 +691,9 @@ body{font-size:var(--fs-body);line-height:1.45}
         <button class="btn" data-days="365">1 year</button>
         <button class="btn" data-days="1826">5 years</button>
         <button class="btn" data-days="0">All SMS</button>
-      </div></div>
+      </div>
+      <div class="row" style="margin:0 0 12px"><button class="btn primary" id="reconcileSmsBtn">Scan &amp; reconcile existing Ledger</button></div>
+      <p class="help">Merges safe duplicates from the same SMS while preserving corrected categories, loan links, asset links and notes.</p></div>
     </div>
   </div>
   <h1 class="section-h" id="simHeading" style="display:none">Dual SIM</h1>
@@ -2885,13 +2902,54 @@ function assetInvestmentMetrics(a){
   const roi=cashInvested>0 ? profit/cashInvested*100 : null;
   return {purchase,originalLoan,outstanding,down,principalPaid,interest,acquisition,maintenance,income,saleCosts,cashInvested,netSale,profit,equity,appreciation,roi};
 }
+function txnTextKey(t){ return statementNorm(String((t&&t.raw)||"").replace(/\s+/g," ").trim()).slice(0,240); }
+function merchantKey(t){ return mkey(String((t&&t.merchant)||"")); }
+function loanLedgerMetrics(key,a){
+  const tx=(state.txns||[]).filter(t=>t&&counts(t)&&t.loanAccount===key);
+  const credits=tx.filter(t=>t.type==="credit").reduce((s,t)=>s+Math.max(0,Number(t.amount)||0),0);
+  const debits=tx.filter(t=>t.type==="debit").reduce((s,t)=>s+Math.max(0,spendAmt(t)),0);
+  const statementDate=a?.statementOutstandingAsOf||"";
+  const postStatementDebits=statementDate?tx.filter(t=>t.type==="debit"&&String(t.date||"")>String(statementDate)).reduce((s,t)=>s+Math.max(0,spendAmt(t)),0):debits;
+  const statementOut=Number.isFinite(Number(a?.statementOutstanding))?Math.max(0,Number(a.statementOutstanding)):null;
+  const original=credits>0?credits:Math.max(0,Number(a?.originalAmount)||0);
+  let outstanding=Number.isFinite(statementOut)?Math.max(0,statementOut-postStatementDebits):null;
+  if(outstanding===null && credits>0) outstanding=Math.max(0,credits-debits);
+  if(outstanding===null) outstanding=Math.max(0,Number(a?.balance)||0);
+  return {tx,credits,debits,original,outstanding,statementOut};
+}
+function syncLoanAccountFromTransactions(key,a){
+  if(!a||a.kind!=="loan") return false;
+  const m=loanLedgerMetrics(key,a); let changed=false;
+  if(m.credits>0 && Math.abs((Number(a.originalAmount)||0)-m.credits)>0.005){a.originalAmount=m.credits;a.originalAmountSource="verified-transactions";changed=true;}
+  const next=Math.max(0,m.outstanding||0);
+  if((m.credits>0||m.tx.length>0||Number.isFinite(m.statementOut)) && Math.abs((Number(a.balance)||0)-next)>0.005){a.balance=next;a.balanceSource=Number.isFinite(m.statementOut)?"statement+verified-transactions":"verified-transactions";changed=true;}
+  a.verifiedLoanPayments=m.debits; a.verifiedLoanDisbursements=m.credits;
+  return changed;
+}
+function syncAllLoanAccountsFromTransactions(){let changed=false;Object.entries(state.accounts||{}).forEach(([k,a])=>{if(a&&a.kind==="loan")changed=syncLoanAccountFromTransactions(k,a)||changed;});return changed;}
+function transactionRichness(t){return Number(!!t.raw)*3+Number(!!t.note)*2+Number(!!t.loanAccount)*5+Number(!!t.assetId)*4+Number(!!t.ref)*4+Number(!!t.account)*2+Number(!!t.statementSources?.length)*3+Number(!!t.categoryEdited)*5+Number(!!t.person)+Number(!!t.event);}
+function mergeDuplicateTransactionRecords(quiet=false){
+  const tx=(state.txns||[]).slice().sort((a,b)=>(Number(a.added)||0)-(Number(b.added)||0)),removed=new Set(); let merged=0;
+  const candidate=(a,b)=>{
+    if(!a||!b||a.id===b.id||removed.has(a.id)||removed.has(b.id))return false;
+    if(a.type!==b.type||Math.abs(Number(a.amount||0)-Number(b.amount||0))>0.005||String(a.date||"")!==String(b.date||""))return false;
+    if(a.ref&&b.ref&&String(a.ref).trim()===String(b.ref).trim())return true;
+    const ar=txnTextKey(a),br=txnTextKey(b); if(ar&&br&&ar===br)return true;
+    const aa=String(a.account||""),ba=String(b.account||""),am=merchantKey(a),bm=merchantKey(b);
+    return !!(aa&&ba&&aa===ba&&am&&bm&&(am===bm||am.includes(bm)||bm.includes(am)));
+  };
+  for(let i=0;i<tx.length;i++){const a=tx[i];if(removed.has(a.id))continue;for(let j=i+1;j<tx.length;j++){const b=tx[j];if(!candidate(a,b))continue;const keep=transactionRichness(a)>=transactionRichness(b)?a:b,drop=keep===a?b:a;
+    if(drop.categoryEdited&&!keep.categoryEdited){keep.category=drop.category;keep.categoryEdited=true;}
+    if(!keep.loanAccount&&drop.loanAccount)keep.loanAccount=drop.loanAccount;if(!keep.assetId&&drop.assetId)keep.assetId=drop.assetId;if(!keep.note&&drop.note)keep.note=drop.note;if(!keep.person&&drop.person)keep.person=drop.person;if(!keep.event&&drop.event)keep.event=drop.event;if(!keep.ref&&drop.ref)keep.ref=drop.ref;
+    keep.statementSources=[...(keep.statementSources||[]),...(drop.statementSources||[])];keep.mergedDuplicateIds=[...(keep.mergedDuplicateIds||[]),drop.id,...(drop.mergedDuplicateIds||[])];removed.add(drop.id);merged++;
+  }}
+  if(merged){state.txns=state.txns.filter(t=>!removed.has(t.id));persist([],true);} if(!quiet&&merged)toast(`Reconciled ${merged} duplicate ${merged===1?"entry":"entries"}.`); return merged;
+}
 function physicalAssetTotal(){ return (state.assets||[]).filter(a=>!a.closed).reduce((s,a)=>s+assetCurrentValue(a),0); }
-function totalLiabilities(){ return Object.values(state.accounts||{}).reduce((s,a)=>{
-  if(!a||a.hidden||a.closed)return s;
-  if(a.kind==="loan") return s+Math.max(0,Number(a.balance)||0);
-  if(a.kind==="card") return s+Math.max(0,Number(a.outstanding)||0);
-  return s;
-},0); }
+function totalLiabilities(){
+  syncAllLoanAccountsFromTransactions();
+  return Object.values(state.accounts||{}).reduce((s,a)=>{if(!a||a.hidden||a.closed)return s;if(a.kind==="loan")return s+Math.max(0,Number(a.balance)||0);if(a.kind==="card")return s+Math.max(0,Number(a.outstanding)||0);return s;},0);
+}
 function totalAssetsValue(){ return totalHeldBalance()+physicalAssetTotal(); }
 function netWorth(){ return totalAssetsValue()-totalLiabilities(); }
 function assetLinkedExpenses(a){ return a ? (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&t.assetId===a.id).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0)) : []; }
@@ -3783,7 +3841,7 @@ function openSheet(t, isNew){
       <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
     </div>
     <label class="field"><span>Link to asset / indirect expense</span><select id="e-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${t.assetId===a.id?" selected":""}>${esc(a.name)} · ${esc(assetTypeLabel(a.type))}</option>`).join("")}</select></label>
-    <div id="e-loanLinkWrap" class="card" style="margin-top:4px;display:none"><label class="field" style="margin:0"><span>Link EMI / loan payment to loan account</span><select id="e-loanAccount"><option value="">Select loan account</option>${Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden).map(([k,a])=>`<option value="${esc(k)}"${t.loanAccount===k?" selected":""}>${esc(a.label||a.lenderName||a.bank||"Loan")} · ${money(Number(a.balance)||0,true)}</option>`).join("")}</select></label><p class="help" id="e-loanHint">For Bank/NBFC loans, imported loan statements can match payments using date, amount, lender and loan reference.</p></div>
+    <div id="e-loanLinkWrap" class="card" style="margin-top:4px;display:none"><label class="field" style="margin:0"><span id="e-loanLinkLabel">Link this loan transaction to loan account</span><select id="e-loanAccount"><option value="">Select loan account</option>${Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden).map(([k,a])=>`<option value="${esc(k)}"${t.loanAccount===k?" selected":""}>${esc(a.label||a.lenderName||a.bank||"Loan")} · ${money(Number(a.balance)||0,true)}</option>`).join("")}</select></label><p class="help" id="e-loanHint">For Bank/NBFC loans, imported loan statements can match payments using date, amount, lender and loan reference.</p></div>
     ${(()=>{const sug=suggestAssetForTxn(t); return sug&&!t.assetId?`<p class="help" id="e-assetSuggest">Suggested asset: <b>${esc(sug.name)}</b> based on merchant/message. Please confirm by selecting it.</p>`:"";})()}
     ${peopleList().length ? `<label class="field"><span>Who's this for</span></label>
     <div class="ppl" id="e-people">${peopleList().map(p=>`<button type="button" class="pchip${t.person===p.id?" on":""}" data-pid="${esc(p.id)}"><span class="av" style="background:${p.color}">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("")}</div>` : ""}
@@ -3832,7 +3890,7 @@ function openSheet(t, isNew){
     const hit=cand.find(x=>x.score>0)||cand.find(x=>{const n=mkey(x.a.lenderName||x.a.bank||x.a.label||"");return n&&text.includes(n);})||cand.find(x=>x.a.lenderType&&["Bank","NBFC"].includes(x.a.lenderType)&&x.a.account&&t.account===x.a.account);
     if(hit) loanAccountSel.value=hit.k;
   };
-  const syncLoanLink=()=>{ const show=catSelect.value==="EMI & loans"||catSelect.value==="Loan repayment"; if(loanLinkWrap) loanLinkWrap.style.display=show?"block":"none"; if(show) autoLoanMatch(); else if(loanAccountSel) loanAccountSel.value=""; };
+  const syncLoanLink=()=>{ const show=catSelect.value==="EMI & loans"||catSelect.value==="Loan repayment"; if(loanLinkWrap) loanLinkWrap.style.display=show?"block":"none"; const lab=scrim.querySelector("#e-loanLinkLabel"); if(lab) lab.textContent=scrim.querySelector("#e-type").value==="credit"?"Link loan received / disbursement to loan account":"Link loan repayment to loan account"; if(show) autoLoanMatch(); else if(loanAccountSel) loanAccountSel.value=""; };
   catSelect.onchange=syncLoanLink; syncLoanLink();
   let selPerson = t.person || "";
   let selEvent = t.event || "";
@@ -3894,6 +3952,7 @@ function openSheet(t, isNew){
       category: scrim.querySelector("#e-cat").value || "Other",
       userCat: t.userCat || (!isNew && scrim.querySelector("#e-cat").value !== t.category) || undefined,
       note: scrim.querySelector("#e-note").value.trim() };
+    if(String(upd.category||"")!==String(t.category||"")) upd.categoryEdited=true;
     const cur = scrim.querySelector("#e-cur").value;
     if(cur === "INR"){ delete upd.currency; delete upd.fxRate; delete upd.fxAuto; }
     else {
@@ -4376,7 +4435,7 @@ function openLoanDocumentBatch(docs){
   sheet('Import loan documents',inner,sc=>{
     const aid=sc.querySelector('#ld-asset').value||assetId;const lk=sc.querySelector('#ld-loan').value||loanKey;if(!lk||!state.accounts[lk]){toast('Select an existing loan.');return false;}
     const ac=state.accounts[lk];loanEnsureStored(ac);const out=parseFloat(sc.querySelector('#ld-outstanding').value.replace(/[,₹\s]/g,''));const orig=parseFloat(sc.querySelector('#ld-amount').value.replace(/[,₹\s]/g,''));const rate=parseFloat(sc.querySelector('#ld-rate').value);const emi=parseFloat(sc.querySelector('#ld-emi').value);const date=sc.querySelector('#ld-date').value||null;const bank=sc.querySelector('#ld-lender').value.trim();
-    if(Number.isFinite(out))ac.balance=out;if(Number.isFinite(orig)&&orig>0)ac.originalAmount=orig;if(Number.isFinite(rate))ac.loanRate=rate;if(Number.isFinite(emi))ac.emi=emi;if(date)ac.loanStartDate=date;if(bank)ac.bank=bank;ac.asOf=latest?.g.latestDate||todayISO();
+    if(Number.isFinite(out)){ac.balance=out;ac.statementOutstanding=out;ac.statementOutstandingAsOf=latest?.g.latestDate||todayISO();}if(Number.isFinite(orig)&&orig>0)ac.originalAmount=orig;if(Number.isFinite(rate))ac.loanRate=rate;if(Number.isFinite(emi))ac.emi=emi;if(date)ac.loanStartDate=date;if(bank)ac.bank=bank;ac.asOf=latest?.g.latestDate||todayISO();
     const history=[];rows.forEach(x=>(x.g.rateHistory||[]).forEach(h=>{if(h.date&&Number.isFinite(Number(h.rate)))history.push({date:h.date,rate:Number(h.rate),source:x.d.name||'document'});}));
     if(history.length){const uniq={};history.forEach(h=>{uniq[h.date+'|'+h.rate]=h;});ac.loanRateHistory=Object.values(uniq).sort((x,y)=>String(x.date).localeCompare(String(y.date)));}
     const scheduleInterest=rows.map(x=>x.g.interestPaidToDate).filter(v=>Number.isFinite(Number(v))).sort((x,y)=>Number(y)-Number(x))[0];
@@ -4413,23 +4472,23 @@ function openLiabilityDetails(){
   const cards=Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="card"&&!a.hidden&&!a.closed).map(([k,a])=>({k,a,source:"Credit card",name:a.label||a.bank||"Credit card",purpose:"Credit card",amount:Math.max(0,Number(a.outstanding)||0),limit:Math.max(0,Number(a.availLimit)||0)})).filter(x=>x.amount>0);
   const all=[...rows,...cards].sort((a,b)=>b.amount-a.amount);
   const total=all.reduce((s,x)=>s+x.amount,0);
-  const body=all.length?all.map(x=>`<button type="button" class="trow liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="l1"><span class="liability-name">${esc(x.name)}</span><b class="num over">${money(x.amount,true)}</b></div><div class="l2"><span>${esc(x.purpose)}</span><span>${esc(x.source)}</span></div>${x.original?`<div class="l2"><span>Loan amount ${money(x.original,true)}</span><span>Remaining ${money(x.amount,true)}</span></div>`:""}${x.limit?`<div class="l2"><span>Outstanding ${money(x.amount,true)}</span><span>Limit ${money(x.limit,true)}</span></div>`:""}</button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
+  const body=all.length?all.map(x=>`<button type="button" class="trow liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="liability-main"><div class="liability-left"><b class="liability-name">${esc(x.name)}</b><small>${esc(x.purpose)} · ${esc(x.source)}</small></div><b class="num over liability-amount">${money(x.amount,true)}</b></div>${x.original?`<div class="liability-numbers"><span>Loan amount <b>${money(x.original,true)}</b></span><span>Remaining <b>${money(x.amount,true)}</b></span></div>`:""}${x.limit?`<div class="liability-numbers"><span>Outstanding <b>${money(x.amount,true)}</b></span><span>Limit <b>${money(x.limit,true)}</b></span></div>`:""}</button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
   sheet('Liabilities',`<div class="liability-total-card"><small>Total liabilities</small><b class="num over">${money(total,true)}</b></div><div class="asset-loan-list">${body}</div>`,null);
   const scr=document.querySelector('.scrim:last-of-type'); if(scr) scr.addEventListener('click',e=>{const b=e.target.closest('[data-liability-acct]');if(!b)return;const s=b.closest('.scrim');if(s)s.remove();openAcctSheet(b.dataset.liabilityAcct);});
 }
 function openAcctSheet(key, preAssetId="", preKind=""){
   const a=key?state.accounts[key]:{kind:preKind||"loan",assetId:preAssetId},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"], lenderTypes=["Bank","NBFC","Family Member","Friend","Employer","Other"];
   const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
-  const loanPaid=key&&a.kind==="loan"?state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0):0;
+  const loanMetrics=key&&a.kind==="loan"?loanLedgerMetrics(key,a):{credits:0,debits:0,original:Number(a.originalAmount)||0,outstanding:Number(a.balance)||0,tx:[]}; if(key&&a.kind==="loan")syncLoanAccountFromTransactions(key,a); const loanPaid=loanMetrics.debits||0;
   const loanInfo=a.kind==="loan"?loanStructureHtml(a):"";
   const loanSourceIsBank=!(a.kind==="loan" && a.lenderType && !["Bank","NBFC"].includes(a.lenderType));
-  const linkedLoanTxns=a.kind==="loan" ? (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&(t.loanAccount===key || (!t.loanAccount && ((a.account&&t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||a.lenderName||a.bank||"Loan")))))).sort((x,y)=>String(y.date).localeCompare(String(x.date))) : [];
-  const loanAccountExtras=a.kind==="loan" ? `<div class="card loan-account-tools" style="margin-top:8px"><div class="card-h"><b>Loan history</b></div><div class="row"><button type="button" class="btn" id="loanImportDocs">Import loan statement / schedule</button></div><p class="help">Documents and transactions linked to this loan stay with the loan account. Bank/NBFC statements can reconcile EMI transactions automatically.</p><div class="loan-linked-txns">${linkedLoanTxns.length?linkedLoanTxns.map(t=>`<button type="button" class="trow" data-loan-txn="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Loan payment")}</span><b>${money(spendAmt(t),true)}</b></div><div class="l2"><span>${esc(t.category||"EMI & loans")}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join(""):'<p class="help">No linked loan transactions yet.</p>'}</div></div>` : "";
+  const linkedLoanTxns=a.kind==="loan" ? (state.txns||[]).filter(t=>t&&counts(t)&&(t.loanAccount===key || (!t.loanAccount&&t.type==="debit"&&((a.account&&t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||a.lenderName||a.bank||"Loan")))))).sort((x,y)=>String(y.date).localeCompare(String(x.date))) : [];
+  const loanAccountExtras=a.kind==="loan" ? `<div class="card loan-account-tools" style="margin-top:8px"><div class="card-h"><b>Loan history</b></div><div class="row"><button type="button" class="btn" id="loanImportDocs">Import loan statement / schedule</button></div><p class="help">Documents and transactions linked to this loan stay with the loan account. Bank/NBFC statements can reconcile EMI transactions automatically.</p><div class="loan-linked-txns">${linkedLoanTxns.length?linkedLoanTxns.map(t=>`<button type="button" class="trow" data-loan-txn="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||(t.type==="credit"?"Loan received":"Loan payment"))}</span><b class="${t.type==="credit"?"asset-positive":""}">${t.type==="credit"?"+":"−"}${money(Math.abs(Number(t.amount)||0),true)}</b></div><div class="l2"><span>${esc(t.type==="credit"?"Loan received":(t.category||"Loan repayment"))}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join(""):'<p class="help">No linked loan transactions yet.</p>'}</div></div>` : "";
   sheet(key?"Edit account":"Add an account",`<label class="field"><span>Name</span><input id="a-name" value="${esc(a.label||[a.bank,a.account?"··"+a.account:""].join(" ").trim())}" placeholder="e.g. Axis home loan"></label><div class="two"><label class="field"><span>Type</span><select id="a-kind">${KIND_OPTS.map(([k,l])=>`<option value="${k}"${k===(a.kind||"bank")?" selected":""}>${l}</option>`).join("")}</select></label><label class="field"><span>Balance or limit (₹)</span><input id="a-bal" inputmode="decimal" value="${v!=null?v:""}"></label></div><div id="loanFields" style="${a.kind==="loan"?"":"display:none"}"><div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="a-original" inputmode="decimal" value="${a.originalAmount!=null?a.originalAmount:""}"></label><label class="field"><span>Loan purpose</span><select id="a-loanCat">${loanCats.map(c=>`<option${c===loanCat?" selected":""}>${c}</option>`).join("")}</select></label></div><div class="two"><label class="field"><span>Lender source</span><select id="a-lenderType">${lenderTypes.map(c=>`<option${c===(a.lenderType||"Bank")?" selected":""}>${c}</option>`).join("")}</select></label><label class="field"><span>Lender / source name</span><input id="a-lenderName" value="${esc(a.lenderName||a.bank||"")}" placeholder="e.g. HDFC Bank / Uncle / Ravi"></label></div><label class="field"><span>Linked asset</span><select id="a-asset"><option value="">None</option>${assetLoanOpts}</select></label>${key&&a.kind==="loan"?`<div class="card" style="margin-top:8px"><div class="msum num"><div><small>Original amount</small><b>${a.originalAmount!=null?money(a.originalAmount):"–"}</b></div>${loanSourceIsBank?`<div><small>Total EMI / loan payments</small><b style="color:var(--brass)">${money(loanPaid)}</b></div>`:""}<div><small>Outstanding</small><b>${a.balance!=null?money(Math.max(0,Number(a.balance)||0)):"–"}</b></div></div><p class="hint">${loanSourceIsBank?"Payments are calculated from matched EMI/loan repayments already imported.":"Non-bank borrowing is tracked by principal and outstanding amount; EMI fields are not shown."}</p></div>${loanInfo}${loanAccountExtras}`:""}</div><p class="help">New SMS for this account will keep updating the balance. For loans, use the structure below when the lender adds a top-up or you transfer the loan to another bank.</p>`,sc=>{
     const name=sc.querySelector("#a-name").value.trim(),kind=sc.querySelector("#a-kind").value,originalEl=sc.querySelector("#a-original"),loanCatEl=sc.querySelector("#a-loanCat"),loanAssetEl=sc.querySelector("#a-asset"),original=originalEl&&originalEl.value.trim()!==""?parseFloat(originalEl.value.replace(/[,₹\s]/g,"")):null,loanCategory=loanCatEl?loanCatEl.value:"Other",lenderTypeEl=sc.querySelector("#a-lenderType"),lenderNameEl=sc.querySelector("#a-lenderName"),lenderType=lenderTypeEl?lenderTypeEl.value:"Bank",lenderName=lenderNameEl?lenderNameEl.value.trim():"",raw=sc.querySelector("#a-bal").value.replace(/[,₹\s]/g,""),bal=raw===""?null:parseFloat(raw);if(!name){toast("Give the account a name.");return false;}
     const k=key||"manual"+uidGen(),cur=state.accounts[k]||{bank:"",account:""},next={...cur,label:name,kind,asOf:todayISO()};delete next.balance;delete next.availLimit;if(bal!=null&&!isNaN(bal)){if(kind==="card")next.availLimit=bal;else next.balance=bal;}
     if(kind==="loan"){if(original!=null&&!isNaN(original))next.originalAmount=original;else if(!next.originalAmount)delete next.originalAmount;next.loanCategory=loanCategory;next.lenderType=lenderType;next.lenderName=lenderName;if(loanAssetEl&&loanAssetEl.value)next.assetId=loanAssetEl.value;else delete next.assetId;if(key)loanEnsureStored(next);if(Array.isArray(next.loanTranches)&&next.loanTranches.length){const total=loanTrancheTotal(next);if(total>0)next.balance=total;next.originalAmount=loanTrancheOriginal(next);}}else{delete next.originalAmount;delete next.loanCategory;delete next.lenderType;delete next.lenderName;delete next.assetId;delete next.loanTranches;}
-    state.accounts[k]=next;persist([],true);toast("Account saved.");
+    state.accounts[k]=next; if(kind==="loan") syncLoanAccountFromTransactions(k,next); persist([],true);toast("Account saved.");
   },key?[[a.kind==="card"?(a.closed?"Reopen card":"Close card"):"Hide",()=>{if(a.kind==="card"){state.accounts[key].closed=!a.closed;state.accounts[key].hidden=!!state.accounts[key].closed;persist([],true);toast(state.accounts[key].closed?"Credit card closed.":"Credit card reopened.");}else{state.accounts[key].hidden=true;persist([],true);toast("Account hidden.");}}],["Remove",()=>{if(!confirm("Remove this account? Its balance history isn't kept, but new SMS for it will add it back."))return;delete state.accounts[key];persist([],true);}]]:null);
   const scr=document.querySelector(".scrim:last-of-type");
   if(scr){ if(key) scr.dataset.loanKey=key; if(preAssetId) scr.dataset.assetId=preAssetId; }
@@ -4665,7 +4724,7 @@ window.appStatus = function(granted){
 };
 window.importFinished = function(added, scanned){
   const el = document.querySelector(".toast"); if(el) el.remove();
-  state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal(); try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
+  state.smsDataReady = true; state.smsConsentUiVersion = 2; mergeDuplicateTransactionRecords(true); syncAllLoanAccountsFromTransactions(); saveLocal(); try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
   toast(added ? `Added ${inr.format(added)} ${added===1?"entry":"entries"} from ${inr.format(scanned)} bank SMS.` : `Checked ${inr.format(scanned)} bank SMS. Nothing new to add.`);
   render();
 };
@@ -4699,6 +4758,7 @@ window.appBack = function(){
   return false;
 };
 document.getElementById("smsAllow").onclick = ()=>{ if(window.Android) window.Android.requestSms(); };
+document.getElementById("reconcileSmsBtn")?.addEventListener("click",()=>{const merged=mergeDuplicateTransactionRecords(false);const changed=syncAllLoanAccountsFromTransactions();if(changed)persist([],true);render();if(!merged)toast("No safe duplicates found. Existing categories and loan links were preserved.");});
 document.getElementById("smsRescan").addEventListener("click", e=>{
   const b = e.target.closest("[data-days]");
   if(!b || !window.Android) return;
