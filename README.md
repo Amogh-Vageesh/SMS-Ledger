@@ -35,3 +35,12 @@ Install v1.89 over v1.88; do not uninstall first. The package ID and release sig
 - Loan-linked assets now sync original amount, outstanding, loan start date, current rate, current EMI, interest paid from processed loan documents, EMI history and rate history from the linked loan record when the asset is opened.
 - Loan document processing now stores parsed interest/EMI metadata for future use. Existing documents imported before these fields were stored may need a one-time re-import to calculate interest paid accurately.
 - Existing transactions and document reconciliation are retained.
+
+
+## v1.92 UI fixes
+- Fixed My Ledger expense donut legend alignment on narrow Android screens.
+- Added a stronger top/scroll reset when switching bottom tabs so My Ledger does not reopen partway down the page.
+- Moved unpaid bills due in the current month into My Ledger as a dedicated “Bills due this month” card.
+- Removed current-month Bills Due from the Assets page; future-dated unpaid bills remain in Assets.
+- Hardened the Assets renderer so a malformed subscription/account/asset record cannot blank the entire Assets tab.
+- Assets tab continues to show Net Worth at the top, followed by Assets, Bank accounts, Other accounts, Loan accounts and recurring items.
