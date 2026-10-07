@@ -16,13 +16,13 @@ Release update based on v1.99.
 - Existing linked transaction history and loan/interest calculations are retained.
 
 ## Build metadata
-- versionCode: 95
-- versionName: 1.100
+- versionCode: 97
+- versionName: 1.102
 
 The project intentionally does not require any check_v*.js or extracted inspection files for APK building.
 
 
-## Build fix in v1.101
+## Build fix in v1.102
 
 The previous v1.100 package used Android Gradle Plugin 8.7.3 but the GitHub Actions workflow requested Gradle 8.7. AGP 8.7.x requires Gradle 8.9, so the workflow has been corrected to Gradle 8.9.
 
