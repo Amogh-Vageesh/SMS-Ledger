@@ -20,3 +20,12 @@ Existing v1.85 loan features retained:
 - Bank-to-bank balance transfer/takeover.
 - Weighted interest rate and total sanctioned/outstanding values.
 - Loan proceeds and loan-transfer transaction classifications.
+
+
+## v1.87 loan document reconciliation
+- Loan documents are imported from the Asset screen or Settings and must be attached to an existing asset/loan; the importer no longer silently creates a new loan.
+- Multiple statement documents can be selected and are processed sequentially against the same asset/loan.
+- Each statement is retained as a document source; payment rows are reconciled against existing SMS transactions before a new Ledger transaction is created.
+- Matched SMS + statement payments retain both sources; unmatched confident payment rows are added as Loan repayment entries and linked to the asset/loan.
+- Loan statement/schedule metadata updates the linked loan account and asset without duplicating the liability.
+- Lender detection prefers full bank names from the document header and no longer treats an incidental bank name in a narrative as the lender.
