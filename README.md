@@ -1,61 +1,33 @@
-# SMS Ledger v1.89
+# SMS Ledger v1.96 — Family Finance Extension
 
-Version: 1.89 / versionCode 85
+This build starts from the supplied SMS Ledger v1.95 project and preserves the existing UI/design language rather than replacing it with a new prototype.
 
-## Loan document extraction and asset update fixes
-- Loan documents imported from an existing asset update that asset and its linked loan instead of creating a new loan.
-- Axis-style repayment schedules are parsed row-by-row.
-- Current rate/outstanding/EMI are taken from the latest schedule row applicable as of the document date, not a future repayment row.
-- Loan start date prefers the earliest statement-period start date; otherwise disbursement/start date; otherwise earliest schedule due date.
-- Lender detection prioritizes known lender names from the filename/document and normalizes Axis/HDFC/ICICI/etc.
-- Interest-rate history is retained for parsed schedule rows.
-- Asset now exposes current outstanding, current interest rate and current EMI fields.
-- Imported document data remains after removing the original document record.
+## Navigation / design rules
+- **Ledger** remains the existing Ledger screen and keeps its existing **Family button** in the header. Its existing organizer/home design is preserved.
+- **My Ledger** keeps the existing month/day/year/event financial UI. A compact **Family Hub** is added at the top with `All Family`, the signed-in person's display name, and the display names of people who shared data.
+- **Assets** keeps the existing asset/account card design. Family Hub is added at the top, with Active/Closed asset filtering and separate Credit Cards.
+- **Insurance** is a new dedicated tab using the same visual language as the current app. It has Family Hub, Active/Expired filters, coverage summary and Add Insurance.
+- **Add** and **Settings** keep the existing design.
 
-## Backup
-Backups retain processed financial data, loan/asset metadata, statement reconciliation and document metadata. Original source PDFs/XLS files are not required to restore processed data.
+## Family Hub naming
+- Only the person's chosen/display name is shown.
+- No relationship labels such as Spouse, Child, Wife, Husband, Son or Daughter.
+- Google-linked family members are prompted for a display name.
 
-## Update
-Install v1.89 over v1.88; do not uninstall first. The package ID and release signing key are retained, so the Android app can be updated in place when the APK is signed with the same release key.
+## Financial rules
+- Credit-card limits are excluded from assets.
+- Credit-card outstanding is a liability.
+- EPF/investment/retirement balances remain financial assets.
+- Self transfers are excluded from income/expense totals.
+- Credit-card bill payments are excluded from spending totals.
+- One underlying transaction should remain one ledger record; duplicate SMS records should be consolidated.
+- Promotional/advertisement SMS should not become transactions.
+- Shared family transactions/assets are combined without intentional double counting where shared IDs/keys are available.
+- Closed/sold assets retain their history and can be viewed under Closed.
+- Insurance is protection and is not counted as an asset or net-worth value; premiums remain expenses.
 
+## Asset lifecycle
+Assets can be marked Active or Closed/Sold. Closed/Sold records retain sale/closure date, selling price and selling expenses.
 
-## v1.91 UI update
-- Renamed bottom Accounts tab to **Assets**.
-- Assets moved out of the monthly Summary/Overview and into the Assets tab.
-- Assets tab now groups: Assets, Bank accounts, Other accounts, Loan accounts, Bills due.
-- Each section can be expanded/collapsed and explicitly hidden/shown.
-- Monthly expense summary now uses a donut chart with category amount and percentage, matching the requested first graph design.
-- Existing asset/loan/account data structures are retained.
-
-
-## v1.91 UI and loan-data update
-- Moved Net worth to the top of the Assets tab.
-- Reworked Assets into persistent section cards for Assets, Bank accounts, Other accounts, Loan accounts and Bills due; removed expand/hide controls.
-- Kept the expense donut on My Ledger and removed the duplicated Net worth card from My Ledger.
-- Loan-linked assets now sync original amount, outstanding, loan start date, current rate, current EMI, interest paid from processed loan documents, EMI history and rate history from the linked loan record when the asset is opened.
-- Loan document processing now stores parsed interest/EMI metadata for future use. Existing documents imported before these fields were stored may need a one-time re-import to calculate interest paid accurately.
-- Existing transactions and document reconciliation are retained.
-
-
-## v1.93 UI fixes
-- Fixed My Ledger expense donut legend alignment on narrow Android screens.
-- Added a stronger top/scroll reset when switching bottom tabs so My Ledger does not reopen partway down the page.
-- Moved unpaid bills due in the current month into My Ledger as a dedicated “Bills due this month” card.
-- Removed current-month Bills Due from the Assets page; future-dated unpaid bills remain in Assets.
-- Hardened the Assets renderer so a malformed subscription/account/asset record cannot blank the entire Assets tab.
-- Assets tab continues to show Net Worth at the top, followed by Assets, Bank accounts, Other accounts, Loan accounts and recurring items.
-
-
-## v1.93 Assets renderer hardening
-- Assets screen now renders each pane independently so one malformed legacy record cannot blank the entire Assets tab.
-- Net worth calculation is isolated from asset/account list rendering.
-- Added safe fallbacks for individual asset/account/bill rows.
-- Current-month Bills Due remains in My Ledger; Assets only shows future bills.
-
-
-## v1.94 Assets renderer fix
-- Reworked the Assets tab renderer to normalize legacy/corrupt state arrays and account objects before rendering.
-- Net worth, assets, bank accounts, other accounts, loan accounts, future bills and subscriptions render independently.
-- Individual malformed records fall back to a safe row instead of aborting the entire Assets page.
-- Added a last-resort technical-details panel rather than replacing the page with the previous generic loading error.
-- Current-month unpaid bills remain in My Ledger; only future bills are shown in Assets.
+## Insurance
+Insurance types include Health, Term/Life, Vehicle, Property, Travel & One-Time and Other. Expired/one-time policies remain in history.
