@@ -1,3 +1,5 @@
+SMS Ledger v1.108 — consolidated ledger, loan reconciliation, liability UI, recurring collapse, and granular family sharing.
+
 SMS Ledger v1.106 — Loan reconciliation, safe SMS deduplication and liabilities UI
 
 - Scan & reconcile existing Ledger: safe duplicate merge preserving corrected categories, loan links, asset links and notes.

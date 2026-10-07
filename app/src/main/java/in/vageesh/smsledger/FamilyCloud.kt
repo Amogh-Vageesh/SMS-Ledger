@@ -56,9 +56,45 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         replaceArray(root.collection("calendar"), payload.optJSONArray("calendar"), uid, now)
         replaceArray(root.collection("shopping"), payload.optJSONArray("shopping"), uid, now)
         replaceArray(root.collection("transactions"), payload.optJSONArray("transactions"), uid, now)
-        replaceCompleteData(root.collection("completeData"), payload.optString("completeData", ""), payload.optString("completeShareWith", "all"), payload.optJSONArray("completeAudienceUids"), uid, now)
+        val shares = payload.optJSONArray("completeShares")
+        if (shares != null) replaceCompleteShares(root.collection("completeData"), shares, uid, now)
+        else replaceCompleteData(root.collection("completeData"), payload.optString("completeData", ""), payload.optString("completeShareWith", "all"), payload.optJSONArray("completeAudienceUids"), uid, now)
     }
 
+
+
+    private suspend fun replaceCompleteShares(
+        col: com.google.firebase.firestore.CollectionReference,
+        shares: JSONArray,
+        uid: String,
+        now: Long
+    ) {
+        val existing = col.whereEqualTo("ownerUid", uid).get().await()
+        existing.documents.forEach { it.reference.delete().await() }
+        val chunkSize = 450_000
+        for (i in 0 until shares.length()) {
+            val share = shares.optJSONObject(i) ?: continue
+            val targetUid = share.optString("uid", "").trim()
+            val raw = share.optString("raw", "")
+            if (targetUid.isBlank() || raw.isBlank()) continue
+            val count = ((raw.length + chunkSize - 1) / chunkSize).coerceAtLeast(1)
+            for (chunk in 0 until count) {
+                val start = chunk * chunkSize
+                val end = minOf(raw.length, start + chunkSize)
+                val data = mutableMapOf<String, Any>(
+                    "ownerUid" to uid,
+                    "updatedAt" to now,
+                    "shareWith" to "some",
+                    "audienceUids" to listOf(targetUid),
+                    "memberUid" to targetUid,
+                    "chunkIndex" to chunk,
+                    "chunkCount" to count,
+                    "dataChunk" to raw.substring(start, end)
+                )
+                col.document("${uid}_${targetUid}_$chunk").set(data, SetOptions.merge()).await()
+            }
+        }
+    }
 
     private suspend fun replaceCompleteData(
         col: com.google.firebase.firestore.CollectionReference,

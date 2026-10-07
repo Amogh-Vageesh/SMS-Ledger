@@ -556,6 +556,18 @@ body{font-size:var(--fs-body);line-height:1.45}
 .account-row .n{min-width:0!important;overflow-wrap:anywhere!important;}
 .account-row .account-value{max-width:45vw!important;}
 
+/* v1.108: compact expandable recurring section and dedicated liability sheet geometry */
+.family-share-member{border:1px solid var(--rule);border-radius:14px;padding:12px;margin:10px 0;background:var(--soft);}.family-share-grid{display:grid;gap:2px;margin-top:8px}.family-share-grid .switchrow{padding:8px 0;border-top:1px solid var(--rule);}.family-share-grid .switchrow span{font-size:13px;}.
+.subscriptions-pane>summary{min-height:64px;}
+.subscriptions-pane .subscription-list{border-top:1px solid var(--rule);}
+.subscriptions-pane .account-row{border-bottom:1px solid var(--rule);}
+.subscriptions-pane .account-row:last-child{border-bottom:0;}
+.liability-sheet .sheet{width:min(100%,560px)!important;box-sizing:border-box!important;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))!important;}
+.liability-sheet .liability-detail-row{padding:16px 0!important;}
+.liability-sheet .liability-main{grid-template-columns:minmax(0,1fr) minmax(max-content,auto)!important;align-items:start!important;}
+.liability-sheet .liability-amount{justify-self:end!important;}
+.liability-sheet .liability-numbers{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}
+@media(max-width:390px){.liability-sheet .sheet{padding-left:14px!important;padding-right:14px!important}.liability-sheet .liability-name,.liability-sheet .liability-amount{font-size:15px!important}}
 /* v1.107: compact, stable mobile liability layout. The row owns its full width and never inherits trow grid columns. */
 .liability-detail-row{display:block!important;width:100%!important;box-sizing:border-box!important;text-align:left!important;margin:0!important;padding:14px 0!important;border:0!important;border-bottom:1px solid var(--rule)!important;background:transparent!important;color:var(--text)!important;border-radius:0!important;}
 .liability-detail-row .liability-main{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important;align-items:start!important;width:100%!important;}
@@ -2148,6 +2160,21 @@ function createEventForm(existingId){
 // -------- Family Hub: one place to manage people, events, and add a tagged expense --------
 // "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
 // is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
+const FAMILY_SHARE_DEFAULTS={ledger:true,banks:true,cards:true,investments:true,assets:true,loans:true,insurance:true,cash:true,retirement:true,budgets:true};
+const FAMILY_SHARE_LABELS={ledger:"Ledger / Transactions",banks:"Bank Accounts",cards:"Credit Cards",investments:"Investments",assets:"Assets",loans:"Loans & Liabilities",insurance:"Insurance",cash:"Cash / Wallets",retirement:"Retirement / EPF / NPS",budgets:"Budgets & Goals"};
+function familyShareConfig(uid){ const fam=state.family=state.family||{members:{}}; fam.sectionSharing=fam.sectionSharing||{}; const cur=fam.sectionSharing[uid]||{}; const out={...FAMILY_SHARE_DEFAULTS,...cur}; fam.sectionSharing[uid]=out; return out; }
+function filteredCompleteStateForMember(uid){
+  const c=familyShareConfig(uid), src=state;
+  const out={...src,txns:c.ledger?(src.txns||[]).map(x=>({...x})):[],assets:c.assets?(src.assets||[]).map(x=>({...x})) : [],accounts:{},insurance:c.insurance?(src.insurance||[]).map(x=>({...x})):[],budgets:c.budgets?{...(src.budgets||{})}:{},events:c.budgets?(src.events||[]).map(x=>({...x})):[],calendar:c.budgets?(src.calendar||[]).map(x=>({...x})):[],shopping:c.budgets?(src.shopping||[]).map(x=>({...x})):[],loanDocuments:c.loans?(src.loanDocuments||[]).map(x=>({...x})):[]};
+  Object.entries(src.accounts||{}).forEach(([k,a])=>{if(!a||a.hidden)return; const kind=a.kind||"bank"; const isRet=/epf|pf|nps|pension|retirement|provident/i.test(String(a.label||"")+" "+String(a.kind||"")); const ok=(kind==="bank"&&c.banks)||(kind==="card"&&c.cards)||(kind==="invest"&&c.investments)||(kind==="loan"&&c.loans)||(isRet&&c.retirement)||((kind==="wallet"||kind==="fastag")&&c.cash); if(!ok)return; out.accounts[k]={...a};});
+  out.family={cloudId:src.family?.cloudId,cloudName:src.family?.cloudName,cloudCode:src.family?.cloudCode,me:src.family?.me}; out.googleOnboardingDone=undefined; out.googleSkipped=undefined; return out;
+}
+function openFamilySectionSharing(){
+  const members=familyMembers(); if(!members.length){toast("Add or join a family member first.");return;}
+  const scr=document.createElement("div"); scr.className="scrim"; const rows=members.map(m=>{const c=familyShareConfig(m.id); return `<div class="family-share-member"><div class="row"><b>${esc(m.name||"Member")}</b><span class="chart-note">${Object.values(c).filter(Boolean).length}/${Object.keys(FAMILY_SHARE_DEFAULTS).length} shared</span></div><div class="family-share-grid">${Object.entries(FAMILY_SHARE_LABELS).map(([k,l])=>`<div class="switchrow"><span>${esc(l)}</span><label class="switch"><input type="checkbox" data-share-member="${esc(m.id)}" data-share-key="${k}" ${c[k]?'checked':''}><span class="track"></span></label></div>`).join("")}</div></div>`;}).join("");
+  scr.innerHTML=`<div class="sheet"><h2>Manage section sharing</h2><p class="help">Choose exactly which sections each family member can see. Hidden sections are also excluded from family totals.</p>${rows}<div class="row" style="margin-top:12px"><button class="btn primary" id="famShareSave">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`; document.body.appendChild(scr);
+  scr.addEventListener("click",e=>{if(e.target===scr||e.target.closest('[data-s="cancel"]')){scr.remove();return;} if(e.target.id==="famShareSave"){scr.querySelectorAll('[data-share-member]').forEach(i=>{const uid=i.dataset.shareMember,key=i.dataset.shareKey; state.family.sectionSharing=state.family.sectionSharing||{}; state.family.sectionSharing[uid]=familyShareConfig(uid); state.family.sectionSharing[uid][key]=i.checked;}); persist([],true); publishFamilyCloud(true); scr.remove(); render(); toast("Family sharing updated.");}});
+}
 function renderFamily(){
   const people = peopleList(), events = eventList();
   const fam = state.family = state.family || { members: {} };
@@ -2156,7 +2183,7 @@ function renderFamily(){
   let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0"><b>Family Cloud</b><br>Events, calendar, shopping lists and family-shared transactions sync through Firebase. Your private SMS ledger stays on this phone unless you choose to share it.</p>`;
   if(!cloudUser){ html += `<p class="help">Sign in with Google in Settings first.</p>`; }
   else if(!fam.cloudId){ html += `<div class="row"><button class="btn primary" id="famCreateCloud">Create family</button><button class="btn" id="famJoinCloud">Join with code</button></div>`; }
-  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div><div class="switchrow" style="margin-top:8px"><span><b>Share complete data</b><small style="display:block;color:var(--muted)">Share your complete ledger, accounts, bills, budgets, events, lists and transaction details with selected family members.</small></span><label class="switch"><input type="checkbox" id="famShareComplete" ${fam.completeDataSharing===true?"checked":""}><span class="track"></span></label></div><div class="share-audience" id="famCompleteShareArea" style="${fam.completeDataSharing===true?'display:flex':''}"><button class="mini" id="famCompleteShare">${fam.completeDataShareWith==='all'||!fam.completeDataShareWith?'All family':'Choose members'}</button></div>`; }
+  else { const shareMembers=familyMembers(); html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div><div class="switchrow" style="margin-top:8px"><span><b>Share complete data</b><small style="display:block;color:var(--muted)">Use section-level sharing below. Each family member can have different permissions.</small></span><label class="switch"><input type="checkbox" id="famShareComplete" ${fam.completeDataSharing===true?"checked":""}><span class="track"></span></label></div><div class="row" style="margin-top:8px"><button class="btn" id="famManageSharing" ${shareMembers.length?'':'disabled'}>Manage section sharing</button></div>`; }
   html += `</div>`;
 
   html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
@@ -2187,6 +2214,7 @@ document.getElementById("famBody").addEventListener("click", e=>{
   if(e.target.id === "famJoinCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const code=(famPrompt("Enter family code", "")||"").trim(); if(!code)return; const name=(famPrompt("Display name", (state.family&&state.family.me)||cloudUser.name||"")||"").trim(); if(window.Android) window.Android.joinFamily(code,name); return; }
   if(e.target.id === "famCopyCode"){ try{ navigator.clipboard.writeText((state.family||{}).cloudCode||""); toast("Family code copied."); }catch(_){ toast("Family code: "+((state.family||{}).cloudCode||"")); } return; }
   if(e.target.id === "famSyncCloud"){ publishFamilyCloud(true); return; }
+  if(e.target.id === "famManageSharing"){ openFamilySectionSharing(); return; }
   if(e.target.id === "famCompleteShare"){ const current=state.family&&state.family.completeDataShareWith; chooseShareAudience({shared:true,shareWith:current||'all'}, r=>{ state.family=state.family||{members:{}}; state.family.completeDataShareWith=r.shareWith||'all'; persist([],true); publishFamilyCloud(true); render(); }); return; }
   if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
   if(e.target.id === "famAddPerson"){
@@ -2222,9 +2250,8 @@ function publishFamilyCloud(force){
   const audience=e=>e.shareWith==='all'||!Array.isArray(e.shareWith)?memberIds:[...new Set([cloudUser.uid,...e.shareWith])];
   const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
   const completeEnabled=fam.completeDataSharing===true;
-  const completeAudience=completeEnabled ? (fam.completeDataShareWith==='all'||!Array.isArray(fam.completeDataShareWith)?memberIds:[...new Set([cloudUser.uid,...fam.completeDataShareWith])]) : [];
-  const completeState=completeEnabled ? {...state, family:{cloudId:fam.cloudId,cloudName:fam.cloudName,cloudCode:fam.cloudCode,me:fam.me}, googleOnboardingDone:undefined, googleSkipped:undefined} : null;
-  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeData:completeState?JSON.stringify(completeState):'',completeShareWith:(completeEnabled && fam.completeDataShareWith!=='all' ? 'some' : 'all'),completeAudienceUids:completeAudience};
+  const completeShares=completeEnabled ? memberIds.map(uid=>({uid,raw:JSON.stringify(filteredCompleteStateForMember(uid))})) : [];
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeShares};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
@@ -2685,7 +2712,7 @@ function renderAccounts(){
       const subs=arr(allSubs());
       if(subs.length){
         const rows=subs.slice(0,12).map(x=>`<div class="account-row static"><span class="n">${esc(x?.name||'Subscription')}</span><span class="num account-value">${safeMoney(x?.amount)}</span><span class="account-meta"><span>${esc(x?.freq||'Recurring')}</span><span>Next ${esc(x?.next?niceDate(x.next):'—')}</span></span></div>`).join('');
-        html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${safeMoney(subs.reduce((a,x)=>a+(Number(x?.perMonth)||0),0))}/month</p></div><span class="pane-icon">↻</span></div>${rows}</section>`;
+        html+=`<details class="asset-pane collapsible-pane subscriptions-pane"><summary><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${safeMoney(subs.reduce((a,x)=>a+(Number(x?.perMonth)||0),0))}/month</p></div><span class="pane-icon">↻</span></summary><div class="subscription-list">${rows}</div></details>`;
       }
     }catch(e){ diag.push("subscriptions"); }
 
@@ -2954,11 +2981,13 @@ function mergeDuplicateTransactionRecords(quiet=false){
   const tx=(state.txns||[]).slice().sort((a,b)=>(Number(a.added)||0)-(Number(b.added)||0)),removed=new Set(); let merged=0;
   const candidate=(a,b)=>{
     if(!a||!b||a.id===b.id||removed.has(a.id)||removed.has(b.id))return false;
-    if(a.type!==b.type||Math.abs(Number(a.amount||0)-Number(b.amount||0))>0.005||String(a.date||"")!==String(b.date||""))return false;
-    // Same Android SMS source is a definitive duplicate even when the parser assigned a different category/merchant.
+    if(a.type!==b.type||Math.abs(Number(a.amount||0)-Number(b.amount||0))>0.005)return false;
+    // A matching Android SMS fingerprint is definitive even if an older import stored a different parsed date/category.
     if(a.smsFingerprint && b.smsFingerprint && a.smsFingerprint===b.smsFingerprint) return true;
     const ar=rawTxnFingerprint(a),br=rawTxnFingerprint(b);
     if(ar && br && ar===br && ar.length>=24) return true;
+    // For ordinary parsed records, require the same date before applying weaker matching.
+    if(String(a.date||"")!==String(b.date||""))return false;
     if(a.ref&&b.ref&&String(a.ref).trim()===String(b.ref).trim())return true;
     const ar2=txnTextKey(a),br2=txnTextKey(b); if(ar2&&br2&&ar2===br2)return true;
     const aa=String(a.account||""),ba=String(b.account||""),am=merchantKey(a),bm=merchantKey(b);
@@ -4501,6 +4530,7 @@ function openLiabilityDetails(){
   const total=all.reduce((s,x)=>s+x.amount,0);
   const body=all.length?all.map(x=>`<button type="button" class="liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="liability-main"><div class="liability-left"><b class="liability-name">${esc(x.name)}</b><small>${esc(x.purpose)} · ${esc(x.source)}</small></div><b class="num over liability-amount">${money(x.amount,true)}</b></div>${x.original?`<div class="liability-numbers"><span>Loan amount <b>${money(x.original,true)}</b></span><span>Remaining <b>${money(x.amount,true)}</b></span></div>`:""}${x.limit?`<div class="liability-numbers"><span>Outstanding <b>${money(x.amount,true)}</b></span><span>Limit <b>${money(x.limit,true)}</b></span></div>`:""}</button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
   sheet('Liabilities',`<div class="liability-total-card"><small>Total liabilities</small><b class="num over">${money(total,true)}</b></div><div class="asset-loan-list">${body}</div>`,null);
+  const liabilityScr=document.querySelector('.scrim:last-of-type'); if(liabilityScr) liabilityScr.classList.add('liability-sheet');
   const scr=document.querySelector('.scrim:last-of-type'); if(scr) scr.addEventListener('click',e=>{const b=e.target.closest('[data-liability-acct]');if(!b)return;const s=b.closest('.scrim');if(s)s.remove();openAcctSheet(b.dataset.liabilityAcct);});
 }
 function openAcctSheet(key, preAssetId="", preKind=""){
