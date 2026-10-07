@@ -19,10 +19,19 @@ Backups retain processed financial data, loan/asset metadata, statement reconcil
 Install v1.89 over v1.88; do not uninstall first. The package ID and release signing key are retained, so the Android app can be updated in place when the APK is signed with the same release key.
 
 
-## v1.90 UI update
+## v1.91 UI update
 - Renamed bottom Accounts tab to **Assets**.
 - Assets moved out of the monthly Summary/Overview and into the Assets tab.
 - Assets tab now groups: Assets, Bank accounts, Other accounts, Loan accounts, Bills due.
 - Each section can be expanded/collapsed and explicitly hidden/shown.
 - Monthly expense summary now uses a donut chart with category amount and percentage, matching the requested first graph design.
 - Existing asset/loan/account data structures are retained.
+
+
+## v1.91 UI and loan-data update
+- Moved Net worth to the top of the Assets tab.
+- Reworked Assets into persistent section cards for Assets, Bank accounts, Other accounts, Loan accounts and Bills due; removed expand/hide controls.
+- Kept the expense donut on My Ledger and removed the duplicated Net worth card from My Ledger.
+- Loan-linked assets now sync original amount, outstanding, loan start date, current rate, current EMI, interest paid from processed loan documents, EMI history and rate history from the linked loan record when the asset is opened.
+- Loan document processing now stores parsed interest/EMI metadata for future use. Existing documents imported before these fields were stored may need a one-time re-import to calculate interest paid accurately.
+- Existing transactions and document reconciliation are retained.
