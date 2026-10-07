@@ -127,7 +127,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 .share-audience{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .family-row{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px;margin:8px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 .family-row .w{grid-column:1/3;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.asset-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.section-actions{padding:8px 14px;border-top:1px solid var(--rule);margin-top:0}.asset-group .asset-compact{padding:13px 14px}.expense-donut-card{overflow:hidden}.donut-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:10px;align-items:center}.donut-wrap svg{width:100%;height:auto}.donut-total{font-size:18px;font-weight:800;fill:var(--text)}.donut-label{font-size:9px;fill:var(--muted)}.donut-legend{display:flex;flex-direction:column;gap:4px}.donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;gap:8px;align-items:center;border:0;background:none;padding:7px 0;text-align:left;color:var(--text);font-size:.86rem}.donut-row .dot{width:10px;height:10px;border-radius:50%}.donut-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.donut-pct{color:var(--muted);text-align:right}.donut-footer{display:flex;gap:22px;border-top:1px solid var(--rule);margin-top:8px;padding-top:12px;font-size:.9rem}.donut-footer b{font-weight:700}.donut-footer .in{color:var(--inc)}.donut-footer .over{color:var(--over)}
+.asset-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.section-actions{padding:8px 14px;border-top:1px solid var(--rule);margin-top:0}.asset-group .asset-compact{padding:13px 14px}.expense-donut-card{overflow:hidden}.donut-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:12px;align-items:center}.donut-wrap svg{width:100%;height:auto;max-width:235px}.donut-total{font-size:18px;font-weight:800;fill:var(--text)}.donut-label{font-size:9px;fill:var(--muted)}.donut-legend{display:flex;flex-direction:column;gap:4px}.donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;gap:8px;align-items:center;border:0;background:none;padding:7px 0;text-align:left;color:var(--text);font-size:.86rem}.donut-row .dot{width:10px;height:10px;border-radius:50%}.donut-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.donut-pct{color:var(--muted);text-align:right}.donut-footer{display:flex;gap:22px;border-top:1px solid var(--rule);margin-top:8px;padding-top:12px;font-size:.9rem}.donut-footer b{font-weight:700}.donut-footer .in{color:var(--inc)}.donut-footer .over{color:var(--over)}
 @media(max-width:420px){.donut-layout{grid-template-columns:180px minmax(0,1fr)}.donut-row{font-size:.78rem;grid-template-columns:9px minmax(0,1fr) auto 32px}.donut-total{font-size:15px}.donut-label{font-size:8px}}
 
 .summary-cats{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
@@ -214,7 +214,7 @@ textarea{width:100%;min-height:170px;resize:vertical;background:var(--panel);bor
 /* v1.92: keep the expense legend aligned on narrow phones */
 .expense-donut-card .donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;gap:6px 8px;align-items:center;width:100%;min-width:0}
 .expense-donut-card .donut-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:420px){.expense-donut-card .donut-row{grid-template-columns:9px minmax(0,1fr) auto 32px;gap:5px 6px;font-size:.78rem}.expense-donut-card .donut-legend{min-width:0}.expense-donut-card .donut-row b{white-space:nowrap}}
+@media(max-width:420px){.expense-donut-card .donut-layout{grid-template-columns:225px minmax(0,1fr);gap:8px}.expense-donut-card .donut-row{grid-template-columns:9px minmax(0,1fr) auto 32px;gap:5px 6px;font-size:.78rem}.expense-donut-card .donut-legend{min-width:0}.expense-donut-card .donut-row b{white-space:nowrap}}
 .donut{width:150px;height:150px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .donut div{width:96px;height:96px;border-radius:50%;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center}
 .donut small{font-size:.75rem;color:var(--muted)}
@@ -383,7 +383,7 @@ h3{font-size:15px!important}
 #v-overview,#v-accounts{padding-top:2px}.asset-pane{width:100%}.asset-tab-actions{align-items:stretch}.asset-tab-actions .btn{min-width:0}
 /* v1.91 Assets UX: persistent section cards, no expand/hide controls */
 .networth-card{overflow:hidden}.networth-big{font-size:2.15rem;font-weight:800;letter-spacing:-.02em;margin:2px 0 16px}.networth-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--rule)}.networth-grid>div{padding:12px 10px 4px 0;min-width:0}.networth-grid>div+div{border-left:1px solid var(--rule);padding-left:12px}.networth-grid small{display:block;color:var(--muted);margin-bottom:4px;white-space:nowrap}.networth-grid b{display:block;font-size:.96rem;white-space:nowrap}.networth-grid .over{color:var(--over)}
-.asset-tab-actions{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin:12px 0}.asset-pane{border:1px solid var(--rule);border-radius:16px;background:var(--panel);margin:0 0 12px;overflow:hidden}.asset-pane-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px 11px;border-bottom:1px solid var(--rule)}.asset-pane-head h2{margin:0;font-size:1.12rem}.asset-pane-head p{margin:4px 0 0;color:var(--muted);font-size:.78rem}.pane-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--soft);color:var(--brass);font-weight:700}.asset-card-row,.account-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;padding:12px 15px;border:0;border-bottom:1px solid var(--rule);background:none;color:var(--text);text-align:left}.asset-card-row:last-child,.account-row:last-child{border-bottom:0}.asset-card-row:active,.account-row:active{background:var(--soft)}.asset-icon{width:38px;height:38px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:1.05rem}.asset-row-main,.account-row .account-meta{min-width:0}.asset-row-main b,.account-row .n{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.asset-row-main small{display:block;color:var(--muted);font-size:.76rem;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-row{grid-template-columns:minmax(0,1fr) auto;gap:3px 12px}.account-row .account-value{grid-column:2;grid-row:1/3;font-weight:700}.account-row .account-meta{grid-column:1;display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:.73rem}.account-row .account-meta span{white-space:nowrap}.account-row.static{cursor:default}.chev{font-size:1.4rem;color:var(--muted)}.pane-empty{padding:16px;color:var(--muted);font-size:.86rem}.bills-pane .due{border-bottom:1px solid var(--rule);padding-left:15px;padding-right:15px}.bills-pane .due:last-child{border-bottom:0}.section-actions,.agroup summary{display:none!important}
+.asset-tab-actions{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin:12px 0}.asset-loan-callout{border:1.5px solid var(--brass);background:color-mix(in srgb,var(--brass) 8%,var(--panel));border-radius:14px;padding:12px 14px;margin:0 0 12px}.asset-loan-callout b{display:block;margin-bottom:4px}.asset-loan-callout .loan-add-row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.asset-loan-callout .help{margin:0}.asset-row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.asset-row-main{min-width:0}.asset-main-button{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;flex:1;min-width:0;border:0;background:none;color:var(--text);padding:0;text-align:left}.asset-main-button:active{background:var(--soft)}.asset-pane{border:1px solid var(--rule);border-radius:16px;background:var(--panel);margin:0 0 12px;overflow:hidden}.asset-pane-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px 11px;border-bottom:1px solid var(--rule)}.asset-pane-head h2{margin:0;font-size:1.12rem}.asset-pane-head p{margin:4px 0 0;color:var(--muted);font-size:.78rem}.pane-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--soft);color:var(--brass);font-weight:700}.asset-card-row,.account-row{display:flex;gap:10px;align-items:center;gap:10px;align-items:center;width:100%;padding:12px 15px;border:0;border-bottom:1px solid var(--rule);background:none;color:var(--text);text-align:left}.asset-card-row:last-child,.account-row:last-child{border-bottom:0}.asset-card-row:active,.account-row:active{background:var(--soft)}.asset-icon{width:38px;height:38px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:1.05rem}.asset-row-main,.account-row .account-meta{min-width:0}.asset-row-main b,.account-row .n{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.asset-row-main small{display:block;color:var(--muted);font-size:.76rem;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-row{grid-template-columns:minmax(0,1fr) auto;gap:3px 12px}.account-row .account-value{grid-column:2;grid-row:1/3;font-weight:700}.account-row .account-meta{grid-column:1;display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:.73rem}.account-row .account-meta span{white-space:nowrap}.account-row.static{cursor:default}.chev{font-size:1.4rem;color:var(--muted)}.pane-empty{padding:16px;color:var(--muted);font-size:.86rem}.bills-pane .due{border-bottom:1px solid var(--rule);padding-left:15px;padding-right:15px}.bills-pane .due:last-child{border-bottom:0}.section-actions,.agroup summary{display:none!important}
 
 /* v1.96 Family finance extensions — preserve the existing visual language */
 .finance-hub{border:1px solid var(--rule);border-radius:14px;background:var(--panel);padding:12px 14px;margin:0 0 12px}
@@ -2498,6 +2498,7 @@ function renderAccounts(){
 
     try{
       html+=`<div class="asset-account-switch"><button class="btn ${assetFilter==="Active"?"active":""}" id="assetActiveFilter">Active accounts</button><button class="btn ${accountView==="Credit"?"active":""}" id="assetCreditFilter">Credit cards</button><button class="btn ${assetFilter==="Closed"?"active":""}" id="assetClosedFilter">Closed accounts</button></div>`;
+      html+=`<div class="asset-loan-callout"><b>Asset financing / loans</b><div class="loan-add-row"><p class="help">For any asset, add separate loans from a bank, family member, friend or other lender. Each loan is tracked as its own liability.</p><button type="button" class="btn primary" id="addAssetLoan">+ Add loan for an asset</button></div></div>`;
       html+=`<details class="asset-pane collapsible-pane"><summary><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p><div class="asset-pane-desc">${assetFilter==="Closed"?'Closed / sold assets are retained for history.':'Your homes, land, vehicles, gold and other assets. Tap to expand.'}</div></div><span class="pane-icon">◆</span></summary>`;
       if(assets.length){
         html+=assets.map(a=>{
@@ -2505,7 +2506,7 @@ function renderAccounts(){
             const linked=assetLinkedExpenses(a).length;
             const loan=a&&a.loanAccount&&acctObj[a.loanAccount];
             const icon=a?.type==="vehicle"?'🚗':a?.type==="gold"?'◈':a?.type==="land"?'⌂':'▦';
-            return `<button class="asset-card-row" data-asset="${esc(a?.id||"")}"><span class="asset-icon">${icon}</span><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a?.type))}${linked?` · ${linked} linked`:''}${loan?` · ${esc(loan.label||'Loan linked')}: ${safeMoney(loan.balance)}`:''}${(a?.loanAccount||a?.type==='vehicle')&&assetLoanInterestPaid(a)>0?` · Interest paid ${safeMoney(assetLoanInterestPaid(a))}`:''}</small></span><strong class="num">${safeMoney(assetCurrentValue(a))}</strong><span class="chev">›</span></button>`;
+            return `<div class="asset-card-row" data-asset-row="${esc(a?.id||"")}"><button type="button" class="asset-main-button" data-asset="${esc(a?.id||"")}"><span class="asset-icon">${icon}</span><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a?.type))}${linked?` · ${linked} linked`:''}${loan?` · ${esc(loan.label||'Loan linked')}: ${safeMoney(loan.balance)}`:''}${(a?.loanAccount||a?.type==='vehicle')&&assetLoanInterestPaid(a)>0?` · Interest paid ${safeMoney(assetLoanInterestPaid(a))}`:''}</small></span><strong class="num">${safeMoney(assetCurrentValue(a))}</strong><span class="chev">›</span></button><button type="button" class="mini asset-loan-btn" data-add-loan-asset="${esc(a?.id||"")}">+ Add loan / lender</button></div>`;
           }catch(e){ diag.push("asset row"); return `<div class="pane-empty">${esc(a?.name||"Asset")} · ${safeMoney(a?.currentValue)}</div>`; }
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
@@ -3073,11 +3074,6 @@ function renderHome(){
     // v1.97: Home Total Balance is the actual money/value held across owned financial accounts.
     // Credit-card limits are not assets; card outstanding and loans are liabilities. Internal transfers
     // do not change this balance because account balances are point-in-time holdings, not income.
-    const homeFinancialBalance = totalHeldBalance();
-    const homePhysicalValue = physicalAssetTotal();
-    const homeLiabilities = totalLiabilities();
-    const homeNetWorth = netWorth();
-    const totalBalanceCard = `<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held</span></div><span class="pane-icon">₹</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(homeFinancialBalance)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(homeFinancialBalance)}</b></div><div><small>Other assets</small><b>${money(homePhysicalValue)}</b></div><div><small>Net worth</small><b>${money(homeNetWorth)}</b></div></div><p class="hint">Includes bank, wallet, investment, EPF/PF and pension balances. Credit-card limits are excluded; loans and card outstanding remain liabilities.</p></div>`;
     const eventHtml=items.events.length ? items.events.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>{
       let spend=0; try{ spend=eventSpend(e.id); }catch(_){ spend=0; }
       return `<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name||'Event')}</span><span class="num" style="font-weight:600">${money(Number(spend)||0,true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`;
@@ -3086,7 +3082,6 @@ function renderHome(){
     const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
     const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
     body.innerHTML=`
-      ${totalBalanceCard}
       <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
         <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
         <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
@@ -3146,8 +3141,7 @@ function render(){
 
 function expenseDonut(byCat, spent){
   const cats=Object.entries(byCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  const top=cats.slice(0,7), other=cats.slice(7).reduce((s,[,v])=>s+v,0);
-  if(other>0) top.push(["Other",other]);
+  const top=cats.slice(0,5);
   const total=top.reduce((s,[,v])=>s+v,0)||1;
   const cx=105, cy=105, r=72, sw=28, circ=2*Math.PI*r;
   let offset=0;
@@ -3262,6 +3256,7 @@ function renderOverview(){
   const byCat = {};
   out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
   const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const topFiveCats = cats.slice(0,5);
   document.getElementById("band").innerHTML = "";
 
   const body = document.getElementById("overviewBody");
@@ -3272,10 +3267,14 @@ function renderOverview(){
   }
   // budgets not yet spent in also shown
   Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
-  let html = monthBillsHtml + expenseDonut(byCat, spent);
-  if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
-  html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;
-  cats.forEach(([c,v])=>{
+  const ledgerFinancialBalance = totalHeldBalance();
+  const ledgerPhysicalValue = physicalAssetTotal();
+  const ledgerNetWorth = netWorth();
+  const totalBalanceCard = `<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held</span></div><span class="pane-icon">₹</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(ledgerFinancialBalance)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(ledgerFinancialBalance)}</b></div><div><small>Other assets</small><b>${money(ledgerPhysicalValue)}</b></div><div><small>Net worth</small><b>${money(ledgerNetWorth)}</b></div></div><p class="hint">Includes bank, wallet, investment, EPF/PF and pension balances. Credit-card limits are excluded; loans and card outstanding remain liabilities.</p></div>`;
+  let html = totalBalanceCard + monthBillsHtml + expenseDonut(byCat, spent);
+  if(topFiveCats.length){ html += `<div class="summary-cats" aria-label="Top 5 categories">${topFiveCats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
+  html += `<h2 class="section-h">Top 5 categories</h2><ul class="cats">`;
+  topFiveCats.forEach(([c,v])=>{
     const b = state.budgets[c];
     const pct = spent ? Math.round(v/spent*100) : 0;
     let meta = `<span>${pct}% of spend</span>`;
@@ -4053,6 +4052,8 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   if(e.target.id === "unhideAccts"){ Object.values(state.accounts).forEach(a=>delete a.hidden); persist([], true); render(); return; }
   const stg=e.target.closest("[data-section-toggle]"); if(stg){ const k=stg.dataset.sectionToggle; acctSectionHidden[k]=!acctSectionHidden[k]; render(); return; }
   if(e.target.id === "addAssetAccounts"){ openAssetSheet(null); return; }
+  if(e.target.id === "addAssetLoan"){ const first=(state.assets||[]).find(a=>!a.closed); if(first) openAcctSheet(null,first.id); else toast("Add an asset first."); return; }
+  const al=e.target.closest("[data-add-loan-asset]"); if(al){ openAcctSheet(null,al.dataset.addLoanAsset); return; }
   const at=e.target.closest("[data-asset-txn]"); if(at){ const t=state.txns.find(x=>x.id===at.dataset.assetTxn); if(t){ const scr=at.closest('.scrim'); if(scr) scr.remove(); openSheet(t,false); } return; }
   const ab=e.target.closest("[data-asset]"); if(ab){ openAssetSheet(ab.dataset.asset); return; }
   if(e.target.id === "addAcct"){ openAcctSheet(null); return; }
@@ -4292,8 +4293,8 @@ window.loanDocumentFilesResult=function(payload){
     console.error('Loan document import failed',e);
   }
 };
-function openAcctSheet(key){
-  const a=key?state.accounts[key]:{kind:"bank"},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"], lenderTypes=["Bank","NBFC","Family Member","Friend","Employer","Other"];
+function openAcctSheet(key, preAssetId=""){
+  const a=key?state.accounts[key]:{kind:"loan",assetId:preAssetId},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"], lenderTypes=["Bank","NBFC","Family Member","Friend","Employer","Other"];
   const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
   const loanPaid=key&&a.kind==="loan"?state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0):0;
   const loanInfo=a.kind==="loan"?loanStructureHtml(a):"";

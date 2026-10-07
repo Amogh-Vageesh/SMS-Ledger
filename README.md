@@ -1,42 +1,22 @@
-# SMS Ledger v1.98 — Family Finance Extension
+# SMS Ledger v1.100
 
-This build starts from the supplied SMS Ledger v1.95 project and preserves the existing UI/design language rather than replacing it with a new prototype.
+Release update based on v1.99.
 
-## Navigation / design rules
-- **Ledger** remains the existing Ledger screen and keeps its existing **Family button** in the header. Its existing organizer/home design is preserved.
-- **My Ledger** keeps the existing month/day/year/event financial UI. A compact **Family Hub** is added at the top with `All Family`, the signed-in person's display name, and the display names of people who shared data.
-- **Assets** keeps the existing asset/account card design. Family Hub is added at the top, with Active/Closed asset filtering and separate Credit Cards.
-- **Insurance** is a new dedicated tab using the same visual language as the current app. It has Family Hub, Active/Expired filters, coverage summary and Add Insurance.
-- **Add** and **Settings** keep the existing design.
+## UI and Ledger
+- Moved Total Balance from the Ledger/Family home page to My Ledger.
+- Standardized mobile typography and spacing retained from prior release.
+- Enlarged the My Ledger expense donut/chart area for better mobile readability.
+- My Ledger now shows only the top 5 expense categories in the category visualization and category list.
 
-## Family Hub naming
-- Only the person's chosen/display name is shown.
-- No relationship labels such as Spouse, Child, Wife, Husband, Son or Daughter.
-- Google-linked family members are prompted for a display name.
+## Assets and liabilities
+- Added a highlighted Asset financing / loans area in Assets.
+- Each active asset has a visible "+ Add loan / lender" action.
+- Loans can be created for a specific asset and tracked separately by purpose and lender/source.
+- Lender source can be Bank, NBFC, Family Member, Friend, Employer or Other, with a lender/source name.
+- Existing linked transaction history and loan/interest calculations are retained.
 
-## Financial rules
-- Credit-card limits are excluded from assets.
-- Credit-card outstanding is a liability.
-- EPF/investment/retirement balances remain financial assets.
-- Self transfers are excluded from income/expense totals.
-- Credit-card bill payments are excluded from spending totals.
-- One underlying transaction should remain one ledger record; duplicate SMS records should be consolidated.
-- Promotional/advertisement SMS should not become transactions.
-- Shared family transactions/assets are combined without intentional double counting where shared IDs/keys are available.
-- Closed/sold assets retain their history and can be viewed under Closed.
-- Insurance is protection and is not counted as an asset or net-worth value; premiums remain expenses.
+## Build metadata
+- versionCode: 95
+- versionName: 1.100
 
-## Asset lifecycle
-Assets can be marked Active or Closed/Sold. Closed/Sold records retain sale/closure date, selling price and selling expenses.
-
-## Insurance
-Insurance types include Health, Term/Life, Vehicle, Property, Travel & One-Time and Other. Expired/one-time policies remain in history.
-
-
-## v1.98 follow-up fixes
-- Unified app-wide mobile typography and spacing.
-- Assets sections use compact descriptions and expand/collapse interaction.
-- Active accounts are the default account view; Credit Cards and Closed Accounts have dedicated views.
-- Loan accounts support Bank / NBFC and Friends & Family lender types.
-- Asset-linked transactions are fully scrollable and open the original Ledger entry when tapped.
-- Vehicle/asset loan interest can be derived from linked or matching loan/EMI data, including unlinked vehicle loans such as Corolla Altis.
+The project intentionally does not require any check_v*.js or extracted inspection files for APK building.
