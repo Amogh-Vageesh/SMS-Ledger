@@ -37,10 +37,17 @@ Install v1.89 over v1.88; do not uninstall first. The package ID and release sig
 - Existing transactions and document reconciliation are retained.
 
 
-## v1.92 UI fixes
+## v1.93 UI fixes
 - Fixed My Ledger expense donut legend alignment on narrow Android screens.
 - Added a stronger top/scroll reset when switching bottom tabs so My Ledger does not reopen partway down the page.
 - Moved unpaid bills due in the current month into My Ledger as a dedicated “Bills due this month” card.
 - Removed current-month Bills Due from the Assets page; future-dated unpaid bills remain in Assets.
 - Hardened the Assets renderer so a malformed subscription/account/asset record cannot blank the entire Assets tab.
 - Assets tab continues to show Net Worth at the top, followed by Assets, Bank accounts, Other accounts, Loan accounts and recurring items.
+
+
+## v1.93 Assets renderer hardening
+- Assets screen now renders each pane independently so one malformed legacy record cannot blank the entire Assets tab.
+- Net worth calculation is isolated from asset/account list rendering.
+- Added safe fallbacks for individual asset/account/bill rows.
+- Current-month Bills Due remains in My Ledger; Assets only shows future bills.

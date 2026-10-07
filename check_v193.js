@@ -1,0 +1,4047 @@
+
+
+(function(){
+"use strict";
+
+/* ---------- Categories ---------- */
+const CATS = [
+  ["Food & dining","#d9a441"],["Groceries","#8fb573"],["Transport","#6fa3c7"],["Fuel","#c98b4a"],
+  ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
+  ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
+  ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
+];
+const BASE_CAT_COUNT = CATS.length;
+const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
+function applyCustomCats(){
+  (state.customCats||[]).forEach((c,i)=>{
+    if(CAT_COLOR[c.name]) return;
+    const col = c.color || PALETTE[i % PALETTE.length];
+    CATS.splice(CATS.length - 6, 0, [c.name, col]); CAT_COLOR[c.name] = col;
+  });
+}
+function addCustomCat(name){
+  name = String(name||"").trim().replace(/\s+/g," ");
+  if(!name || CAT_COLOR[name]) return name;
+  state.customCats.push({ name, color: PALETTE[state.customCats.length % PALETTE.length] });
+  applyCustomCats(); return name;
+}
+// Paying a card bill moves money between your own accounts; a loan repayment is just getting your
+// own money back; money to or from someone you know isn't new spending or new income either.
+const NOT_SPEND = new Set(["Card payments","Self transfer","Friends and family transfers","Loan repayment","Loan proceeds","Loan transfer","Payment confirmation"]);
+const SUB_WORDS = ["netflix","spotify","hotstar","jiohotstar","prime","youtube","apple","icloud","google","zee5","sonyliv","jiocinema","linkedin","openai","chatgpt","anthropic","claude","adobe","microsoft","office","notion","canva","swiggy one","zomato gold","audible","kindle","gaana","wynk","times prime","cult","gym","dropbox","github","figma","tata play","airtel xstream","disney"];
+const CAT_COLOR = Object.fromEntries(CATS);
+const CREDIT_CATS = ["Income","Refunds","Transfers","Self transfer","Friends and family transfers","Card payments","Loan repayment","Loan proceeds","Loan transfer","Other"];
+
+const KEYWORDS = {
+  "Food & dining":["swiggy","zomato","eatsure","restaurant","cafe","coffee","starbucks","dominos","domino","pizza","mcdonald","kfc","burger","subway","chaayos","third wave","blue tokai","bakery","darshini","hotel ","dine","biryani","eat","udupi","kitchen","dosa","sagar","bhavan","bhavana","vadapav","canteen","tiffin","juice","mess","sweets","chai","tea ","food","dhaba","eatery","caterers","mcdonald","haldiram","barbeque","bbq","box8","faasos","behrouz","ovenstory","freshmenu","rebel foods","wow momo","cafe coffee day","barista","costa coffee","tim hortons","burger king","pizza hut","la pino","taco bell","wendys","krispy kreme","baskin","naturals ice","corner house","meghana","empire restaurant","adyar ananda","a2b","saravana bhavan","mtr ","vidyarthi bhavan","rameshwaram cafe","truffles","chai point","eazydiner","dineout","magicpin","haldirams","bikanervala","paradise biryani","behrouz biryani","hard rock","barbeque nation"],
+  "Groceries":["bigbasket","bbnow","blinkit","grofers","zepto","instamart","dmart","d mart","more retail","reliance fresh","ratnadeep","nature's basket","natures basket","spar","jiomart","grocery","supermarket","milkbasket","country delight","nandini","super mark","supermart","super market","veg","vegetable","fruits","dry fruit","provision","kirana","general store","dairy","milk","mart","dunzo","bb daily","amazon fresh","flipkart minutes","more supermarket","star bazaar","spencer","metro cash","lulu","nilgiris","namdhari","freshtohome","licious","akshayakalpa","iyengar","swiggy instamart","smart bazaar","vishal mega mart","big bazaar"],
+  "Transport":["uber","ola","rapido","namma yatri","metro","bmtc","ksrtc","redbus","fastag","parking","toll","blu smart","bluesmart","redbus","toll plaza","tyre","car spa","service cent","motors","automobiles","toyota","hyundai","maruti","honda","car wash","parking","yulu","bounce","vogo","zoomcar","revv","savaari","blablacar","abhibus","bmrcl","namma metro","dmrc","mmrda","best bus","indrive","quick ride","meru","irctc"],
+  "Fuel":["petrol","fuel","hpcl","bpcl","iocl","indian oil","indianoil","hp pay","shell","nayara","bharat petroleum","petro","service station","filling station","fuels","fuel station","jio-bp","jiobp","essar","reliance petroleum","hindustan petroleum","nayara energy"],
+  "Shopping":["amazon","flipkart","myntra","ajio","nykaa","meesho","croma","reliance digital","tata cliq","decathlon","ikea","lifestyle","westside","pantaloons","shoppers stop","apple","uniqlo","h&m","zara","lenskart","firstcry","retail","reliance re","louis philippe","li ning","store","jewel","tanishq","bata","puma","nike","adidas","lenskart","emporium","textile","silk","fashion","tatacliq","tata neu","vijay sales","reliance trends","max fashion","zudio","marks and spencer","levis","allen solly","van heusen","peter england","raymond","fabindia","biba","snitch","bewakoof","souled store","urbanic","shein","oneplus","samsung","xiaomi","mi store","apple store","sangeetha mobiles","poorvika","pepperfry","urban ladder","home centre","hometown","wakefit","sleepwell","purplle","sugar cosmetics","mamaearth","hamleys","crossword","sapna book","amzn","snapdeal"],
+  "Bills & utilities":["bescom","electricity","bwssb","water","airtel","jio","vodafone","vi ","bsnl","act fibernet","hathway","broadband","recharge","dth","tata play","gas","indane","bharatgas","piped gas","bill","bbmp","property tax","insurance","lic ","premium","cred","google play","googleplay","google india","insurance","insura","policybazaar","uidai","bbps","hp gas","hpgas","gas booking","bharat gas","dish tv","postpaid","prepaid","recharge","tata sky","sun direct","d2h","airtel dth","excitel","you broadband","mahanagar gas","indraprastha gas","adani gas","gail gas","msedcl","tata power","adani electricity","bses","tneb","kseb","hescom","gescom","mescom","cesc","hdfc life","icici pru","sbi life","max life","star health","acko","go digit","digit insurance","bajaj allianz","tata aig","care health","niva bupa","municipal","water board","vodafone idea","jio fiber","airtel xstream fiber"],
+  "Entertainment":["netflix","spotify","hotstar","prime video","primevideo","youtube","bookmyshow","pvr","inox","sony liv","sonyliv","zee5","apple.com","steam","playstation","district","jiocinema","bigtree","cinema","movies","theatre","resort","gaming","playstation","voot","mx player","sun nxt","erosnow","hoichoi","altbalaji","apple music","jiosaavn","wynk","audible","kindle","paytm insider","insider in","ticketnew","wonderla","imagica","funcity","timezone","smaaash","dream11","my11circle","mpl","disney","youtube premium"],
+  "Health":["apollo","pharmacy","medplus","1mg","tata 1mg","pharmeasy","netmeds","hospital","clinic","diagnostic","lab","practo","cult.fit","cultfit","gym","manipal","narayana","fortis","dental","medical","medicals","pharma","aster","hospitals","clinic","health","diagnostics","dr ","healthifyme","truemeds","wellness forever","frank ross","guardian pharmacy","sakra","columbia asia","cloudnine","motherhood","rainbow hospital","thyrocare","lal pathlabs","dr lal","metropolis","redcliffe","healthians","orange health","eye care","vasan eye","narayana health","manipal hospital","apollo pharmacy","cult fit"],
+  "Travel":["makemytrip","goibibo","cleartrip","ixigo","indigo","air india","akasa","vistara","spicejet","irctc","oyo","airbnb","booking.com","agoda","taj","marriott","hyatt","ihcl","easemytrip","yatra","air india express","airasia","emirates","etihad","qatar airways","flydubai","air arabia","singapore airlines","lufthansa","british airways","treebo","fabhotels","zostel","expedia","thomas cook","sotc","vfs global","akasa air","oyo rooms","booking com"],
+  "Education":["school","college","fees","tuition","byju","udemy","coursera","unacademy","vedantu","books","university","exam","whitehat","upgrad","simplilearn","great learning","edx","skillshare","linkedin learning","school fee","college fee","tuition fee","byjus","physics wallah"],
+  "Investments":["zerodha","groww","upstox","kuvera","coin","sip","mutual fund","mf ","nps","ppf","smallcase","angel one","icici direct","indmoney","paytm money","indian clearing","indianclearing","iccl","nsdl","cdsl","nse clearing","bse","mutual","sip ","5paisa","hdfc securities","kotak securities","fyers","scripbox","et money","mf utility","kfintech","karvy","bse star","nps trust","sukanya","safegold","augmont","mmtc pamp","jar app","coin by zerodha"],
+  "EMI & loans":["emi","loan","bajaj fin","home loan","car loan","personal loan","bajaj finance","bajaj finserv","home credit","tata capital","hdb financial","muthoot","manappuram","kreditbee","moneyview","cashe","earlysalary","lazypay","zestmoney","loan emi","emi debit"],
+  "Rent":["rent","nobroker","society","maintenance","apartment","mygate","nestaway","housing com","magicbricks","nobrokerhood","apartment adda","house rent","rent payment"],
+  "Cash":["atm","cash withdrawal","withdrawn"]
+};
+
+const BANKS = [
+  ["HDFC",/hdfc/i],["ICICI",/icici/i],["SBI",/\bsbi\b|state bank/i],["Axis",/\baxis\b/i],["Kotak",/kotak/i],
+  ["IDFC First",/idfc/i],["Yes Bank",/yes ?bank|\byesbnk/i],["IndusInd",/indusind/i],["AU",/\bau (small|bank)/i],
+  ["Federal",/federal/i],["PNB",/\bpnb\b|punjab national/i],["Bank of Baroda",/\bbob\b|baroda/i],["Canara",/canara/i],
+  ["Union Bank",/union bank/i],["IDBI",/idbi/i],["RBL",/\brbl\b/i],["Amex",/amex|american express/i],
+  ["HSBC",/hsbc/i],["Standard Chartered",/standard chartered|\bscb\b/i],["OneCard",/onecard/i],["Paytm",/paytm payments bank/i],["Jupiter",/jupiter/i]
+];
+
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+/* ---------- Language (English / ಕನ್ನಡ) ---------- */
+// Stored data stays in English (category keys etc.); only what's shown on screen is translated.
+let LANG = "en";
+const KN = {
+  "Home":"ಮುಖಪುಟ","Month":"ತಿಂಗಳು","Summary":"ನನ್ನ ಲೆಡ್ಜರ್","Tagged to events":"ಸಂದರ್ಭಗಳಿಗೆ ಟ್ಯಾಗ್ ಆಗಿರುವುದು","Entries":"ನಮೂದುಗಳು","Accounts":"ಖಾತೆಗಳು","Add":"ಸೇರಿಸಿ","Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Sections":"ವಿಭಾಗಗಳು",
+  "Your money at a glance":"ನಿಮ್ಮ ಹಣದ ಒಂದು ನೋಟ","Day":"ದಿನ","Year":"ವರ್ಷ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","Events":"ಸಂದರ್ಭಗಳು","Your family's money at a glance":"ನಿಮ್ಮ ಕುಟುಂಬದ ಹಣದ ಒಂದು ನೋಟ","Period":"ಅವಧಿ",
+  "Just me":"ನಾನು ಮಾತ್ರ","Family":"ಕುಟುಂಬ","Whose money":"ಯಾರ ಹಣ",
+  "Money in":"ಬಂದ ಹಣ","Money out":"ಹೋದ ಹಣ","In":"ಬಂದದ್ದು","Out":"ಹೋದದ್ದು","in":"ಬಂದದ್ದು","out":"ಹೋದದ್ದು","in ·":"ಬಂದದ್ದು ·",
+  "Income vs expenses":"ಆದಾಯ ಮತ್ತು ಖರ್ಚು","Where it went":"ಹಣ ಎಲ್ಲಿಗೆ ಹೋಯಿತು","Spent":"ಖರ್ಚು",
+  "Spending by category":"ವರ್ಗವಾರು ಖರ್ಚು","Everything else":"ಉಳಿದೆಲ್ಲವೂ","Top income sources":"ಪ್ರಮುಖ ಆದಾಯ ಮೂಲಗಳು","Top expense categories":"ಪ್ರಮುಖ ಖರ್ಚಿನ ವರ್ಗಗಳು",
+  "See all":"ಎಲ್ಲವನ್ನೂ ನೋಡಿ","Tap a month to compare":"ಹೋಲಿಸಲು ತಿಂಗಳನ್ನು ಒತ್ತಿ","Tap a month to compare, or":"ಹೋಲಿಸಲು ತಿಂಗಳನ್ನು ಒತ್ತಿ, ಅಥವಾ",
+  ". Card bill payments and transfers between your own accounts aren't counted.":". ಕಾರ್ಡ್ ಬಿಲ್ ಪಾವತಿಗಳು ಮತ್ತು ನಿಮ್ಮದೇ ಖಾತೆಗಳ ನಡುವಿನ ವರ್ಗಾವಣೆಗಳನ್ನು ಲೆಕ್ಕಕ್ಕೆ ತೆಗೆದುಕೊಂಡಿಲ್ಲ.",
+  "Spent this month":"ಈ ತಿಂಗಳ ಖರ್ಚು","Received":"ಬಂದದ್ದು","Net":"ನಿವ್ವಳ","entries":"ನಮೂದುಗಳು","Day by day":"ದಿನವಾರು","Top places":"ಹೆಚ್ಚು ಖರ್ಚಾದ ಸ್ಥಳಗಳು",
+  "Paste your bank SMS to fill this month in.":"ಈ ತಿಂಗಳ ವಿವರಗಳಿಗಾಗಿ ನಿಮ್ಮ ಬ್ಯಾಂಕ್ SMS ಅಂಟಿಸಿ.","Add SMS":"SMS ಸೇರಿಸಿ","Add entries":"ನಮೂದುಗಳನ್ನು ಸೇರಿಸಿ",
+  "Your charts appear here once there are entries.":"ನಮೂದುಗಳು ಬಂದ ನಂತರ ಚಾರ್ಟ್‌ಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.","Import your bank SMS or add an entry to begin.":"ಪ್ರಾರಂಭಿಸಲು ಬ್ಯಾಂಕ್ SMS ಆಮದು ಮಾಡಿ ಅಥವಾ ನಮೂದು ಸೇರಿಸಿ.",
+  "Previous month":"ಹಿಂದಿನ ತಿಂಗಳು","Next month":"ಮುಂದಿನ ತಿಂಗಳು","Choose month":"ತಿಂಗಳು ಆರಿಸಿ","No entries":"ನಮೂದುಗಳಿಲ್ಲ",
+  "Search":"ಹುಡುಕಿ","Search merchant, bank, note":"ವ್ಯಾಪಾರಿ, ಬ್ಯಾಂಕ್, ಟಿಪ್ಪಣಿ ಹುಡುಕಿ","Category":"ವರ್ಗ","All categories":"ಎಲ್ಲಾ ವರ್ಗಗಳು","Reimbursable":"ಮರುಪಾವತಿಗೆ ಅರ್ಹ","Reimbursed":"ಮರುಪಾವತಿಯಾಗಿದೆ",
+  "Nothing matches here.":"ಇಲ್ಲಿ ಯಾವುದೂ ಹೊಂದುತ್ತಿಲ್ಲ.","rate pending":"ದರ ಬಾಕಿ ಇದೆ",
+  "Food & dining":"ಊಟ ಮತ್ತು ಹೋಟೆಲ್","Groceries":"ದಿನಸಿ","Transport":"ಸಾರಿಗೆ","Fuel":"ಇಂಧನ","Shopping":"ಶಾಪಿಂಗ್","Bills & utilities":"ಬಿಲ್‌ಗಳು ಮತ್ತು ಸೇವೆಗಳು",
+  "Entertainment":"ಮನರಂಜನೆ","Health":"ಆರೋಗ್ಯ","Travel":"ಪ್ರವಾಸ","Education":"ಶಿಕ್ಷಣ","Investments":"ಹೂಡಿಕೆಗಳು","EMI & loans":"EMI ಮತ್ತು ಸಾಲಗಳು","Rent":"ಬಾಡಿಗೆ",
+  "Transfers":"ವರ್ಗಾವಣೆಗಳು","Cash":"ನಗದು","Other":"ಇತರೆ","Self transfer":"ಸ್ವಂತ ವರ್ಗಾವಣೆ","Payment confirmation":"ಪಾವತಿ ದೃಢೀಕರಣ","Card payments":"ಕಾರ್ಡ್ ಪಾವತಿಗಳು","Friends and family transfers":"ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬದ ವರ್ಗಾವಣೆಗಳು","Loan repayment":"ಸಾಲ ಮರುಪಾವತಿ","Loan proceeds":"ಸಾಲದ ಹಣ","Loan transfer":"ಸಾಲ ವರ್ಗಾವಣೆ","Income":"ಆದಾಯ","Refunds":"ಮರುಪಾವತಿಗಳು",
+  "Household":"ಮನೆ ಖರ್ಚು","Sports":"ಕ್ರೀಡೆ","Vehicles":"ವಾಹನಗಳು","Office":"ಕಚೇರಿ","Grooming":"ಸೌಂದರ್ಯ ಆರೈಕೆ",
+  "Card":"ಕಾರ್ಡ್","Bank transfer":"ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆ","Auto-debit":"ಸ್ವಯಂ ಡೆಬಿಟ್","ATM withdrawal":"ATM ಹಣ ತೆಗೆತ","Card payment received":"ಕಾರ್ಡ್ ಪಾವತಿ ಬಂದಿದೆ","Money received":"ಬಂದ ಹಣ","Payment":"ಪಾವತಿ",
+  "Paste bank SMS":"ಬ್ಯಾಂಕ್ SMS ಅಂಟಿಸಿ","Read messages":"ಸಂದೇಶಗಳನ್ನು ಓದಿ","Paste from clipboard":"ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ನಿಂದ ಅಂಟಿಸಿ","Try sample SMS":"ಮಾದರಿ SMS ಪ್ರಯತ್ನಿಸಿ",
+  "Add an entry by hand":"ಕೈಯಾರೆ ನಮೂದು ಸೇರಿಸಿ","Discard":"ರದ್ದುಮಾಡಿ",
+  "Copy one or many transaction messages from your SMS app and paste them here. Separate messages with a blank line. OTPs, offers and due-date reminders are ignored.":"ನಿಮ್ಮ SMS ಆ್ಯಪ್‌ನಿಂದ ಒಂದು ಅಥವಾ ಹಲವು ವಹಿವಾಟು ಸಂದೇಶಗಳನ್ನು ನಕಲಿಸಿ ಇಲ್ಲಿ ಅಂಟಿಸಿ. ಸಂದೇಶಗಳ ನಡುವೆ ಖಾಲಿ ಸಾಲು ಬಿಡಿ. OTP ಮತ್ತು ಆಫರ್‌ಗಳನ್ನು ಬಿಡಲಾಗುತ್ತದೆ.",
+  "Bank SMS are added automatically. Paste a message here only if one was missed, such as an email alert or a forwarded SMS.":"ಬ್ಯಾಂಕ್ SMS ತಾನಾಗಿಯೇ ಸೇರುತ್ತವೆ. ಯಾವುದಾದರೂ ತಪ್ಪಿದ್ದರೆ ಮಾತ್ರ ಇಲ್ಲಿ ಅಂಟಿಸಿ, ಉದಾ: ಇಮೇಲ್ ಅಲರ್ಟ್ ಅಥವಾ ಫಾರ್ವರ್ಡ್ ಮಾಡಿದ SMS.",
+  "Already in your ledger":"ಈಗಾಗಲೇ ಲೆಡ್ಜರ್‌ನಲ್ಲಿದೆ",
+  "New entry":"ಹೊಸ ನಮೂದು","Edit entry":"ನಮೂದು ತಿದ್ದಿ","Amount":"ಮೊತ್ತ","Type":"ಬಗೆ","Currency":"ಕರೆನ್ಸಿ","Paid to / received from":"ಯಾರಿಗೆ ಪಾವತಿ / ಯಾರಿಂದ ಬಂದಿದೆ",
+  "Date":"ದಿನಾಂಕ","Note":"ಟಿಪ್ಪಣಿ","Optional":"ಐಚ್ಛಿಕ","Fetched automatically":"ತಾನಾಗಿಯೇ ಪಡೆಯಲಾಗುತ್ತದೆ",
+  "Reimbursable, e.g. a work expense":"ಮರುಪಾವತಿಗೆ ಅರ್ಹ, ಉದಾ: ಕೆಲಸದ ಖರ್ಚು","Reimbursement received":"ಮರುಪಾವತಿ ಬಂದಿದೆ","Split this with others":"ಇತರರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಿ",
+  "People, including you":"ಜನರು, ನಿಮ್ಮನ್ನೂ ಸೇರಿ","Your share (₹)":"ನಿಮ್ಮ ಪಾಲು (₹)","Split with":"ಯಾರೊಂದಿಗೆ ಹಂಚಿಕೆ","Names, e.g. Ravi, Anu":"ಹೆಸರುಗಳು, ಉದಾ: ರವಿ, ಅನು",
+  "They've paid me back":"ಅವರು ಹಣ ಹಿಂದಿರುಗಿಸಿದ್ದಾರೆ","Original SMS":"ಮೂಲ SMS","Save":"ಉಳಿಸಿ","Cancel":"ರದ್ದುಮಾಡಿ","Delete":"ಅಳಿಸಿ","Hide":"ಮರೆಮಾಡಿ",
+  "Bills due":"ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು","Spent on this day":"ಈ ದಿನದ ಖರ್ಚು","Categories":"ವರ್ಗಗಳು","Share this event":"ಈ ಸಂದರ್ಭವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ","Share this expense":"ಈ ಖರ್ಚನ್ನು ಹಂಚಿಕೊಳ್ಳಿ","Share this item":"ಈ ಅಂಶವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ","Share my SMS transactions":"ನನ್ನ SMS ವಹಿವಾಟುಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ","All family":"ಎಲ್ಲಾ ಕುಟುಂಬ","Choose members":"ಸದಸ್ಯರನ್ನು ಆಯ್ಕೆಮಾಡಿ","Original loan amount (₹)":"ಮೂಲ ಸಾಲದ ಮೊತ್ತ (₹)","Loan category":"ಸಾಲದ ವರ್ಗ","Home":"ಮನೆ","Vehicle":"ವಾಹನ","Personal":"ವೈಯಕ್ತಿಕ","Business":"ವ್ಯವಹಾರ","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Remaining estimate":"ಉಳಿದ ಅಂದಾಜು","Paid":"ಪಾವತಿಸಿದದು","Mark paid":"ಪಾವತಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ","Add a bill":"ಬಿಲ್ ಸೇರಿಸಿ","Add bill":"ಬಿಲ್ ಸೇರಿಸಿ","What is it":"ಇದು ಏನು",
+  "e.g. Home broadband":"ಉದಾ: ಮನೆಯ ಬ್ರಾಡ್‌ಬ್ಯಾಂಡ್","Due date":"ಕೊನೆಯ ದಿನಾಂಕ","Due today":"ಇಂದೇ ಕೊನೆಯ ದಿನ","Due date not in SMS":"SMS ನಲ್ಲಿ ಕೊನೆಯ ದಿನಾಂಕ ಇಲ್ಲ",
+  "No unpaid bills. Card statements and utility bill SMS show up here with their due dates.":"ಬಾಕಿ ಬಿಲ್‌ಗಳಿಲ್ಲ. ಕಾರ್ಡ್ ಸ್ಟೇಟ್‌ಮೆಂಟ್ ಮತ್ತು ಬಿಲ್ SMS ಗಳು ಕೊನೆಯ ದಿನಾಂಕದೊಂದಿಗೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
+  "Balances":"ಬಾಕಿ ಮೊತ್ತಗಳು","Balance":"ಬಾಕಿ","Available limit":"ಲಭ್ಯ ಮಿತಿ","available":"ಲಭ್ಯ","Bank accounts":"ಬ್ಯಾಂಕ್ ಖಾತೆಗಳು","Credit cards":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್‌ಗಳು",
+  "Wallets and prepaid":"ವಾಲೆಟ್ ಮತ್ತು ಪ್ರೀಪೇಯ್ಡ್","FASTag":"FASTag","Investments, PF and pension":"ಹೂಡಿಕೆ, PF ಮತ್ತು ಪಿಂಚಣಿ","Loans":"ಸಾಲಗಳು",
+  "Provident fund":"ಭವಿಷ್ಯ ನಿಧಿ","Pension (NPS)":"ಪಿಂಚಣಿ (NPS)","FASTag balance":"FASTag ಬಾಕಿ","Wallet balance":"ವಾಲೆಟ್ ಬಾಕಿ","Prepaid balance":"ಪ್ರೀಪೇಯ್ಡ್ ಬಾಕಿ","Loan":"ಸಾಲ",
+  "Public Provident Fund":"ಸಾರ್ವಜನಿಕ ಭವಿಷ್ಯ ನಿಧಿ (PPF)","Sukanya Samriddhi":"ಸುಕನ್ಯಾ ಸಮೃದ್ಧಿ","Mutual fund value":"ಮ್ಯೂಚುಯಲ್ ಫಂಡ್ ಮೌಲ್ಯ","Fixed deposit":"ನಿಶ್ಚಿತ ಠೇವಣಿ (FD)","Recurring deposit":"ಆವರ್ತಕ ಠೇವಣಿ (RD)",
+  "Mutual funds":"ಮ್ಯೂಚುಯಲ್ ಫಂಡ್‌ಗಳು","Fixed deposits":"ನಿಶ್ಚಿತ ಠೇವಣಿಗಳು","Recurring deposits":"ಆವರ್ತಕ ಠೇವಣಿಗಳು","SSY":"SSY","PPF":"PPF",
+  "Add an account":"ಖಾತೆ ಸೇರಿಸಿ","Edit account":"ಖಾತೆ ತಿದ್ದಿ","Name":"ಹೆಸರು","e.g. HDFC savings":"ಉದಾ: HDFC ಉಳಿತಾಯ","Balance or limit (₹)":"ಬಾಕಿ ಅಥವಾ ಮಿತಿ (₹)",
+  "Bank account":"ಬ್ಯಾಂಕ್ ಖಾತೆ","Credit card":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್","Wallet / prepaid":"ವಾಲೆಟ್ / ಪ್ರೀಪೇಯ್ಡ್","Investment / PF / pension":"ಹೂಡಿಕೆ / PF / ಪಿಂಚಣಿ",
+  "New SMS for this account will keep updating the balance.":"ಈ ಖಾತೆಯ ಹೊಸ SMS ಗಳು ಬಾಕಿಯನ್ನು ನವೀಕರಿಸುತ್ತಲೇ ಇರುತ್ತವೆ.",
+  "Balances appear once an SMS mentions one, such as \"Avl Bal\" or \"Available limit\".":"SMS ನಲ್ಲಿ \"Avl Bal\" ಅಥವಾ \"Available limit\" ಬಂದಾಗ ಬಾಕಿ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
+  "Subscriptions and recurring":"ಚಂದಾದಾರಿಕೆ ಮತ್ತು ಪುನರಾವರ್ತಿತ ಪಾವತಿಗಳು","Not recurring":"ಪುನರಾವರ್ತಿತವಲ್ಲ","Added by you":"ನೀವು ಸೇರಿಸಿದ್ದು",
+  "Add a subscription":"ಚಂದಾದಾರಿಕೆ ಸೇರಿಸಿ","Name, as it appears in your SMS":"SMS ನಲ್ಲಿರುವಂತೆ ಹೆಸರು","e.g. Netflix":"ಉದಾ: Netflix","Repeats every":"ಪ್ರತಿ ಬಾರಿ ಮರುಕಳಿಸುವುದು",
+  "Quarter":"ತ್ರೈಮಾಸಿಕ","Year":"ವರ್ಷ",
+  "Repeating payments like Netflix, SIPs, rent or EMIs show up here after two or three months of SMS.":"Netflix, SIP, ಬಾಡಿಗೆ ಅಥವಾ EMI ಯಂತಹ ಪುನರಾವರ್ತಿತ ಪಾವತಿಗಳು ಎರಡು-ಮೂರು ತಿಂಗಳ SMS ನಂತರ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
+  "a month ·":"ತಿಂಗಳಿಗೆ ·","a year":"ವರ್ಷಕ್ಕೆ","Owed to you":"ನಿಮಗೆ ಬರಬೇಕಾದದ್ದು","to collect":"ಪಡೆಯಬೇಕಿದೆ","Mark settled":"ಚುಕ್ತಾ ಎಂದು ಗುರುತಿಸಿ",
+  "Split a payment from its entry (tap it in Entries) to track what others owe you.":"ಇತರರು ನಿಮಗೆ ಕೊಡಬೇಕಾದದ್ದನ್ನು ಗಮನಿಸಲು, ನಮೂದುಗಳಲ್ಲಿ ಪಾವತಿಯನ್ನು ಒತ್ತಿ ಹಂಚಿಕೆ ಮಾಡಿ.",
+  "Reimbursements pending":"ಬಾಕಿ ಮರುಪಾವತಿಗಳು","to claim":"ಕ್ಲೇಮ್ ಮಾಡಬೇಕಿದೆ","Mark received":"ಬಂದಿದೆ ಎಂದು ಗುರುತಿಸಿ",
+  "Language":"ಭಾಷೆ","Month cycle":"ತಿಂಗಳ ಚಕ್ರ","Your month starts on day":"ನಿಮ್ಮ ತಿಂಗಳು ಆರಂಭವಾಗುವ ದಿನ",
+  "Set this to your salary date to see spending per pay cycle, for example 25 Sep to 24 Oct.":"ಸಂಬಳದ ಅವಧಿಯ ಪ್ರಕಾರ ಖರ್ಚು ನೋಡಲು ಇದನ್ನು ನಿಮ್ಮ ಸಂಬಳದ ದಿನಕ್ಕೆ ಹೊಂದಿಸಿ, ಉದಾ: 25 ಸೆಪ್ಟೆಂ ರಿಂದ 24 ಅಕ್ಟೋ.",
+  "Categories":"ವರ್ಗಗಳು","New category, e.g. Household":"ಹೊಸ ವರ್ಗ, ಉದಾ: ಮನೆ ಖರ್ಚು","Monthly budgets":"ತಿಂಗಳ ಬಜೆಟ್‌ಗಳು",
+  "Set a monthly limit for any category. Leave blank for none.":"ಯಾವುದೇ ವರ್ಗಕ್ಕೆ ತಿಂಗಳ ಮಿತಿ ಹೊಂದಿಸಿ. ಬೇಡವಾದರೆ ಖಾಲಿ ಬಿಡಿ.",
+  "Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Allow SMS access":"SMS ಅನುಮತಿ ನೀಡಿ","Import again from:":"ಮತ್ತೆ ಆಮದು ಮಾಡಿ:","All SMS":"ಎಲ್ಲಾ SMS",
+  "On. New bank SMS are added as they arrive and whenever you open the app. Personal messages are never read into the ledger.":"ಆನ್ ಆಗಿದೆ. ಹೊಸ ಬ್ಯಾಂಕ್ SMS ಬಂದಾಗ ಮತ್ತು ಆ್ಯಪ್ ತೆರೆದಾಗ ಸೇರುತ್ತವೆ. ವೈಯಕ್ತಿಕ ಸಂದೇಶಗಳನ್ನು ಎಂದಿಗೂ ಓದುವುದಿಲ್ಲ.",
+  "Off. Allow SMS access so bank messages are added automatically. You can still paste messages by hand.":"ಆಫ್ ಆಗಿದೆ. ಬ್ಯಾಂಕ್ ಸಂದೇಶಗಳು ತಾನಾಗಿ ಸೇರಲು SMS ಅನುಮತಿ ನೀಡಿ. ಕೈಯಾರೆ ಅಂಟಿಸಲೂ ಬಹುದು.",
+  "Your name in Family view":"ಕುಟುಂಬ ನೋಟದಲ್ಲಿ ನಿಮ್ಮ ಹೆಸರು","e.g. Vageesh":"ಉದಾ: ವಾಗೀಶ್","Sync with family nearby":"ಹತ್ತಿರದ ಕುಟುಂಬದವರೊಂದಿಗೆ ಸಿಂಕ್ ಮಾಡಿ",
+  "Bring your ledgers together over Bluetooth. Both phones need SMS Ledger open on this screen, close to each other.":"ಬ್ಲೂಟೂತ್ ಮೂಲಕ ಲೆಡ್ಜರ್‌ಗಳನ್ನು ಒಂದುಗೂಡಿಸಿ. ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ ಮತ್ತು ಹತ್ತಿರವಿರಲಿ.",
+  "Family sync works in the Android app, phone to phone over Bluetooth.":"ಕುಟುಂಬ ಸಿಂಕ್ Android ಆ್ಯಪ್‌ನಲ್ಲಿ ಬ್ಲೂಟೂತ್ ಮೂಲಕ ಕೆಲಸ ಮಾಡುತ್ತದೆ.",
+  "Currencies":"ಕರೆನ್ಸಿಗಳು","Convert them now":"ಈಗಲೇ ಪರಿವರ್ತಿಸಿ",
+  "Entries in other currencies are converted to ₹ at the rate on the day of the transaction. Entries with no rate yet aren't in your totals:":"ಇತರ ಕರೆನ್ಸಿಯ ನಮೂದುಗಳನ್ನು ವಹಿವಾಟಿನ ದಿನದ ದರದಲ್ಲಿ ₹ ಗೆ ಪರಿವರ್ತಿಸಲಾಗುತ್ತದೆ. ದರ ಇನ್ನೂ ಸಿಗದವು ಒಟ್ಟು ಮೊತ್ತದಲ್ಲಿಲ್ಲ:",
+  "Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Download a copy to keep, or move your ledger to another device.":"ಪ್ರತಿಯನ್ನು ಇಟ್ಟುಕೊಳ್ಳಲು ಅಥವಾ ಬೇರೆ ಫೋನ್‌ಗೆ ಸಾಗಿಸಲು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
+  "Download CSV":"CSV ಡೌನ್‌ಲೋಡ್","Download backup":"ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್","Restore backup":"ಬ್ಯಾಕಪ್ ಮರುಸ್ಥಾಪಿಸಿ","Import FinArt backup":"FinArt ಬ್ಯಾಕಪ್ ಆಮದು",
+  "Moving from FinArt? Import its backup CSV (FinArt → Settings → Backup) to bring in your entries, bills, accounts, subscriptions, categories and merchant rules.":"FinArt ನಿಂದ ಬರುತ್ತಿದ್ದೀರಾ? ಅದರ ಬ್ಯಾಕಪ್ CSV (FinArt → Settings → Backup) ಆಮದು ಮಾಡಿ, ನಿಮ್ಮ ನಮೂದುಗಳು, ಬಿಲ್‌ಗಳು, ಖಾತೆಗಳು, ಚಂದಾದಾರಿಕೆಗಳು ಮತ್ತು ವರ್ಗಗಳು ಬರುತ್ತವೆ.",
+  "Merchant rules learned from your edits:":"ನಿಮ್ಮ ತಿದ್ದುಪಡಿಗಳಿಂದ ಕಲಿತ ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು:","Forget merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳನ್ನು ಮರೆಯಿರಿ","Delete all entries":"ಎಲ್ಲಾ ನಮೂದುಗಳನ್ನು ಅಳಿಸಿ",
+  "Stored on this device.":"ಈ ಫೋನ್‌ನಲ್ಲೇ ಸಂಗ್ರಹವಾಗಿದೆ.",
+  "How far back should I read?":"ಎಷ್ಟು ಹಿಂದಿನವರೆಗೆ ಓದಲಿ?","Only bank transaction SMS are read. You can import further back later from Settings.":"ಬ್ಯಾಂಕ್ ವಹಿವಾಟು SMS ಮಾತ್ರ ಓದಲಾಗುತ್ತದೆ. ನಂತರ ಸೆಟ್ಟಿಂಗ್‌ಗಳಿಂದ ಇನ್ನೂ ಹಿಂದಿನವನ್ನು ಆಮದು ಮಾಡಬಹುದು.",
+  "Last 3 months":"ಕಳೆದ 3 ತಿಂಗಳು","Quickest. Good for a fresh start.":"ಅತ್ಯಂತ ವೇಗ. ಹೊಸ ಆರಂಭಕ್ಕೆ ಸೂಕ್ತ.","Last year":"ಕಳೆದ ವರ್ಷ","A full year of spending history.":"ಒಂದು ವರ್ಷದ ಖರ್ಚಿನ ಇತಿಹಾಸ.",
+  "Last 5 years":"ಕಳೆದ 5 ವರ್ಷಗಳು","Can take a minute.":"ಒಂದು ನಿಮಿಷ ಆಗಬಹುದು.","All SMS on this phone":"ಈ ಫೋನ್‌ನ ಎಲ್ಲಾ SMS","Every bank SMS, however old. Can take a few minutes.":"ಎಷ್ಟೇ ಹಳೆಯದಾದರೂ ಎಲ್ಲಾ ಬ್ಯಾಂಕ್ SMS. ಕೆಲವು ನಿಮಿಷ ಆಗಬಹುದು.",
+  "3 months":"3 ತಿಂಗಳು","1 year":"1 ವರ್ಷ","5 years":"5 ವರ್ಷ",
+  "Account saved.":"ಖಾತೆ ಉಳಿಸಲಾಗಿದೆ.","All entries deleted.":"ಎಲ್ಲಾ ನಮೂದುಗಳನ್ನು ಅಳಿಸಲಾಗಿದೆ.","Bill added.":"ಬಿಲ್ ಸೇರಿಸಲಾಗಿದೆ.","Budget saved.":"ಬಜೆಟ್ ಉಳಿಸಲಾಗಿದೆ.",
+  "Category added.":"ವರ್ಗ ಸೇರಿಸಲಾಗಿದೆ.","Enter an amount above zero.":"ಸೊನ್ನೆಗಿಂತ ಹೆಚ್ಚಿನ ಮೊತ್ತ ನಮೂದಿಸಿ.","Entry deleted.":"ನಮೂದು ಅಳಿಸಲಾಗಿದೆ.","Entry saved.":"ನಮೂದು ಉಳಿಸಲಾಗಿದೆ.","Entry added.":"ನಮೂದು ಸೇರಿಸಲಾಗಿದೆ.",
+  "Fill in the name and amount.":"ಹೆಸರು ಮತ್ತು ಮೊತ್ತ ತುಂಬಿ.","Fill in the name, amount and due date.":"ಹೆಸರು, ಮೊತ್ತ ಮತ್ತು ಕೊನೆಯ ದಿನಾಂಕ ತುಂಬಿ.","Getting exchange rates…":"ವಿನಿಮಯ ದರಗಳನ್ನು ಪಡೆಯಲಾಗುತ್ತಿದೆ…",
+  "Give the account a name.":"ಖಾತೆಗೆ ಹೆಸರು ಕೊಡಿ.","Marked as received.":"ಬಂದಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ.","Marked paid.":"ಪಾವತಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ.","Marked settled.":"ಚುಕ್ತಾ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ.",
+  "Merchant rules cleared.":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳನ್ನು ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.","Month cycle updated.":"ತಿಂಗಳ ಚಕ್ರ ನವೀಕರಿಸಲಾಗಿದೆ.","Name saved.":"ಹೆಸರು ಉಳಿಸಲಾಗಿದೆ.",
+  "No transactions found in that text.":"ಆ ಪಠ್ಯದಲ್ಲಿ ಯಾವುದೇ ವಹಿವಾಟು ಸಿಗಲಿಲ್ಲ.","Paste at least one SMS first.":"ಮೊದಲು ಕನಿಷ್ಠ ಒಂದು SMS ಅಂಟಿಸಿ.","Removed.":"ತೆಗೆದುಹಾಕಲಾಗಿದೆ.",
+  "Subscription added.":"ಚಂದಾದಾರಿಕೆ ಸೇರಿಸಲಾಗಿದೆ.","Subscription removed.":"ಚಂದಾದಾರಿಕೆ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.","Hidden from recurring payments.":"ಪುನರಾವರ್ತಿತ ಪಾವತಿಗಳಿಂದ ಮರೆಮಾಡಲಾಗಿದೆ.",
+  "That category already exists.":"ಆ ವರ್ಗ ಈಗಾಗಲೇ ಇದೆ.","Type a category name first.":"ಮೊದಲು ವರ್ಗದ ಹೆಸರು ಬರೆಯಿರಿ.","Reading FinArt backup…":"FinArt ಬ್ಯಾಕಪ್ ಓದಲಾಗುತ್ತಿದೆ…",
+  "Reading your SMS inbox…":"ನಿಮ್ಮ SMS ಇನ್‌ಬಾಕ್ಸ್ ಓದಲಾಗುತ್ತಿದೆ…","Reading your SMS…":"ನಿಮ್ಮ SMS ಓದಲಾಗುತ್ತಿದೆ…","Reading every bank SMS on this phone…":"ಈ ಫೋನ್‌ನ ಎಲ್ಲಾ ಬ್ಯಾಂಕ್ SMS ಓದಲಾಗುತ್ತಿದೆ…",
+  "File saved.":"ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.","Add your name first, so the other phone knows whose data it is.":"ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ಸೇರಿಸಿ, ಇದರಿಂದ ಇನ್ನೊಂದು ಫೋನ್‌ಗೆ ಇದು ಯಾರ ಮಾಹಿತಿ ಎಂದು ತಿಳಿಯುತ್ತದೆ.",
+  "Looking for your family's phone… keep both phones on this screen.":"ಕುಟುಂಬದವರ ಫೋನ್ ಹುಡುಕಲಾಗುತ್ತಿದೆ… ಎರಡೂ ಫೋನ್‌ಗಳಲ್ಲಿ ಈ ಪರದೆ ತೆರೆದಿರಲಿ.",
+  "Sync cancelled.":"ಸಿಂಕ್ ರದ್ದಾಗಿದೆ.","Starting…":"ಪ್ರಾರಂಭಿಸಲಾಗುತ್ತಿದೆ…","Family sync needs the Android app, not this browser view.":"ಕುಟುಂಬ ಸಿಂಕ್‌ಗೆ Android ಆ್ಯಪ್ ಬೇಕು, ಈ ಬ್ರೌಸರ್ ನೋಟದಲ್ಲಿ ಅಲ್ಲ.","Bills due soon":"ಶೀಘ್ರದಲ್ಲಿ ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು",
+  "Import SMS":"SMS ಆಮದು","EPF contribution":"EPF ಕೊಡುಗೆ","NPS contribution":"NPS ಕೊಡುಗೆ","Pension contribution":"ಪಿಂಚಣಿ ಕೊಡುಗೆ","EPF passbook update without a contribution amount":"ಕೊಡುಗೆ ಮೊತ್ತವಿಲ್ಲದ EPF ಪಾಸ್‌ಬುಕ್ ಅಪ್‌ಡೇಟ್","Standing instruction / mandate notice without an amount":"ಮೊತ್ತವಿಲ್ಲದ ಸ್ಟ್ಯಾಂಡಿಂಗ್ ಇನ್‌ಸ್ಟ್ರಕ್ಷನ್/ಮ್ಯಾಂಡೇಟ್ ಸೂಚನೆ","Total paid":"ಒಟ್ಟು ಪಾವತಿ","Total received":"ಒಟ್ಟು ಬಂದದ್ದು","By year":"ವರ್ಷವಾರು","Back":"ಹಿಂದೆ","Data not from SMS":"SMS ಅಲ್ಲದ ಮಾಹಿತಿ","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Theme updated.":"ಥೀಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ.","+ Add an expense":"+ ಖರ್ಚು ಸೇರಿಸಿ","Shared":"ಹಂಚಲಾಗಿದೆ","Private":"ಖಾಸಗಿ",
+  "Share":"ಹಂಚಿ","Make private":"ಖಾಸಗಿ ಮಾಡಿ","+ Add an event":"+ ಸಂದರ್ಭ ಸೇರಿಸಿ",
+  "Create people and events here, tag spending to them, and mark what you'd like to share once family sync is turned on. Sharing isn't live yet — this gets it ready.":"ಇಲ್ಲಿ ಜನರು ಮತ್ತು ಸಂದರ್ಭಗಳನ್ನು ರಚಿಸಿ, ಅವರಿಗೆ ಖರ್ಚು ಟ್ಯಾಗ್ ಮಾಡಿ, ಮತ್ತು ಕುಟುಂಬ ಸಿಂಕ್ ಆನ್ ಆದ ನಂತರ ಏನು ಹಂಚಿಕೊಳ್ಳಬೇಕು ಎಂದು ಗುರುತಿಸಿ. ಹಂಚಿಕೆ ಇನ್ನೂ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿಲ್ಲ — ಇದು ಅದಕ್ಕೆ ಸಿದ್ಧಪಡಿಸುತ್ತದೆ.",
+  "Marked to share once sync is on.":"ಸಿಂಕ್ ಆನ್ ಆದ ನಂತರ ಹಂಚಲು ಗುರುತಿಸಲಾಗಿದೆ.","Made private.":"ಖಾಸಗಿ ಮಾಡಲಾಗಿದೆ.",
+  "Remove this person? Entries already tagged to them keep the tag.":"ಈ ವ್ಯಕ್ತಿಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಈಗಾಗಲೇ ಟ್ಯಾಗ್ ಆಗಿರುವ ನಮೂದುಗಳಲ್ಲಿ ಟ್ಯಾಗ್ ಉಳಿಯುತ್ತದೆ.",
+  "You can tag each SIM to the person who uses it. Update the tag here any time if a SIM changes hands.":"ಮೊದಲ ಬಾರಿ ಆ್ಯಪ್ ತೆರೆದಾಗ ನೀವು ಇದನ್ನು ಆರಿಸಿದ್ದೀರಿ. ಇಲ್ಲಿ ಯಾವಾಗ ಬೇಕಾದರೂ ಬದಲಿಸಿ — SIM ಬದಲಾವಣೆ, ಅಥವಾ ಈ ಫೋನ್ ಹಂಚಿಕೊಳ್ಳುವ ಹೊಸ ಕುಟುಂಬ ಸದಸ್ಯ.",
+  "This phone has 2 SIMs":"ಈ ಫೋನ್‌ನಲ್ಲಿ 2 SIM ಗಳಿವೆ","More than one active SIM was detected. Enter a person name for at least one SIM. Names for the remaining SIMs are optional; if left blank, the app will use an internal SIM label until you rename it in Settings.":"ಈ ಫೋನ್‌ಗೆ ಒಬ್ಬರಿಗಿಂತ ಹೆಚ್ಚು ಜನರ ಬ್ಯಾಂಕ್ SMS ಬರುತ್ತಿರುವಂತಿದೆ. ಪ್ರತಿ SIM ಗೆ ಹೆಸರಿಡಿ, ಯಾವುದು ನಿಮ್ಮದು ಎಂದು ಗುರುತಿಸಿ — ಇನ್ನೊಬ್ಬರ ನಮೂದುಗಳು ಅವರ ಸ್ವಂತ ಫೋನ್ ಇಲ್ಲದೆಯೇ ಕುಟುಂಬದ ಅಡಿಯಲ್ಲಿ ಪ್ರತ್ಯೇಕವಾಗಿ ಕಾಣಿಸುತ್ತವೆ.",
+  "Mine":"ನನ್ನದು","Continue":"ಮುಂದುವರಿಸಿ",
+  "Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign in":"ಸೈನ್ ಇನ್","Not now":"ಈಗ ಬೇಡ","Signing in…":"ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…",
+  "Not required — your SMS reading and your own entries work fully without this. Signing in is only the first step toward sharing events, trips and lists with family later.":"ಅಗತ್ಯವಿಲ್ಲ — ನಿಮ್ಮ SMS ಓದುವಿಕೆ ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ನಮೂದುಗಳು ಇದಿಲ್ಲದೆಯೂ ಪೂರ್ಣವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತವೆ. ಸೈನ್ ಇನ್ ಎಂಬುದು ಮುಂದೆ ಕುಟುಂಬದೊಂದಿಗೆ ಸಂದರ್ಭಗಳು, ಪ್ರವಾಸಗಳು ಮತ್ತು ಪಟ್ಟಿಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳುವ ಮೊದಲ ಹೆಜ್ಜೆ ಮಾತ್ರ.",
+  "Couldn't start sign-in.":"ಸೈನ್ ಇನ್ ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ.","Signed in.":"ಸೈನ್ ಇನ್ ಆಗಿದೆ.","Signed out.":"ಸೈನ್ ಔಟ್ ಆಗಿದೆ.",
+  "Sign in with Google to turn on sharing later — events, trips and lists you choose to share with family. Your own entries stay on this phone either way.":"ನಂತರ ಹಂಚಿಕೆ ಆನ್ ಮಾಡಲು Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ — ಸಂದರ್ಭಗಳು, ಪ್ರವಾಸಗಳು ಮತ್ತು ನೀವು ಆಯ್ಕೆ ಮಾಡುವ ಪಟ್ಟಿಗಳು. ನಿಮ್ಮ ಸ್ವಂತ ನಮೂದುಗಳು ಹೇಗಿದ್ದರೂ ಈ ಫೋನ್‌ನಲ್ಲೇ ಇರುತ್ತವೆ.",
+  "Signed in. Sharing features arrive once family sync is built on top of this.":"ಸೈನ್ ಇನ್ ಆಗಿದೆ. ಇದರ ಮೇಲೆ ಕುಟುಂಬ ಸಿಂಕ್ ನಿರ್ಮಾಣವಾದ ನಂತರ ಹಂಚಿಕೆ ವೈಶಿಷ್ಟ್ಯಗಳು ಬರುತ್ತವೆ.",
+  "Signing in works in the Android app, where family sharing will live.":"ಸೈನ್ ಇನ್ Android ಆ್ಯಪ್‌ನಲ್ಲಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ, ಅಲ್ಲಿ ಕುಟುಂಬ ಹಂಚಿಕೆ ಇರುತ್ತದೆ.",
+  "People":"ಜನರು","Add anyone you tag spending to — family, or just yourself for now. This is local to this phone; sharing comes later once family sync is set up.":"ನೀವು ಖರ್ಚು ಟ್ಯಾಗ್ ಮಾಡುವ ಯಾರನ್ನಾದರೂ ಸೇರಿಸಿ — ಕುಟುಂಬ, ಅಥವಾ ಸದ್ಯಕ್ಕೆ ನೀವೇ. ಇದು ಈ ಫೋನ್‌ಗೆ ಮಾತ್ರ ಸೀಮಿತ; ಕುಟುಂಬ ಸಿಂಕ್ ಸಿದ್ಧವಾದ ನಂತರ ಹಂಚಿಕೆ ಬರುತ್ತದೆ.",
+  "No one added yet.":"ಇನ್ನೂ ಯಾರನ್ನೂ ಸೇರಿಸಿಲ್ಲ.","Type a name first.":"ಮೊದಲು ಹೆಸರು ಬರೆಯಿರಿ.","Added.":"ಸೇರಿಸಲಾಗಿದೆ.",
+  "Remove this person? Entries already tagged to them keep the tag, but you won't be able to pick them again unless you re-add them.":"ಈ ವ್ಯಕ್ತಿಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಈಗಾಗಲೇ ಟ್ಯಾಗ್ ಆಗಿರುವ ನಮೂದುಗಳಲ್ಲಿ ಟ್ಯಾಗ್ ಉಳಿಯುತ್ತದೆ, ಆದರೆ ಮತ್ತೆ ಸೇರಿಸುವವರೆಗೆ ಅವರನ್ನು ಮತ್ತೆ ಆರಿಸಲು ಆಗುವುದಿಲ್ಲ.",
+  "Who's this for":"ಇದು ಯಾರಿಗೆ","Tag to an event":"ಒಂದು ಸಂದರ್ಭಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ","None — tap to tag":"ಯಾವುದೂ ಇಲ್ಲ — ಟ್ಯಾಗ್ ಮಾಡಲು ಒತ್ತಿ",
+  "Choose an event":"ಒಂದು ಸಂದರ್ಭ ಆರಿಸಿ","Search or name a new one…":"ಹುಡುಕಿ ಅಥವಾ ಹೊಸದಕ್ಕೆ ಹೆಸರಿಡಿ…","No date":"ದಿನಾಂಕವಿಲ್ಲ",
+  "No events yet. Create one below.":"ಇನ್ನೂ ಯಾವುದೇ ಸಂದರ್ಭಗಳಿಲ್ಲ. ಕೆಳಗೆ ಒಂದನ್ನು ರಚಿಸಿ.","No events yet.":"ಇನ್ನೂ ಯಾವುದೇ ಸಂದರ್ಭಗಳಿಲ್ಲ.","Tag an entry to one from Entries, or add one from Accounts.":"ನಮೂದುಗಳಿಂದ ಒಂದಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ, ಅಥವಾ ಖಾತೆಗಳಿಂದ ಒಂದನ್ನು ಸೇರಿಸಿ.","+ Create a new event":"+ ಹೊಸ ಸಂದರ್ಭ ರಚಿಸಿ",
+  "Events":"ಸಂದರ್ಭಗಳು","Add an event":"ಸಂದರ್ಭ ಸೇರಿಸಿ",
+  "Tag an entry to an event — a trip, a festival, a function, anything — and it'll show up here with what you spent on it.":"ಒಂದು ನಮೂದನ್ನು ಸಂದರ್ಭಕ್ಕೆ ಟ್ಯಾಗ್ ಮಾಡಿ — ಪ್ರವಾಸ, ಹಬ್ಬ, ಕಾರ್ಯಕ್ರಮ, ಏನಾದರೂ — ಅದು ಇಲ್ಲಿ ನೀವು ಖರ್ಚು ಮಾಡಿದ್ದರೊಂದಿಗೆ ಕಾಣಿಸುತ್ತದೆ.",
+  "No spending tagged to this yet. Tag an entry to it from Entries.":"ಇನ್ನೂ ಇದಕ್ಕೆ ಯಾವುದೇ ಖರ್ಚು ಟ್ಯಾಗ್ ಆಗಿಲ್ಲ. ನಮೂದುಗಳಿಂದ ಒಂದನ್ನು ಟ್ಯಾಗ್ ಮಾಡಿ.",
+  "Close":"ಮುಚ್ಚಿ","Delete event":"ಸಂದರ್ಭ ಅಳಿಸಿ",
+  "Delete this event? Tagged entries keep their amounts and categories, just untagged from it.":"ಈ ಸಂದರ್ಭ ಅಳಿಸಬೇಕೇ? ಟ್ಯಾಗ್ ಆದ ನಮೂದುಗಳು ತಮ್ಮ ಮೊತ್ತ ಮತ್ತು ವರ್ಗ ಉಳಿಸಿಕೊಳ್ಳುತ್ತವೆ, ಇದರಿಂದ ಟ್ಯಾಗ್ ಮಾತ್ರ ತೆಗೆಯುತ್ತದೆ.",
+  "System follows your phone's own dark or light setting.":"ಸಿಸ್ಟಂ ಆಯ್ಕೆ ನಿಮ್ಮ ಫೋನ್‌ನ ಡಾರ್ಕ್/ಲೈಟ್ ಸೆಟ್ಟಿಂಗ್ ಅನುಸರಿಸುತ್ತದೆ.","Remove them":"ಅವುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ",
+  "Everything in the app now comes from your phone's SMS.":"ಈಗ ಆ್ಯಪ್‌ನಲ್ಲಿರುವುದೆಲ್ಲಾ ನಿಮ್ಮ ಫೋನ್‌ನ SMS ನಿಂದ ಬಂದದ್ದು.",
+  "Removed. Only SMS-confirmed data remains.":"ತೆಗೆದುಹಾಕಲಾಗಿದೆ. SMS ದೃಢಪಡಿಸಿದ ಮಾಹಿತಿ ಮಾತ್ರ ಉಳಿದಿದೆ.","This can't be undone.":"ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.","Promotional message":"ಜಾಹೀರಾತು ಸಂದೇಶ","All years":"ಎಲ್ಲಾ ವರ್ಷಗಳು","View":"ನೋಟ","Month by month":"ತಿಂಗಳುವಾರು","Year by year":"ವರ್ಷವಾರು",
+  "Spent in all years":"ಎಲ್ಲಾ ವರ್ಷಗಳ ಖರ್ಚು","Saved this month":"ಈ ತಿಂಗಳ ಉಳಿತಾಯ","Family saved this month":"ಈ ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ",
+  "See trends by month and year":"ತಿಂಗಳು ಮತ್ತು ವರ್ಷವಾರು ಪ್ರವೃತ್ತಿ ನೋಡಿ","Recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ","Edit recurring payment":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ತಿದ್ದಿ",
+  "Recurring payment updated.":"ಪುನರಾವರ್ತಿತ ಪಾವತಿ ನವೀಕರಿಸಲಾಗಿದೆ.","Edit":"ತಿದ್ದಿ","Other accounts":"ಇತರ ಖಾತೆಗಳು","Investment":"ಹೂಡಿಕೆ","Loan outstanding":"ಬಾಕಿ ಸಾಲ",
+  "Spending is the same as last month":"ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಷ್ಟೇ ಇದೆ","View and edit rules":"ನಿಯಮಗಳನ್ನು ನೋಡಿ ಮತ್ತು ತಿದ್ದಿ","Remove":"ತೆಗೆದುಹಾಕಿ",
+  "Remove this account? Its balance history isn't kept, but new SMS for it will add it back.":"ಈ ಖಾತೆಯನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅದರ ಬಾಕಿ ಇತಿಹಾಸ ಉಳಿಯುವುದಿಲ್ಲ, ಆದರೆ ಹೊಸ SMS ಬಂದರೆ ಮತ್ತೆ ಸೇರುತ್ತದೆ.","Undo my rule changes":"ನನ್ನ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ","Your rule changes were undone.":"ನಿಮ್ಮ ನಿಯಮ ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಲಾಗಿದೆ.",
+  "When a merchant matches, its new entries get this name and category.":"ವ್ಯಾಪಾರಿ ಹೊಂದಿದಾಗ ಅದರ ಹೊಸ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಬರುತ್ತದೆ.",
+  "Budgets, your own categories, imported merchant rules, language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, ಆಮದು ಮಾಡಿದ ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು, ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
+  "Merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು","Search merchant":"ವ್ಯಾಪಾರಿ ಹುಡುಕಿ","Done":"ಮುಗಿಯಿತು","Yours":"ನಿಮ್ಮದು","(name only)":"(ಹೆಸರು ಮಾತ್ರ)","Rule saved.":"ನಿಯಮ ಉಳಿಸಲಾಗಿದೆ.","FinArt rules removed.":"FinArt ನಿಯಮಗಳನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ.","No rules match.":"ಯಾವ ನಿಯಮವೂ ಹೊಂದುತ್ತಿಲ್ಲ.",
+  "When a merchant matches, its entries get this category and name. Change a category here to make it your own rule.":"ವ್ಯಾಪಾರಿ ಹೊಂದಿದಾಗ ಅದರ ನಮೂದುಗಳಿಗೆ ಈ ವರ್ಗ ಮತ್ತು ಹೆಸರು ಬರುತ್ತದೆ. ಇಲ್ಲಿ ವರ್ಗ ಬದಲಿಸಿದರೆ ಅದು ನಿಮ್ಮ ನಿಯಮವಾಗುತ್ತದೆ.",
+  "Budgets, your own categories, FinArt rules (unless ticked), language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, FinArt ನಿಯಮಗಳು (ಗುರುತು ಹಾಕದಿದ್ದರೆ), ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.","Autopay":"ಸ್ವಯಂ ಪಾವತಿ","E-mandate":"ಇ-ಮ್ಯಾಂಡೇಟ್","Upcoming auto-debit without an amount":"ಮೊತ್ತವಿಲ್ಲದ ಮುಂಬರುವ ಸ್ವಯಂ ಡೆಬಿಟ್",
+  "Start fresh: forget names and categories I changed, and read everything again":"ಹೊಸದಾಗಿ ಪ್ರಾರಂಭಿಸಿ: ನಾನು ಬದಲಿಸಿದ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳನ್ನು ಮರೆತು ಎಲ್ಲವನ್ನೂ ಮತ್ತೆ ಓದಿ",
+  "Start fresh?":"ಹೊಸದಾಗಿ ಪ್ರಾರಂಭಿಸಬೇಕೇ?","Clear and rescan":"ತೆರವುಗೊಳಿಸಿ ಮತ್ತೆ ಓದಿ",
+  "This clears what came from SMS and what the app learned, then reads your SMS again with the default names and categories.":"SMS ನಿಂದ ಬಂದದ್ದು ಮತ್ತು ಆ್ಯಪ್ ಕಲಿತದ್ದನ್ನು ತೆರವುಗೊಳಿಸಿ, ಮೂಲ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳೊಂದಿಗೆ SMS ಅನ್ನು ಮತ್ತೆ ಓದುತ್ತದೆ.",
+  "Clear bills, balances and recurring payments found in SMS":"SMS ನಲ್ಲಿ ಸಿಕ್ಕ ಬಿಲ್, ಬಾಕಿ ಮತ್ತು ಪುನರಾವರ್ತಿತ ಪಾವತಿಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ",
+  "Budgets, your own categories, language and family data are kept. Download a backup first if you might want this back.":"ಬಜೆಟ್, ನಿಮ್ಮ ವರ್ಗಗಳು, ಭಾಷೆ ಮತ್ತು ಕುಟುಂಬದ ಮಾಹಿತಿ ಉಳಿಯುತ್ತವೆ. ಬೇಕಾದರೆ ಮೊದಲು ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
+  "Cleared. Reading your SMS again…":"ತೆರವುಗೊಳಿಸಲಾಗಿದೆ. SMS ಮತ್ತೆ ಓದಲಾಗುತ್ತಿದೆ…","Add a family member":"ಕುಟುಂಬ ಸದಸ್ಯರನ್ನು ಸೇರಿಸಿ"
+};
+Object.assign(KN, {
+  "Ledger":"ಲೆಡ್ಜರ್","Ledger home":"ಲೆಡ್ಜರ್ ಮುಖಪುಟ","Family Hub":"ಕುಟುಂಬ ಕೇಂದ್ರ","Family income":"ಕುಟುಂಬದ ಆದಾಯ","Family expenses":"ಕುಟುಂಬದ ಖರ್ಚು","Family data on this phone":"ಈ ಫೋನ್‌ನ ಕುಟುಂಬದ ಮಾಹಿತಿ","Google connected":"Google ಸಂಪರ್ಕಿಸಲಾಗಿದೆ",
+  "Create event":"ಸಂದರ್ಭ ರಚಿಸಿ","+ Create event":"+ ಸಂದರ್ಭ ರಚಿಸಿ","+ Shopping item":"+ ಶಾಪಿಂಗ್ ಐಟಂ","+ Calendar":"+ ಕ್ಯಾಲೆಂಡರ್","Events":"ಸಂದರ್ಭಗಳು","Calendar":"ಕ್ಯಾಲೆಂಡರ್","Shopping list":"ಶಾಪಿಂಗ್ ಪಟ್ಟಿ","No events yet.":"ಇನ್ನೂ ಸಂದರ್ಭಗಳಿಲ್ಲ.","No calendar items yet.":"ಇನ್ನೂ ಕ್ಯಾಲೆಂಡರ್ ನಮೂದುಗಳಿಲ್ಲ.","Shopping list is empty.":"ಶಾಪಿಂಗ್ ಪಟ್ಟಿ ಖಾಲಿಯಾಗಿದೆ.",
+  "Automatic backup":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್","Keep a rotating backup of your processed ledger data, assets, loans and reconciliation history automatically on this phone. Original PDFs/XLS files are not stored in the processed backup; the backup contains the extracted loan data, document metadata, reconciliation and Ledger/asset links. The app keeps the latest 7 automatic backups.":"ಈ ಫೋನ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಲೆಡ್ಜರ್‌ನ ಬ್ಯಾಕಪ್ ಅನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಉಳಿಸಲಾಗುತ್ತದೆ. ಇತ್ತೀಚಿನ 7 ಬ್ಯಾಕಪ್‌ಗಳನ್ನು ಆ್ಯಪ್ ಇಟ್ಟುಕೊಳ್ಳುತ್ತದೆ.","Off":"ಆಫ್","Daily":"ದೈನಂದಿನ","Weekly":"ವಾರದ","Back up now":"ಈಗ ಬ್ಯಾಕಪ್ ಮಾಡಿ","Daily automatic backup enabled.":"ದೈನಂದಿನ ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆನ್ ಮಾಡಲಾಗಿದೆ.","Weekly automatic backup enabled.":"ವಾರದ ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆನ್ ಮಾಡಲಾಗಿದೆ.","Automatic backup turned off.":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್ ಆಫ್ ಮಾಡಲಾಗಿದೆ.","Latest backup saved on this phone.":"ಇತ್ತೀಚಿನ ಬ್ಯಾಕಪ್ ಈ ಫೋನ್‌ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ.","No ledger file to back up yet.":"ಬ್ಯಾಕಪ್ ಮಾಡಲು ಇನ್ನೂ ಲೆಡ್ಜರ್ ಫೈಲ್ ಇಲ್ಲ.",
+  "Monthly budgets":"ತಿಂಗಳ ಬಜೆಟ್‌ಗಳು","No monthly budget set.":"ತಿಂಗಳ ಬಜೆಟ್ ಹೊಂದಿಸಲಾಗಿಲ್ಲ.","Set monthly budget":"ತಿಂಗಳ ಬಜೆಟ್ ಹೊಂದಿಸಿ","Set a monthly limit for any category. Leave blank for none.":"ಯಾವುದೇ ವರ್ಗಕ್ಕೆ ತಿಂಗಳ ಮಿತಿಯನ್ನು ಹೊಂದಿಸಿ. ಬೇಡವಾದರೆ ಖಾಲಿ ಬಿಡಿ.","Category (optional)":"ವರ್ಗ (ಐಚ್ಛಿಕ)","Overall monthly budget":"ಒಟ್ಟು ತಿಂಗಳ ಬಜೆಟ್","Monthly limit":"ತಿಂಗಳ ಮಿತಿ","Budget saved.":"ಬಜೆಟ್ ಉಳಿಸಲಾಗಿದೆ.","Budget removed.":"ಬಜೆಟ್ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.",
+  "Choose your Google account":"ನಿಮ್ಮ Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Choose Google account":"Google ಖಾತೆಯನ್ನು ಆರಿಸಿ","Skip for now":"ಈಗ ಬೇಡ","Opening Google…":"Google ತೆರೆಯಲಾಗುತ್ತಿದೆ…","Google sign-in failed:":"Google ಸೈನ್ ಇನ್ ವಿಫಲವಾಗಿದೆ:",
+  "Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು","Theme":"ಥೀಮ್","System":"ಸಿಸ್ಟಂ","Light":"ಬೆಳಕು","Dark":"ಕತ್ತಲು","Categories":"ವರ್ಗಗಳು","Currencies":"ಕರೆನ್ಸಿಗಳು","Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Cloud account":"ಕ್ಲೌಡ್ ಖಾತೆ","Sign in with Google":"Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ","Sign out":"ಸೈನ್ ಔಟ್","Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Allow SMS access":"SMS ಪ್ರವೇಶ ಅನುಮತಿಸಿ","Language · ಭಾಷೆ":"ಭಾಷೆ · Language","Month cycle":"ತಿಂಗಳ ಚಕ್ರ"
+});
+Object.assign(KN,{"Loan documents":"ಸಾಲದ ದಾಖಲೆಗಳು","Import loan document(s)":"ಸಾಲದ ದಾಖಲೆ(ಗಳನ್ನು) ಆಮದು ಮಾಡಿ","Add loan manually":"ಸಾಲವನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಿ","Payment / amortization schedule":"ಪಾವತಿ / ಅಮೋರ್ಟೈಸೇಶನ್ ವೇಳಾಪಟ್ಟಿ","Loan account statement":"ಸಾಲ ಖಾತೆ ಸ್ಟೇಟ್‌ಮೆಂಟ್","Top-up / enhancement document":"ಟಾಪ್-ಅಪ್ / ಹೆಚ್ಚುವರಿ ಸಾಲದ ದಾಖಲೆ","Balance transfer / takeover":"ಬ್ಯಾಲೆನ್ಸ್ ವರ್ಗಾವಣೆ / ಟೇಕ್‌ಓವರ್","Loan to update":"ನವೀಕರಿಸಬೇಕಾದ ಸಾಲ","+ Create a new loan":"+ ಹೊಸ ಸಾಲ ರಚಿಸಿ","Loan name / new lender":"ಸಾಲದ ಹೆಸರು / ಹೊಸ ಸಾಲದಾತ","Lender / bank":"ಸಾಲದಾತ / ಬ್ಯಾಂಕ್","Original / transferred amount (₹)":"ಮೂಲ / ವರ್ಗಾಯಿಸಿದ ಮೊತ್ತ (₹)","Current outstanding (₹)":"ಪ್ರಸ್ತುತ ಬಾಕಿ (₹)","Interest rate (% p.a.)":"ಬಡ್ಡಿ ದರ (% ವಾರ್ಷಿಕ)","EMI (₹)":"EMI (₹)","Start / transfer date":"ಪ್ರಾರಂಭ / ವರ್ಗಾವಣೆ ದಿನಾಂಕ","Tenure (months)":"ಅವಧಿ (ತಿಂಗಳು)","Optional top-up during transfer (₹)":"ವರ್ಗಾವಣೆಯ ಸಮಯದ ಐಚ್ಛಿಕ ಟಾಪ್-ಅಪ್ (₹)","Top-up rate (% p.a.)":"ಟಾಪ್-ಅಪ್ ದರ (% ವಾರ್ಷಿಕ)","Loan document imported and linked.":"ಸಾಲದ ದಾಖಲೆ ಆಮದು ಮಾಡಿ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ.","Give the loan a name.":"ಸಾಲಕ್ಕೆ ಹೆಸರು ನೀಡಿ.","Enter the top-up amount.":"ಟಾಪ್-ಅಪ್ ಮೊತ್ತ ನಮೂದಿಸಿ.","Enter the new lender and transferred principal.":"ಹೊಸ ಸಾಲದಾತ ಮತ್ತು ವರ್ಗಾಯಿಸಿದ ಮೂಲಧನ ನಮೂದಿಸಿ."});
+Object.assign(KN,{"Jump to a setting…":"ಸೆಟ್ಟಿಂಗ್‌ಗೆ ಹೋಗಿ…","Automatic SMS reading":"ಸ್ವಯಂಚಾಲಿತ SMS ಓದುವಿಕೆ","Cloud account":"ಕ್ಲೌಡ್ ಖಾತೆ","Historical & missing-month import":"ಹಿಂದಿನ ಮತ್ತು ಕಾಣೆಯಾದ ತಿಂಗಳ ಆಮದು","Automatic backup":"ಸ್ವಯಂಚಾಲಿತ ಬ್ಯಾಕಪ್","Your data":"ನಿಮ್ಮ ಮಾಹಿತಿ","Merchant rules":"ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು","Link existing transactions":"ಈಗಿರುವ ವಹಿವಾಟುಗಳನ್ನು ಲಿಂಕ್ ಮಾಡಿ","Unlinked only":"ಲಿಂಕ್ ಆಗದವು ಮಾತ್ರ","Already linked to this asset":"ಈ ಆಸ್ತಿಗೆ ಈಗಾಗಲೇ ಲಿಂಕ್ ಆಗಿರುವುದು","Linked to another asset":"ಬೇರೆ ಆಸ್ತಿಗೆ ಲಿಂಕ್ ಆಗಿರುವುದು","All eligible debits":"ಎಲ್ಲಾ ಸೂಕ್ತ ಡೆಬಿಟ್‌ಗಳು","All months":"ಎಲ್ಲಾ ತಿಂಗಳುಗಳು","Exact date":"ನಿಖರ ದಿನಾಂಕ","Type to search category…":"ವರ್ಗ ಹುಡುಕಲು ಟೈಪ್ ಮಾಡಿ…","No matching category":"ಹೊಂದುವ ವರ್ಗ ಇಲ್ಲ","Close card":"ಕಾರ್ಡ್ ಮುಚ್ಚಿ","Reopen card":"ಕಾರ್ಡ್ ಮತ್ತೆ ತೆರೆಯಿರಿ","Credit card closed.":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್ ಮುಚ್ಚಲಾಗಿದೆ.","Credit card reopened.":"ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್ ಮತ್ತೆ ತೆರೆಯಲಾಗಿದೆ.","Remove duplicate recurring transactions":"ನಕಲಿ ಪುನರಾವರ್ತಿತ ವಹಿವಾಟುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ","No duplicate recurring transactions found.":"ನಕಲಿ ಪುನರಾವರ್ತಿತ ವಹಿವಾಟುಗಳು ಕಂಡುಬಂದಿಲ್ಲ.","Daily spending":"ದೈನಂದಿನ ಖರ್ಚು"});
+const KN_RX = [
+  [/^Saved in the last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳ ಉಳಿತಾಯ`],
+  [/^Family saved in the last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳ ಕುಟುಂಬದ ಉಳಿತಾಯ`],
+  [/^(\d+)% of income$/, m=>`ಆದಾಯದ ${m[1]}%`],
+  [/^(\d+)% of spend$/, m=>`ಖರ್ಚಿನ ${m[1]}%`],
+  [/^(\d+) months$/, m=>`${m[1]} ತಿಂಗಳು`],
+  [/^Due in (\d+) days?$/, m=>`${m[1]} ದಿನಗಳಲ್ಲಿ ಕೊನೆ`],
+  [/^Overdue by (\d+) days?$/, m=>`${m[1]} ದಿನ ತಡವಾಗಿದೆ`],
+  [/^as of (.+)$/, m=>`${m[1]} ರಂತೆ`],
+  [/^Next around (.+)$/, m=>`ಮುಂದಿನದು ಸುಮಾರು ${m[1]}`],
+  [/^Min (.+)$/, m=>`ಕನಿಷ್ಠ ${m[1]}`],
+  [/^Paid (.+) so far$/, m=>`ಇಲ್ಲಿಯವರೆಗೆ ${m[1]} ಪಾವತಿಸಲಾಗಿದೆ`],
+  [/^Paid (.+)$/, m=>`${m[1]} ರಂದು ಪಾವತಿಸಲಾಗಿದೆ`],
+  [/^(\d+) paid recently$/, m=>`ಇತ್ತೀಚೆಗೆ ಪಾವತಿಸಿದವು: ${m[1]}`],
+  [/^Show (\d+) hidden$/, m=>`ಮರೆಮಾಡಿದ ${m[1]} ತೋರಿಸಿ`],
+  [/^(\d+) active$/, m=>`${m[1]} ಸಕ್ರಿಯ`],
+  [/^Split · your share (.+)$/, m=>`ಹಂಚಿಕೆ · ನಿಮ್ಮ ಪಾಲು ${m[1]}`],
+  [/^(.+) left of (.+)$/, m=>`${m[2]} ರಲ್ಲಿ ${m[1]} ಉಳಿದಿದೆ`],
+  [/^(.+) over of (.+)$/, m=>`${m[2]} ಮಿತಿಗಿಂತ ${m[1]} ಹೆಚ್ಚು`],
+  [/^(\d+) payments?$/, m=>`${m[1]} ಪಾವತಿಗಳು`],
+  [/^([\d,]+) entries$/, m=>`${m[1]} ನಮೂದುಗಳು`],
+  [/^(\d+) splits?$/, m=>`${m[1]} ಹಂಚಿಕೆಗಳು`],
+  [/^(\d+) claims?$/, m=>`${m[1]} ಕ್ಲೇಮ್‌ಗಳು`],
+  [/^No entries for (.+) yet\.$/, m=>`${m[1]} ಕ್ಕೆ ಇನ್ನೂ ನಮೂದುಗಳಿಲ್ಲ.`],
+  [/^Found (\d+) transactions?$/, m=>`${m[1]} ವಹಿವಾಟುಗಳು ಸಿಕ್ಕಿವೆ`],
+  [/^Add (\d+) to ledger$/, m=>`${m[1]} ಅನ್ನು ಲೆಡ್ಜರ್‌ಗೆ ಸೇರಿಸಿ`],
+  [/^(\d+) messages? skipped$/, m=>`${m[1]} ಸಂದೇಶಗಳನ್ನು ಬಿಡಲಾಗಿದೆ`],
+  [/^Reading bank SMS… ([\d,]+) of ([\d,]+)$/, m=>`ಬ್ಯಾಂಕ್ SMS ಓದಲಾಗುತ್ತಿದೆ… ${m[2]} ರಲ್ಲಿ ${m[1]}`],
+  [/^Added ([\d,]+) (?:entry|entries) from ([\d,]+) bank SMS\.$/, m=>`${m[2]} ಬ್ಯಾಂಕ್ SMS ಗಳಿಂದ ${m[1]} ನಮೂದುಗಳನ್ನು ಸೇರಿಸಲಾಗಿದೆ.`],
+  [/^Checked ([\d,]+) bank SMS\. Nothing new to add\.$/, m=>`${m[1]} ಬ್ಯಾಂಕ್ SMS ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಹೊಸದೇನೂ ಇಲ್ಲ.`],
+  [/^Added ([\d,]+) (?:entry|entries)(?: from your SMS)?\.$/, m=>`${m[1]} ನಮೂದುಗಳನ್ನು ಸೇರಿಸಲಾಗಿದೆ.`],
+  [/^Synced (.+)$/, m=>`${m[1]} ರಂದು ಸಿಂಕ್ ಆಗಿದೆ`],
+  [/^Synced with (.+)\.$/, m=>`${m[1]} ಅವರೊಂದಿಗೆ ಸಿಂಕ್ ಆಯಿತು.`],
+  [/^Connected to (.+)\. Swapping ledgers…$/, m=>`${m[1]} ಅವರಿಗೆ ಸಂಪರ್ಕವಾಯಿತು. ಲೆಡ್ಜರ್ ವಿನಿಮಯವಾಗುತ್ತಿದೆ…`],
+  [/^Got ([\d,]+) entries from (.+)\. See them in Home → Family\.$/, m=>`${m[2]} ಅವರಿಂದ ${m[1]} ನಮೂದುಗಳು ಬಂದಿವೆ. ಮುಖಪುಟ → ಕುಟುಂಬ ದಲ್ಲಿ ನೋಡಿ.`],
+  [/^(.+)'s ledger synced (.+)$/, m=>`${m[1]} ಅವರ ಲೆಡ್ಜರ್ ${m[2]} ರಂದು ಸಿಂಕ್ ಆಗಿದೆ`],
+  [/^open (.+)$/, m=>`${m[1]} ತೆರೆಯಿರಿ`],
+  [/^Converted (\d+) of (\d+) foreign-currency (?:entry|entries) to ₹\.(.*)$/, m=>`${m[2]} ರಲ್ಲಿ ${m[1]} ವಿದೇಶಿ ಕರೆನ್ಸಿ ನಮೂದುಗಳನ್ನು ₹ ಗೆ ಪರಿವರ್ತಿಸಲಾಗಿದೆ.` + (m[3] ? " ಉಳಿದವಕ್ಕೆ ದರ ಸಿಗಲಿಲ್ಲ; ಆಯಾ ನಮೂದಿನಲ್ಲಿ ದರ ಬರೆಯಬಹುದು." : "")],
+  [/^Also spent$/, ()=>"ಇದರ ಜೊತೆಗೆ ಖರ್ಚು"],
+  [/^≈ (.+) at ₹(.+) per (\w+)\. Change the rate to match your card statement if it differs\.$/, m=>`≈ ${m[1]}, ಪ್ರತಿ ${m[3]} ಗೆ ₹${m[2]}. ಕಾರ್ಡ್ ಸ್ಟೇಟ್‌ಮೆಂಟ್‌ಗೆ ಹೊಂದಿಕೆಯಾಗದಿದ್ದರೆ ದರ ಬದಲಿಸಿ.`],
+  [/^Rate for the entry date will be fetched when you're online\. You can also type it\.$/, ()=>"ಆನ್‌ಲೈನ್ ಆದಾಗ ಆ ದಿನದ ದರ ಪಡೆಯಲಾಗುತ್ತದೆ. ನೀವೇ ಬರೆಯಲೂಬಹುದು."],
+  [/^Getting the (\w+) rate for (.+)…$/, m=>`${m[2]} ರ ${m[1]} ದರ ಪಡೆಯಲಾಗುತ್ತಿದೆ…`],
+  [/^Apply the name and category to all (.+) entries$/, m=>`${m[1]} ನ ಎಲ್ಲಾ ನಮೂದುಗಳಿಗೆ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
+  [/^Only entries of (.+) too$/, m=>`${m[1]} ಮೊತ್ತದ ನಮೂದುಗಳಿಗೆ ಮಾತ್ರ`],
+  [/^This looks like (.+ )?paying back the (.+) you lent on (.+)\. Mark it as a repayment \(not income\) and settle it\?$/,
+    m=>`ಇದು ${m[1]||"ಅವರು "}${m[3]} ರಂದು ನೀವು ಕೊಟ್ಟ ${m[2]} ಮರುಪಾವತಿಸುತ್ತಿರುವಂತೆ ಕಾಣುತ್ತದೆ. ಇದನ್ನು ಮರುಪಾವತಿ (ಆದಾಯ ಅಲ್ಲ) ಎಂದು ಗುರುತಿಸಿ ಚುಕ್ತಾ ಮಾಡಬೇಕೇ?`],
+  [/^Last (\d+) months$/, m=>`ಕಳೆದ ${m[1]} ತಿಂಗಳು`],
+  [/^Not updated for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ ನವೀಕರಿಸಿಲ್ಲ`],
+  [/^No SMS for (\d+) days$/, m=>`${m[1]} ದಿನಗಳಿಂದ SMS ಇಲ್ಲ`],
+  [/^1 \(calendar month\)$/, ()=>"1 (ಕ್ಯಾಲೆಂಡರ್ ತಿಂಗಳು)"],
+  [/^\(add-on of (.+)\)$/, m=>`(${m[1]} ನ ಆಡ್-ಆನ್)`],
+  [/^People, including you$/, ()=>"ಜನರು, ನಿಮ್ಮನ್ನೂ ಸೇರಿ"],
+  [/^Merchant rules: ([\d,]+)\. They set the name and category for each merchant, and grow as you correct entries\.$/, m=>`ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು: ${m[1]}. ಇವು ಪ್ರತಿ ವ್ಯಾಪಾರಿಯ ಹೆಸರು ಮತ್ತು ವರ್ಗ ನಿರ್ಧರಿಸುತ್ತವೆ; ನೀವು ನಮೂದು ತಿದ್ದಿದಂತೆ ಹೆಚ್ಚುತ್ತವೆ.`],
+  [/^Money out is after (.+) of refunds and cashback\.$/, m=>`ಹೋದ ಹಣ ${m[1]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು.`],
+  [/^Spent in (\d{4})$/, m=>`${m[1]} ರ ಖರ್ಚು`],
+  [/^Amounts in ₹ (hundred|thousand|lakh)(, by (month|year))?$/, m=>{
+    const unit = {hundred:"ನೂರುಗಳಲ್ಲಿ", thousand:"ಸಾವಿರಗಳಲ್ಲಿ", lakh:"ಲಕ್ಷಗಳಲ್ಲಿ"}[m[1]];
+    const suf = m[3] === "month" ? ", ತಿಂಗಳುವಾರು" : m[3] === "year" ? ", ವರ್ಷವಾರು" : "";
+    return `ಮೊತ್ತ ₹ ${unit}${suf}`;
+  }],
+  [/^Spending is (\d+)% higher than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಹೆಚ್ಚು`],[/^Spending is (\d+)% lower than last month$/, m=>`ಖರ್ಚು ಕಳೆದ ತಿಂಗಳಿಗಿಂತ ${m[1]}% ಕಡಿಮೆ`],
+  [/^Nothing recorded for (.+) yet\.$/, m=>`${m[1]} ಕ್ಕೆ ಇನ್ನೂ ಏನೂ ದಾಖಲಾಗಿಲ್ಲ.`],[/^New bank SMS appear here as they arrive\.$/, ()=>"ಹೊಸ ಬ್ಯಾಂಕ್ SMS ಬಂದಂತೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ."],
+  [/^Also apply the name and category to (\d+) other payments? of (.+) in other months$/, m=>`ಬೇರೆ ತಿಂಗಳುಗಳ ${m[2]} ನ ಇನ್ನೂ ${m[1]} ಪಾವತಿಗಳಿಗೂ ಈ ಹೆಸರು ಮತ್ತು ವರ್ಗ ಅನ್ವಯಿಸಿ`],
+  [/^Changes apply to all (\d+) (?:entry|entries) from this merchant, and to new ones\.$/, m=>`ಈ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲಾ ${m[1]} ನಮೂದುಗಳಿಗೆ ಮತ್ತು ಹೊಸವುಗಳಿಗೆ ಬದಲಾವಣೆ ಅನ್ವಯಿಸುತ್ತದೆ.`],
+  [/^Also remove ([\d,]+) entries not read from SMS \(added by hand, or from an earlier import\)$/, m=>`SMS ನಿಂದ ಓದದ ${m[1]} ನಮೂದುಗಳನ್ನೂ ತೆಗೆದುಹಾಕಿ (ಕೈಯಾರೆ ಸೇರಿಸಿದ್ದು ಅಥವಾ ಹಿಂದೆ ಆಮದು ಮಾಡಿದ್ದು)`],
+  [/^Found (.+) entries, (.+) bills, (.+) accounts, (.+) subscriptions and (.+) merchant rules that no SMS on this phone confirms\. Removing them keeps only what's read from your own SMS\.$/,
+    m=>`ಈ ಫೋನ್‌ನ ಯಾವ SMS ಕೂಡ ದೃಢಪಡಿಸದ ${m[1]} ನಮೂದುಗಳು, ${m[2]} ಬಿಲ್‌ಗಳು, ${m[3]} ಖಾತೆಗಳು, ${m[4]} ಚಂದಾದಾರಿಕೆಗಳು ಮತ್ತು ${m[5]} ವ್ಯಾಪಾರಿ ನಿಯಮಗಳು ಸಿಕ್ಕಿವೆ. ತೆಗೆದುಹಾಕಿದರೆ ನಿಮ್ಮ SMS ನಿಂದ ಓದಿದ್ದು ಮಾತ್ರ ಉಳಿಯುತ್ತದೆ.`],
+  [/^Remove (.+) entries, (.+) bills, (.+) accounts and (.+) subscriptions not confirmed by SMS\? This can't be undone\.$/,
+    m=>`SMS ದೃಢಪಡಿಸದ ${m[1]} ನಮೂದುಗಳು, ${m[2]} ಬಿಲ್‌ಗಳು, ${m[3]} ಖಾತೆಗಳು ಮತ್ತು ${m[4]} ಚಂದಾದಾರಿಕೆಗಳನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಇದನ್ನು ರದ್ದುಮಾಡಲಾಗದು.`],
+  [/^Excludes card bill payments and transfers between your own accounts(, and is after (.+) of refunds and cashback)?\.$/,
+    m=>`ಕಾರ್ಡ್ ಬಿಲ್ ಪಾವತಿಗಳು ಮತ್ತು ನಿಮ್ಮ ಸ್ವಂತ ಖಾತೆಗಳ ನಡುವಿನ ವರ್ಗಾವಣೆಗಳನ್ನು ಹೊರತುಪಡಿಸಿ` + (m[2] ? `, ಮತ್ತು ${m[2]} ಮರುಪಾವತಿ ಮತ್ತು ಕ್ಯಾಶ್‌ಬ್ಯಾಕ್ ಕಳೆದ ನಂತರದ್ದು` : "") + "."],
+  [/^Couldn't start: (.+)\. Screenshot this and send it over\.$/, m=>`ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ: ${m[1]}. ಇದರ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ತೆಗೆದು ಕಳುಹಿಸಿ.`],
+  [/^No entries from (.+) yet\.$/, m=>`${m[1]} ನಿಂದ ಇನ್ನೂ ಯಾವುದೇ ನಮೂದುಗಳಿಲ್ಲ.`],
+  [/^([\d,]+) (entry|entries)$/, m=>`${m[1]} ${m[2]==="entry"?"ನಮೂದು":"ನಮೂದುಗಳು"}`],
+  [/^paid (.+)$/, m=>`${m[1]} ಪಾವತಿಸಲಾಗಿದೆ`],[/^received (.+)$/, m=>`${m[1]} ಬಂದಿದೆ`],
+  [/^Also found (.+)\. They'll be saved with these entries\.$/, m=>`ಇದರ ಜೊತೆಗೆ ${m[1].replace(/bill reminders?/,"ಬಿಲ್ ಜ್ಞಾಪನೆಗಳು").replace(/balance updates?/,"ಬಾಕಿ ಅಪ್‌ಡೇಟ್‌ಗಳು").replace(/subscriptions?/,"ಚಂದಾದಾರಿಕೆಗಳು").replace(/ and /g," ಮತ್ತು ")} ಸಿಕ್ಕಿವೆ. ಇವುಗಳೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.`],
+  [/^Saved (\d+) bills?, (\d+) balances? and (\d+) subscriptions?\.$/, m=>`${m[1]} ಬಿಲ್‌ಗಳು, ${m[2]} ಬಾಕಿಗಳು ಮತ್ತು ${m[3]} ಚಂದಾದಾರಿಕೆಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ.`],
+  [/^Close to an event already here — (.+)\. Use that instead\?$/, m=>`ಇಲ್ಲಿ ಈಗಾಗಲೇ ಇರುವ ಸಂದರ್ಭಕ್ಕೆ ಹತ್ತಿರ — ${m[1]}. ಅದನ್ನೇ ಬಳಸಬೇಕೇ?`],
+  [/^\+ Create "(.+)" as a new event$/, m=>`+ "${m[1]}" ಅನ್ನು ಹೊಸ ಸಂದರ್ಭವಾಗಿ ರಚಿಸಿ`],
+  [/^(.+) tagged so far$/, m=>`ಇಲ್ಲಿಯವರೆಗೆ ${m[1]} ಟ್ಯಾಗ್ ಆಗಿದೆ`],
+  [/^of (.+) budget$/, m=>`${m[1]} ಬಜೆಟ್‌ನಲ್ಲಿ`],
+  [/^Couldn't sign in: (.+)\. Screenshot this and send it over\.$/, m=>`ಸೈನ್ ಇನ್ ಆಗಲಿಲ್ಲ: ${m[1]}. ಇದರ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ತೆಗೆದು ಕಳುಹಿಸಿ.`],
+  [/^Sign-in is taking too long or didn't respond\. Try again, and screenshot this if it keeps happening\.$/, ()=>"ಸೈನ್ ಇನ್ ತುಂಬಾ ಸಮಯ ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದೆ ಅಥವಾ ಪ್ರತಿಕ್ರಿಯಿಸಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ, ಇದು ಮುಂದುವರಿದರೆ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಕಳುಹಿಸಿ."],
+  [/^Undo ([\d,]+) changes you made to merchant names and categories$/, m=>`ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳಿಗೆ ನೀವು ಮಾಡಿದ ${m[1]} ಬದಲಾವಣೆಗಳನ್ನು ರದ್ದುಮಾಡಿ`],
+  [/^Showing 80 of ([\d,]+)\. Search to narrow down\.$/, m=>`${m[1]} ರಲ್ಲಿ 80 ತೋರಿಸಲಾಗಿದೆ. ಕಡಿಮೆ ಮಾಡಲು ಹುಡುಕಿ.`],
+  [/^Remove ([\d,]+) entries read from SMS \(they're read again\)$/, m=>`SMS ನಿಂದ ಓದಿದ ${m[1]} ನಮೂದುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ (ಮತ್ತೆ ಓದಲಾಗುತ್ತದೆ)`],
+  [/^Forget ([\d,]+) merchant names and categories you changed$/, m=>`ನೀವು ಬದಲಿಸಿದ ${m[1]} ವ್ಯಾಪಾರಿ ಹೆಸರು ಮತ್ತು ವರ್ಗಗಳನ್ನು ಮರೆಯಿರಿ`],
+  [/^Also remove ([\d,]+) entries you added by hand or imported from FinArt$/, m=>`ಕೈಯಾರೆ ಸೇರಿಸಿದ ಅಥವಾ FinArt ನಿಂದ ಆಮದು ಮಾಡಿದ ${m[1]} ನಮೂದುಗಳನ್ನೂ ತೆಗೆದುಹಾಕಿ`]
+];
+const KN_MONTHS = ["ಜನವರಿ","ಫೆಬ್ರವರಿ","ಮಾರ್ಚ್","ಏಪ್ರಿಲ್","ಮೇ","ಜೂನ್","ಜುಲೈ","ಆಗಸ್ಟ್","ಸೆಪ್ಟೆಂಬರ್","ಅಕ್ಟೋಬರ್","ನವೆಂಬರ್","ಡಿಸೆಂಬರ್"];
+const KN_SHORT = ["ಜನ","ಫೆಬ್ರ","ಮಾರ್ಚ್","ಏಪ್ರಿ","ಮೇ","ಜೂನ್","ಜುಲೈ","ಆಗ","ಸೆಪ್ಟೆಂ","ಅಕ್ಟೋ","ನವೆಂ","ಡಿಸೆಂ"];
+const EN_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+let MONTH_SHORT = EN_MONTHS.map(m=>m.slice(0,3));
+function mShort(i){ return MONTH_SHORT[i]; }
+function tr(s){
+  if(LANG !== "kn" || s == null) return s;
+  const str = String(s), k = str.replace(/\s+/g," ").trim();
+  if(!k || !/[A-Za-z]/.test(k)) return str;
+  const lead = str.match(/^\s*/)[0], trail = str.match(/\s*$/)[0];
+  if(KN[k]) return lead + KN[k] + trail;
+  for(const [rx, fn] of KN_RX){ const m = k.match(rx); if(m) return lead + fn(m) + trail; }
+  return str;
+}
+const SKIP_TR = "script,style,textarea,input,.raw,[data-notr]";
+function trNode(root){
+  if(LANG !== "kn" || !root) return;
+  if(root.nodeType === 3){ if(!root.parentElement || !root.parentElement.closest(SKIP_TR)){ const v = tr(root.nodeValue); if(v !== root.nodeValue) root.nodeValue = v; } return; }
+  if(root.nodeType !== 1 || root.closest && root.closest("script,style,.raw,[data-notr]")) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; let n; while((n = w.nextNode())) nodes.push(n);
+  nodes.forEach(t=>{ if(t.parentElement && !t.parentElement.closest(SKIP_TR)){ const v = tr(t.nodeValue); if(v !== t.nodeValue) t.nodeValue = v; } });
+  const els = root.querySelectorAll ? [root, ...root.querySelectorAll("[placeholder],[aria-label],[title]")] : [];
+  els.forEach(e=>["placeholder","aria-label","title"].forEach(a=>{ const v = e.getAttribute && e.getAttribute(a); if(v){ const t = tr(v); if(t !== v) e.setAttribute(a, t); } }));
+}
+let trObserver = null;
+function applyLanguage(lang){
+  LANG = lang === "kn" ? "kn" : "en";
+  document.documentElement.lang = LANG;
+  MONTH_NAMES.splice(0, 12, ...(LANG === "kn" ? KN_MONTHS : EN_MONTHS));
+  MONTH_SHORT = LANG === "kn" ? KN_SHORT : EN_MONTHS.map(m=>m.slice(0,3));
+  if(LANG === "kn" && !trObserver && window.MutationObserver){
+    trObserver = new MutationObserver(list=>{
+      list.forEach(mu=>{
+        if(mu.type === "characterData") trNode(mu.target);
+        else mu.addedNodes.forEach(trNode);
+      });
+    });
+    trObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  trNode(document.body);
+}
+
+
+/* ---------- State ---------- */
+const LS_KEY = "smsledger.v1";
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [] }; }
+let state = blankState();
+let view = "home";
+let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
+let cursor = "";
+let pending = [];
+let db = null, uid = null;
+const dirtyMonths = new Set();
+let settingsDirty = false;
+
+const NATIVE = !!(window.Android && window.Android.saveState);
+function loadLocal(){
+  try{
+    let raw = NATIVE ? window.Android.loadState() : "";
+    if(!raw) raw = localStorage.getItem(LS_KEY);
+    if(raw){ const s = JSON.parse(raw); state = { ...blankState(), ...s }; }
+    // v1.45 deliberately requires a fresh in-app SMS consent/import cycle so old SMS-derived
+    // totals are not shown before the user has reviewed the new permission flow.
+    if(state.smsConsentUiVersion !== 2){ state.smsPermissionConfirmed = false; state.smsDataReady = false; state.smsConsentUiVersion = 0; }
+    // Native preferences are the final gate. This prevents an upgrade/reinstall from briefly
+    // rendering SMS-derived data saved in the WebView/native ledger before the new onboarding
+    // permission + initial-import flow has completed.
+    if(NATIVE && window.Android && window.Android.isSmsDataUnlocked && !window.Android.isSmsDataUnlocked()){
+      state.smsPermissionConfirmed = false; state.smsDataReady = false;
+    }
+    // v1.56: force the explicit first-run sequence once, even when Android app data was
+    // retained across an APK upgrade. This prevents a saved language/Google choice from
+    // silently bypassing the language -> Google/skip -> SIM -> SMS consent flow.
+    if((state.onboardingVersion || 0) < 5){
+      state.onboardingVersion = 5;
+      state.lang = "";
+      state.googleOnboardingDone = false;
+      state.googleSkipped = false;
+      state.smsPermissionConfirmed = false;
+      state.smsDataReady = false;
+      state.smsConsentUiVersion = 0;
+      state.initialImportDone = false;
+      if(NATIVE && window.Android && window.Android.resetSmsOnboarding) try{ window.Android.resetSmsOnboarding(); }catch(e){}
+      saveLocal();
+    }
+    // Reclassify/remove promotional SMS that may have been imported by an older build.
+    // They must never remain as income merely because the stronger filter was added later.
+    if(Array.isArray(state.txns)){
+      const before = state.txns.length;
+      state.txns = state.txns.filter(t => {
+        if(!t) return false;
+        const raw = String(t.raw || "");
+        const merchant = String(t.merchant || "");
+        const category = String(t.category || "");
+        return !(looksLikePromo(raw) || looksLikePromo(merchant) || /^(income|other income)$/i.test(category) && /(rummy|junglee|prize|winning|jackpot|casino|betting|gambling)/i.test(merchant));
+      });
+      if(state.txns.length !== before) saveLocal();
+    }
+    // v1.58: repair older credit-card repayment records that were imported as Income.
+    // A card repayment/acknowledgement is a transfer/liability payment, not new income.
+    let cardFixed = false;
+    if(Array.isArray(state.txns)){
+      state.txns.forEach(t => {
+        if(!t) return;
+        const raw = String(t.raw || "").toLowerCase();
+        const merchant = String(t.merchant || "");
+        const cardAck = CARD_ACK.test(raw);
+        if(isCardBillMove(raw, merchant, t.type === "credit") || cardAck){
+          if(t.category !== "Card payments"){ t.category = "Card payments"; cardFixed = true; }
+        }
+      });
+      if(cardFixed) saveLocal();
+    }
+  }catch(e){}
+}
+let nativeTimer = null;
+function writeNative(){ clearTimeout(nativeTimer); nativeTimer = null; try{ window.Android.saveState(JSON.stringify(state)); }catch(e){} }
+function saveLocal(){
+  if(NATIVE){ clearTimeout(nativeTimer); nativeTimer = setTimeout(writeNative, 400); return; }
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ toast("This browser is out of storage. Download a backup from Settings."); }
+}
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden && NATIVE && nativeTimer) writeNative(); });
+let syncTimer = null;
+function persist(months, settings){
+  (months||[]).forEach(m=>dirtyMonths.add(m));
+  if(settings) settingsDirty = true;
+  saveLocal();
+  scheduleFamilyCloudPublish();
+  if(!db || !uid) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(flushDb, 600);
+}
+async function flushDb(){
+  if(!db || !uid) return;
+  const col = db.collection("data/users/" + uid);
+  const months = [...dirtyMonths]; dirtyMonths.clear();
+  const doSettings = settingsDirty; settingsDirty = false;
+  try{
+    for(const m of months){
+      const txns = state.txns.filter(t => t.date.slice(0,7) === m);
+      const ref = col.doc("m" + m.replace("-",""));
+      if(txns.length) await ref.set({ month: m, txns }); else await ref.delete();
+    }
+    if(doSettings) await col.doc("settings").set(settingsDoc());
+    setStatus("Synced to your claude.ai account and kept on this device.");
+  }catch(e){
+    months.forEach(m=>dirtyMonths.add(m)); if(doSettings) settingsDirty = true;
+    setStatus("Couldn't sync just now. Your entries are safe on this device.");
+  }
+}
+function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [] }; }
+async function connectDb(){
+  try{
+    if(!window.claude || !window.claude.use) return;
+    const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if(!d || !u) return;
+    const id = await u.id();
+    if(!id) return;
+    db = d; uid = id;
+    const snap = await db.collection("data/users/" + uid).get();
+    if(snap.empty){
+      if(state.txns.length || Object.keys(state.rules).length || Object.keys(state.budgets).length || state.bills.length){
+        persist([...new Set(state.txns.map(t=>t.date.slice(0,7)))], true);
+      } else setStatus("Synced to your claude.ai account and kept on this device.");
+      return;
+    }
+    const txns = []; let rules = {}, budgets = {}, extra = {};
+    snap.docs.forEach(doc=>{
+      const data = doc.data() || {};
+      if(doc.id === "settings"){ rules = data.rules || {}; budgets = data.budgets || {}; extra = JSON.parse(JSON.stringify(data)); }
+      else if(Array.isArray(data.txns)) txns.push(...data.txns.map(t=>({...t})));
+    });
+    // keep any local-only entries (added before sync connected)
+    const ids = new Set(txns.map(t=>t.id));
+    const localOnly = state.txns.filter(t=>!ids.has(t.id));
+    const billIds = new Set((extra.bills||[]).map(b=>b.id));
+    state = { ...blankState(), ...extra, txns: txns.concat(localOnly), rules: {...rules, ...state.rules}, budgets: {...budgets, ...state.budgets},
+      bills: (extra.bills||[]).concat(state.bills.filter(b=>!billIds.has(b.id))),
+      accounts: { ...(extra.accounts||{}), ...state.accounts },
+      subsHidden: [...new Set([...(extra.subsHidden||[]), ...state.subsHidden])],
+      monthStart: extra.monthStart || state.monthStart || 1,
+      names: { ...(extra.names||{}), ...state.names },
+      customCats: (extra.customCats||[]).concat(state.customCats.filter(c=>!(extra.customCats||[]).some(x=>x.name===c.name))),
+      subsManual: (extra.subsManual||[]).concat(state.subsManual.filter(c=>!(extra.subsManual||[]).some(x=>x.id===c.id))),
+      family: state.family, ruleBase: extra.ruleBase || state.ruleBase, pack: extra.pack };
+    migrateRules();
+    applyCustomCats();
+    cursor = currentPK();
+    saveLocal();
+    if(localOnly.length) persist([...new Set(localOnly.map(t=>t.date.slice(0,7)))], true);
+    else setStatus("Synced to your claude.ai account and kept on this device.");
+    render();
+  }catch(e){ /* stay local */ }
+}
+function setStatus(s){ const el = document.getElementById("syncStatus"); if(el) el.textContent = s; }
+
+/* ---------- Helpers ---------- */
+function monthKey(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
+function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function toDate(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); }
+function addDays(s, n){ const d = toDate(s); d.setDate(d.getDate()+n); return iso(d); }
+function daysBetween(a, b){ return Math.round((toDate(b) - toDate(a)) / 86400000); }
+// A "period" is labelled by the month it starts in. With a start day of 25, 3 Oct belongs to the September period.
+function pk(dateISO){
+  const st = state.monthStart || 1;
+  let [y,m,d] = dateISO.split("-").map(Number);
+  if(d < st){ m--; if(m < 1){ m = 12; y--; } }
+  return y + "-" + String(m).padStart(2,"0");
+}
+function periodRange(k){
+  const st = state.monthStart || 1; const [y,m] = k.split("-").map(Number);
+  return [new Date(y, m-1, st), new Date(y, m, st-1)];
+}
+function currentPK(){ return pk(todayISO()); }
+// Amount in rupees. Foreign-currency entries use the rate stored on the entry; null until a rate is known.
+function isForeign(t){ return !!t.currency && t.currency !== "INR"; }
+function inrOf(t, v){ v = v == null ? t.amount : v; if(!isForeign(t)) return v; return t.fxRate ? v * t.fxRate : null; }
+function spendAmt(t){ return inrOf(t, t.share != null ? t.share : t.amount) || 0; }
+function inAmt(t){ return inrOf(t) || 0; }
+function counts(t){ return !NOT_SPEND.has(t.category) && (!isForeign(t) || !!t.fxRate); }
+function todayISO(){ const d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const inr = new Intl.NumberFormat("en-IN",{maximumFractionDigits:0});
+const inr2 = new Intl.NumberFormat("en-IN",{minimumFractionDigits:0,maximumFractionDigits:2});
+function money(n, dec, cur){
+  const v = (dec ? inr2 : inr).format(Math.round(n*100)/100);
+  return cur && cur !== "INR" ? cur + " " + v : "₹" + v;
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function uidGen(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function mkey(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function toast(msg){
+  msg = tr(msg);
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; t.setAttribute("role","status");
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2400);
+}
+function niceDate(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString(LANG === "kn" ? "kn-IN" : "en-IN",{weekday:"short", day:"numeric", month:"short"});
+}
+
+/* ---------- SMS parser ---------- */
+const DUE = /\bis due\b|\bdue (on|by|date)|min(imum)?\.? ?(amt|amount)? ?due|total (amt|amount)? ?due|(amount|amt|bill|payment) due|payable by|statement (is|for|has been|generated)|bill (of|for) .{0,40}generated|clear your bill|pay your bill|please pay .{0,20}bill/i;
+// A future deduction notice ("Bill payment ... is scheduled for 24-04-2026. Please maintain
+// sufficient balance") reads like a completed debit to the amount/direction scanner below
+// (it contains "payment of"), so it has to be caught here first and filed as a bill instead.
+const AUTOPAY_DUE = /(will be (auto[- ]?)?debited|scheduled (to be )?debit|due for (auto[- ]?)?debit|is scheduled (for|to be debited|on)\b|(mandate|autopay|standing instruction).{0,50}(will be|is scheduled|scheduled for))/i;
+const SKIP = /\botp\b|one[- ]time password|verification code|to be debited|requested (money|rs|inr)|has requested|collect request|pre-?approved|\boffer\b|get up ?to|apply now|click here to (buy|avail)|payment reminder|declined|failed|unsuccessful|not processed|not (completed|successful|honou?red)/i;
+const DEBIT_WORDS = ["has a debit","debit by transfer","debited@","dr from","debited","spent","sent","paid","withdrawn","purchase","deducted","txn of","transaction of","used at","charged","payment of","dr."];
+const CREDIT_WORDS = ["has a credit","credit by transfer","deposit by","cr to","credited","received","deposited","refund","reversed","reversal","cr.","disbursed","money added","added to your"];
+
+function splitMessages(text){
+  const chunks = text.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  const out = [];
+  chunks.forEach(c=>{
+    const lines = c.split(/\n/).map(s=>s.trim()).filter(Boolean);
+    const withAmt = lines.filter(l=>/(rs\.?|inr|₹)\s*[\d,]/i.test(l));
+    if(lines.length > 1 && withAmt.length === lines.length) out.push(...lines);
+    else out.push(lines.join(" "));
+  });
+  return out;
+}
+
+// Whole words only, so "presents" doesn't count as "sent" and "prepaid" doesn't count as "paid".
+function firstIndex(low, words){
+  let best = -1;
+  words.forEach(w=>{
+    const re = new RegExp("(^|[^a-z])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + (/[a-z]$/.test(w) ? "(?![a-z])" : ""), "i");
+    const m = low.match(re); if(m){ const i = m.index + m[1].length; if(best < 0 || i < best) best = i; }
+  });
+  return best;
+}
+// Marketing messages that mention a price but aren't a transaction.
+const PROMO = /(starting (at|from)|designs? starting|offers? (in-store|on|valid|available)|exciting offers?|shop now|buy now|book (now|in advance)|explore:|click here|visit (our|the) (store|website)|limited period|hurry|flat \d+% off|up ?to \d+% off|get \d+% off|\d+% cashback on|t&c apply|tnc apply|pre-?approved|eligible for a (loan|card)|apply now|lock (gold|the) rates?|new collection|presents|introducing|sale ends|ends (today|tonight|soon)|use code|coupon|loan (up ?to|of up ?to) ?(?:rs\.?|inr|₹)|(may|can|could|will) be credited (to|in) your (a\/?c|account|bank)|instant loan (approval|offer|in minutes)|avail (a |an )?(instant )?loan|get (a |an )?(instant )?loan|complete your application|prize pool|winning (cash|amount)|won\s+(?:rs\.?|inr|₹)|won\s+\$|winning amount|winning cash|cash prize|jackpot|rummy|junglee\s+rummy|casino|betting|gambling|fantasy (game|cricket)|play and win|play now|game (cash|offer)|credited in your bank account|opt ?out sms|optout sms|gmg\.im)/i;
+function looksLikePromo(t){
+  // Hard promotional markers: these must never be allowed to become ledger income,
+  // even if the message happens to contain an account/reference-like number.
+  const HARD_PROMO = /(junglee\s*rummy|\brummy\b|won\s+(?:rs\.?|inr|₹)|winning\s+(?:cash|amount)|\bprize\s+pool\b|cash\s+prize|jackpot|\bcasino\b|\bbetting\b|\bgambling\b|gmg\.im|optout\s+sms|opt\s*out\s+sms)/i;
+  if(HARD_PROMO.test(t)) return true;
+  if(!PROMO.test(t)) return false;
+  // a real alert names your account or card, or carries a reference number
+  const hasAcct = /(a\/?c|acct|account|card)\s*(no\.?\s*)?(ending\s*(with|in)?\s*)?[:\s]*[x*]+\s?\d{3,6}|\b[x*]{2,}\d{3,6}\b/i.test(t);
+  const hasRef = /(upi ref|ref(erence)?\s*no|utr|rrn|txn id|refno)/i.test(t);
+  return !(hasAcct || hasRef);
+}
+
+function parseDate(t){
+  let m = t.match(/\b(20\d{2})-(\d{2})-(\d{2})/);
+  if(m) return valid(+m[1], +m[2], +m[3]);
+  m = t.match(/\b(\d{1,2})[-\s]?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\s,]*(\d{2,4})\b/i);
+  if(m) return valid(yr(m[3]), MONTHS.indexOf(m[2].toLowerCase())+1, +m[1]);
+  m = t.match(/\b(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})\b/);
+  if(m) return valid(yr(m[3]), +m[2], +m[1]);
+  m = t.match(/\b(\d{2})(\d{2})(\d{2})\b(?=\s|$)/); // ddmmyy rarely
+  return null;
+  function yr(s){ let y = +s; return y < 100 ? 2000 + y : y; }
+  function valid(y, mo, d){
+    if(mo<1||mo>12||d<1||d>31||y<2000||y>2100) return null;
+    return y + "-" + String(mo).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+  }
+}
+
+function cleanMerchant(s){
+  if(!s) return "";
+  s = s.replace(/\s+/g," ").trim().replace(/\s+(not you|if not|sms |call |avl|bal\b|ref\b).*$/i,"")
+       .replace(/^(vpa|m\/s\.?|ms\.?|mr\.?|mrs\.?)\s+/i,"")
+       .replace(/\s+(on|via|ref|upi|info|avl|bal|thru|through|using|for|dated|at)$/i,"")
+       .replace(/[.,;:\-]+$/,"").trim();
+  if(/@/.test(s)){
+    const isQR = /^(paytmqr|q\d|bharatpe|mab\.|gpay-|pay-|upiqr)/i.test(s);
+    let local = s.split("@")[0].replace(/^(paytmqr|q\d+|bharatpe\.?|gpay-?|mab\.?|pay-?|upiqr)/i,"");
+    local = local.replace(/[._-]+/g," ").replace(/\d{4,}/g,"").trim();
+    if(local.length >= 3) s = local;
+    else if(isQR) s = "QR payment (" + (s.split("@")[1]||"UPI") + ")";
+  }
+  if(s === s.toUpperCase() && s.length > 3) s = s.toLowerCase().replace(/\b[a-z]/g, c=>c.toUpperCase());
+  return s.slice(0, 40);
+}
+const NOT_MERCHANT = /^(your\b|a\/?c\b|acct\b|account\b|card\b|rs\b|inr\b|the\b|you\b|hdfc bank|icici bank|sbi|beneficiary|bank|self|x+\d+|\d)/i;
+
+function extractMerchant(t, isCredit){
+  const tries = [];
+  // Card: "at MERCHANT on"
+  tries.push(t.match(/\bat\s+([A-Za-z][A-Za-z0-9&'.*_\-\/ ]{1,40}?)(?=\s+on\b|\s+dated|\s+ref|\s+avl|\s+txn|\s+for\b|\s*\.\s|\s*,|\s*;|\s*\(|$)/i));
+  // ICICI: "; MERCHANT credited"
+  if(!isCredit) tries.push(t.match(/;\s*([A-Za-z0-9&'.\-@ ]{2,40}?)\s+credited/i));
+  // UPI VPA or name after "to"
+  if(!isCredit){
+    tries.push(t.match(/\b(?:trf to|transfer to|paid to|sent to|to vpa|to)\s+(?:vpa\s+)?([\w.\-]+@[\w.]+)/i));
+    tries.push(t.match(/\b(?:trf to|transfer to|paid to|sent to|to)\s+([A-Za-z][A-Za-z0-9&'.\- ]{1,40}?)(?=\s+on\b|\s+ref|\s+upi|\s+via|\s+avl|\s*\.\s|\s*\.$|,|;|\(|$)/i));
+  }
+  // Axis/SBI info strings: UPI/P2M/1234/NAME
+  tries.push(t.match(/UPI\/(?:P2[AM]\/)?(?:DR\/|CR\/)?\d{6,}\/([A-Za-z][A-Za-z0-9 .&\-]{1,30})/i));
+  if(isCredit){
+    tries.push(t.match(/\b(?:from|by)\s+(?:vpa\s+)?([\w.\-]+@[\w.]+)/i));
+    const tail = "(?=\\s+on\\b|\\s+ref|\\s+upi|\\s+via|\\s+avl|\\s*\\.\\s|\\s*\\.$|,|;|\\(|$)";
+    tries.push(t.match(new RegExp("\\bfrom\\s+(?:a\\/c linked to\\s+)?([A-Za-z][A-Za-z0-9&'.\\- ]{2,40}?)" + tail, "i")));
+    tries.push(t.match(new RegExp("\\bby\\s+(?!neft|imps|rtgs|upi|nach|cash|rs\\b)(?:a\\/c linked to\\s+)?([A-Za-z][A-Za-z0-9&'.\\- ]{2,40}?)" + tail, "i")));
+  }
+  tries.push(t.match(/\binfo[:\s-]+([A-Za-z0-9 .\/&\-]{2,40}?)(?=\.|,|;|$)/i));
+  tries.push(t.match(/\btowards\s+([A-Za-z][A-Za-z0-9 .&\-]{2,40}?)(?=\s+on\b|\.|,|;|$)/i));
+  tries.push(t.match(/\b(?:vpa\s+)?([\w.\-]{3,}@[a-z]{2,})\b/i));
+  tries.push(t.match(/\bfor\s+(?!rs\b|inr\b|dispute|the\b|any\b|more\b)([A-Za-z][A-Za-z0-9&'.\- ]{1,40}?)(?=\s+via|\s+on\b|\s*\.\s|\s*\.$|,|;|$)/i));
+  tries.push(t.match(/\bon\s+(?!\d)(?!(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b)(?!your\b|hdfc|icici|sbi|axis|kotak)([A-Za-z][A-Za-z0-9&'.*\- ]{1,40}?)(?=\s*\.\s|\s*\.$|\s+avl|,|;|$)/i));
+  for(const m of tries){
+    if(m && m[1]){
+      const raw = m[1].trim();
+      if(NOT_MERCHANT.test(raw)) continue;
+      const c = cleanMerchant(raw);
+      if(c.length >= 2 && !/^\d+$/.test(c)) return { name: c, vpa: /@/.test(raw) ? raw : "" };
+    }
+  }
+  return { name: "", vpa: "" };
+}
+
+function detectMode(low){
+  if(/\batm\b|cash withdrawal|withdrawn/.test(low)) return "ATM";
+  if(/nach|ecs|auto-?debit|autopay|mandate|standing instruction|\bsi\b/.test(low)) return "Auto-debit";
+  if(/\bupi\b|vpa|@[a-z]/.test(low)) return "UPI";
+  if(/\bneft\b|\bimps\b|\brtgs\b/.test(low)) return "Bank transfer";
+  if(/card|\bpos\b|spent/.test(low)) return "Card";
+  return "";
+}
+
+const CARD_PAY = /(credit ?card|card ?(bill|dues?))\s*(bill\s*)?(payment|pymt|payt|repayment)|payment (of|for) .{0,40}(credit ?card|card)|(payment|amount|rs\.?|inr|₹).{0,40}(received|credited).{0,40}(credit ?card|card (a\/c|account|ending|x+|\*+|no))|towards (your )?(credit )?card|cc (bill )?payment|bbps.{0,30}card|payment received.{0,30}card/i;
+const CARD_ACK = /(card payment settled|payment .{0,30}settled .{0,30}card|thank you for (your |the )?payment|we have received (your |a )?payment|payment (of )?(rs\.?|inr|₹)?\s*[\d,.]+\s*(has been |is |was )?(received|credited|posted|realised|realized|successfully credited)|received (a |your )?payment|payment received|credited to your (credit )?card|payment .{0,40}(received|credited|posted).{0,40}card|card .{0,30}payment .{0,20}(received|credited|posted))/i;
+// Paying a credit card bill is never spending or income: the purchases on the card were already
+// counted when you made them. Catches both sides: the bank/app debit that pays the bill, and the
+// card issuer's "payment received / credited to your card" message.
+const CARD_BILL_DEBIT = /(credit ?card (bill|payment|dues?|repayment)|card ?bill|cc ?(bill|payment)|\bcred\b|cred club|cheq |billdesk.{0,25}card|bbps.{0,25}card|payment towards (your )?(credit )?card|to (hdfc|icici|sbi|axis|kotak|amex|rbl|idfc|yes|indusind|au|hsbc|citi|federal|onecard|scapia)[a-z ]{0,20}credit ?card|sbi ?card|sbicard|creditcard|card (a\/c|acct|account) payment)/i;
+function isCardBillMove(low, merchant, isCredit){
+  const text = low + " " + String(merchant || "").toLowerCase();
+  if(/refund|revers|cashback|chargeback/.test(text)) return false;
+  if(isCredit) return /\bcard\b|credit ?card|cc a\/c/.test(text) && !/(debit|atm|prepaid|forex|gift) card/.test(text);
+  if(/\bspent\b|used at|purchase|\bpos\b|txn at|transaction at|at [a-z]/.test(low) && !CARD_BILL_DEBIT.test(String(merchant||"").toLowerCase())) return false;
+  return CARD_BILL_DEBIT.test(text);
+}
+// Money moved into something you own (a wallet, FASTag, UPI Lite) or confirmations of money already
+// counted (SIP units allotted, PF/NPS contributions). None of these is new spending or new income.
+const OWN_MOVE = /(add(ed)? money|money added|added to (your )?(\w+ )?wallet|wallet (top ?up|recharge|load)|top ?up of|upi lite|fastag (recharge|top ?up)|recharge(d)? (of )?(your )?fastag|fastag.{0,40}(recharged|credited|added))/i;
+const OWN_INVEST_MOVE = /\b(?:sip|mutual fund|mf|folio|groww|zerodha|coin|kuvera|upstox|paytm money|indmoney|nps|ppf|epfo|provident fund|demat|nsdl|cdsl|angel one|5paisa|hdfc securities|icici direct|kotak securities|fyers|smallcase|fixed deposit|fd account|recurring deposit|rd account|sukanya)\b/i;
+// A SIP unit-allotment message is your bank debit for that SIP being confirmed — it's already
+// counted as spending when that debit happened, so it's excluded here too (Self transfer), not
+// counted again. A pension/PF contribution (EPFO, NPS, PRAN) is usually money that never showed
+// up as a separate bank debit (deducted at source from salary, or an employer top-up) — so unlike
+// a SIP, it IS new money and is treated as Income (see also the dedicated EPFO passbook parser).
+const SIP_CONFIRM = /sip (payment|instal?ment|amount).{0,30}(credited|received|processed)|units? (have been |has been )?allot|allotment of units/i;
+const PENSION_CONTRIB = /epfo|provident fund|pf contribution|\bepf\b|passbook|nps contribution|\bpran\b.{0,60}(contribution|credited)|contribution (of|for) .{0,40}(credited|received)|tier.?i.{0,20}(contribution|credited)/i;
+// Loan disbursements and balance-transfer settlement are financing movements, not income or spending.
+const LOAN_PROCEEDS = /(?:loan|top.?up).{0,100}(?:disburs|sanctioned|credited|credit(?:ed)?|amount released)|(?:disburs|credited|credit(?:ed)?).{0,100}(?:loan|top.?up)/i;
+const LOAN_TRANSFER = /balance transfer|loan takeover|takeover (?:of|from) (?:your )?(?:home|car|vehicle|personal|property)? ?loan|loan transfer|loan closure.{0,40}(?:transfer|takeover)/i;
+// One set of merchant rules (name and category). Rules imported from a backup are kept as the
+// starting point, so "undo my changes" can go back to them. A merchant matches exactly, or when one
+// name starts with the other and the shared part is at least 6 letters ("swiggyinstamart" ~ "swiggy").
+let prefixCache = null, prefixCacheSize = -1;
+function prefixKeys(){
+  const n = Object.keys(state.rules).length;
+  if(prefixCache && prefixCacheSize === n) return prefixCache;
+  prefixCacheSize = n;
+  prefixCache = Object.keys(state.rules).filter(k=>k.length >= 6).sort((a,b)=>b.length - a.length);
+  return prefixCache;
+}
+function ruleFor(mk){
+  if(!mk) return null;
+  if(state.rules[mk]) return state.rules[mk];
+  if(mk.length < 6) return null;
+  for(const k of prefixKeys()) if(mk.startsWith(k) || k.startsWith(mk)) return state.rules[k];
+  return null;
+}
+function nameFor(mk){ return state.names[mk] || null; }
+function migrateRules(){
+  // earlier versions kept imported rules apart; fold them into the one rule set
+  const p = state.pack;
+  state.ruleBase = state.ruleBase || { rules: {}, names: {}, labels: {} };
+  if(p && (Object.keys(p.rules||{}).length || Object.keys(p.names||{}).length)){
+    Object.entries(p.rules||{}).forEach(([k,v])=>{ state.ruleBase.rules[k] = v; if(!state.rules[k]) state.rules[k] = v; });
+    Object.entries(p.names||{}).forEach(([k,v])=>{ state.ruleBase.names[k] = v; if(!state.names[k]) state.names[k] = v; });
+    Object.assign(state.ruleBase.labels, p.labels || {});
+  }
+  delete state.pack;
+  prefixCache = null;
+}
+function categorize(merchant, low, isCredit, mode, vpa){
+  // what the message says about the money beats what the merchant is usually filed as
+  if(isCardBillMove(low, merchant, isCredit)) return "Card payments";
+  if(LOAN_TRANSFER.test(low)) return "Loan transfer";
+  if(isCredit && LOAN_PROCEEDS.test(low)) return "Loan proceeds";
+  if(OWN_MOVE.test(low)) return "Self transfer";
+  if(!isCredit && OWN_INVEST_MOVE.test(low) && !/fee|charge|penalty|tax|interest|redemption|withdrawal|sell|dividend/i.test(low)) return "Self transfer";
+  if(SIP_CONFIRM.test(low)) return "Self transfer";
+  if(PENSION_CONTRIB.test(low)) return "Income";
+  const mk = mkey(merchant);
+  const ruled = ruleFor(mk);
+  if(ruled && !(isCredit && !CREDIT_CATS.includes(ruled)) && !(!isCredit && ["Income","Refunds"].includes(ruled))) return ruled;
+  if(isCredit && /refund|reversal|reversed|cashback/.test(low)) return "Refunds";
+  if(CARD_PAY.test(low)) return "Card payments";
+  if(isCredit){
+    if(/refund|reversed|reversal|cashback/.test(low)) return "Refunds";
+    if(/salary|sal\b|payroll|interest|dividend/.test(low)) return "Income";
+  }
+  const hay = " " + (merchant||"").toLowerCase() + " ";
+  // short keywords ("vi", "lic", "mf") must be whole words, so names like "Ravi" don't match
+  const has = (text, w) => { const k = w.trim(); return k.length <= 3 ? new RegExp("(^|[^a-z])" + k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "([^a-z]|$)").test(text) : text.includes(w); };
+  if(!isCredit){
+    for(const [cat, words] of Object.entries(KEYWORDS)) if(words.some(w=>has(hay, w))) return cat;
+    for(const [cat, words] of Object.entries(KEYWORDS)) if(words.some(w=>has(" "+low+" ", w))) return cat;
+  }
+  if(mode === "ATM") return "Cash";
+  if(isCredit) return "Income";
+  if(mode === "UPI" && vpa && !/^(paytmqr|q\d|bharatpe|mab\.|gpay-|pay-|upiqr)/i.test(vpa) && /^\d{10}@|@ok|@ybl|@ibl|@axl|@apl/i.test(vpa)) return "Transfers";
+  if(mode === "Bank transfer") return "Transfers";
+  return "Other";
+}
+
+function acctOf(t){
+  const a = (t.match(/(?:a\/?c|acct|account|card|\bac)\b\.?\s*(?:no\.?\s*)?(?:ending(?:\s*(?:with|in))?\s*)?[:\s]*[xX*]+\s?(\d{3,6})/i)
+          || t.match(/card\s*(?:no\.?\s*)?(?:ending\s*(?:with|in)?\s*)?[xX*]*\s?(\d{4})\b/i)
+          // "PRAN XX7290" or "PRANXX7290" (no space, so a plain word boundary won't find "PRAN" alone)
+          || t.match(/pran[:\-]?\s*[xX*]{2,}(\d{3,6})/i)
+          || t.match(/\b[xX*]{2,}(\d{3,6})\b/));
+  return a ? a[1] : "";
+}
+function bankOf(t){
+  const sig = t.match(/[-–]\s*([A-Za-z][A-Za-z ]{1,30})$/);
+  const tailTxt = sig ? sig[1] : t.slice(-25);
+  return (BANKS.find(([,re])=>re.test(tailTxt)) || BANKS.find(([,re])=>re.test(t)) || [""])[0];
+}
+const num = s => parseFloat(String(s).replace(/,/g,""));
+function balancesOf(t){
+  const b = t.match(/\b(?:bal(?:ance)?|investment value)\b(?:[xX*]+\d{3,6}|\d{1,2}[-\/\s][A-Za-z]{3,9}[-\/\s]?\d{2,4}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4}|[^₹\d]){0,45}?(?:rs\.?|inr|₹)\s*(-?[\d,]+(?:\.\d+)?)/i);
+  const l = t.match(/(?:avl\.?|avail(?:able)?|avbl\.?)\s*(?:credit\s*|cr\.?\s*)?(?:lmt|limit)\.?(?:\s*(?:is|:|-))?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d+)?)/i);
+  return { balance: b ? num(b[1]) : null, availLimit: l ? num(l[1]) : null };
+}
+function parseBill(t, fallbackDate){
+  const low = t.toLowerCase();
+  const AMT = "(?:rs\\.?|inr|₹)\\s*([\\d,]+(?:\\.\\d{1,2})?)";
+  const tot = t.match(new RegExp("(?:total|tot\\.?)\\s*(?:amt|amount|payment|bill)?\\s*(?:due|payable|outstanding)?[^0-9₹a-z]{0,6}(?:of\\s*)?" + AMT, "i"))
+           || t.match(new RegExp("(?:bill|amount|amt|payment)\\s*(?:of\\s*|for\\s*|is\\s*)?" + AMT + "[^.]{0,50}\\bdue", "i"))
+           || t.match(new RegExp("(?:bill|amount|amt)\\s*(?:due|payable)[^0-9₹]{0,18}" + AMT, "i"));
+  const min = t.match(new RegExp("min(?:imum)?\\.?\\s*(?:amt|amount|payment)?\\s*(?:due|payable)?[^0-9₹a-z]{0,6}(?:of\\s*)?" + AMT, "i"));
+  const any = t.match(new RegExp(AMT, "i"));
+  const amount = tot ? num(tot[1]) : (min ? num(min[1]) : (any ? num(any[1]) : 0));
+  if(!amount) return null;
+  const at = low.search(/due\s*(on|by|date)|payable (by|on|before)|pay by|before|last date|due\b/);
+  const dueDate = (at >= 0 && parseDate(t.slice(at))) || null;
+  const account = acctOf(t), bank = bankOf(t);
+  let biller = "";
+  if(!/card/i.test(t)) for(const w of KEYWORDS["Bills & utilities"]) if(low.includes(w.trim()) && w.trim().length > 3){ biller = w.trim(); break; }
+  const isCard = /card/i.test(t);
+  const isLoan = !isCard && /\b(emi|loan)\b/i.test(t);
+  const name = isCard ? `${bank || "Credit"} card${account ? " ··" + account : ""}` :
+               isLoan ? `${bank || ""} loan${account ? " ··" + account : ""}`.trim() :
+               biller ? biller.replace(/\b[a-z]/g, c=>c.toUpperCase()) + (account ? " ··" + account : "") :
+               (bank ? bank + " bill" : "Bill");
+  // Label the bill by what it clearly is, so an EMI or e-mandate reads that way in the Bills list
+  // whether it arrived as an upcoming-debit notice or an ordinary "is due on" reminder.
+  const label = isCard ? "" : isLoan ? "EMI" : /mandate|\bnach\b|\becs\b/i.test(t) ? "E-mandate" : "";
+  return { id: uidGen(), key: mkey((bank||biller) + account) || mkey(name), name, kind: isCard ? "card" : "bill", label,
+    amount, minDue: min ? num(min[1]) : null, dueDate, account, bank, biller, seen: fallbackDate || todayISO(), paid: false, raw: t };
+}
+// senderAddr (an Android DLT code like "AD-HDFCBK") names the true sending bank far more reliably
+// than scanning the text, which can mention a different bank as a third party (a loan lender,
+// a beneficiary, etc). When available, it overrides whatever the text-based guess found.
+// Bank DLT sender codes (e.g. "AD-HDFCBK") concatenate the bank's short code with no separators,
+// so this is a plain substring check on the letters only, not the word-boundary regexes in BANKS
+// (those are tuned for free text and can miss "SBI" glued directly to "INB").
+const SENDER_BANK = [
+  ["HDFC","HDFC"],["ICICI","ICICI"],["SBI","SBI"],["Axis","AXIS"],["Kotak","KOTAK"],["IDFC First","IDFC"],
+  ["Yes Bank","YESBNK|YESBAN|-YBL"],["IndusInd","INDUS"],["Federal","FEDBNK|FEDERA"],["PNB","PNBSMS|PUNB"],
+  ["Bank of Baroda","BOBTXN|BOBIBK|BOIIND"],["Canara","CANBNK|CANARA"],["Union Bank","UNIONB|UBOI"],
+  ["IDBI","IDBIBK"],["RBL","RBLBNK"],["HSBC","HSBCIN"],["Standard Chartered","SCBANK|SCBIND"],
+  ["OneCard","ONECRD|ONECAR"],["AU","AUBANK|AUSFB"]
+];
+function senderToBank(addr){
+  const a = String(addr||"").toUpperCase();
+  for(const [name, pat] of SENDER_BANK) if(new RegExp(pat).test(a)) return name;
+  return "";
+}
+function parseOne(msg, fallbackDate, senderAddr){
+  const r = parseOneCore(msg, fallbackDate);
+  if(!senderAddr || (!r.txn && !r.bill && !r.balance)) return r;
+  const senderBank = senderToBank(senderAddr);
+  if(!senderBank) return r;
+  if(r.txn) r.txn.bank = senderBank;
+  if(r.bill) r.bill.bank = senderBank;
+  // don't overwrite a recognised scheme label (PPF/NPS/EPFO/...) with the underlying bank's name
+  if(r.balance && r.balance.kind !== "invest") r.balance.bank = senderBank;
+  return r;
+}
+// "We have activated a Standing Instruction... Merchant: X, Maximum Amount: Rs Y, Frequency: monthly"
+// authorizes future charges; it isn't a charge itself, so it's read into Subscriptions instead
+// of being mistaken for a payment (the word "Purchase" in a merchant name like "App Purchase
+// Services" otherwise looks exactly like a completed purchase to the scanner below).
+const PAYMENT_CONFIRM = /(?:we have received|received (?:a |your )?payment|payment (?:of|for)\s*(?:rs\.?|inr|₹)?\s*[\d,.]+\s*(?:has been |is |was )?(?:received|credited|posted|realised|realized|successfully)|payment received|payment credited|payment successfully received|thank you for (?:your |the )?payment).{0,140}/i;
+const MANDATE_STOP = /(?:standing instruction|mandate|autopay|e-?mandate|nach|ecs).{0,70}(?:cancel(?:led|ed)?|deactivat(?:ed|e)|stopp(?:ed|ing)|revok(?:ed|e)|terminated|closed)|(?:cancel(?:led|ed)?|deactivat(?:ed|e)|stopp(?:ed|ing)|revok(?:ed|e)|terminated|closed).{0,70}(?:standing instruction|mandate|autopay|e-?mandate|nach|ecs)/i;
+const MANDATE_SETUP = /(?:activat|regist|creat|set up|setup|successfully).{0,55}\b(standing instruction|mandate|autopay|e-?mandate)\b|\b(standing instruction|mandate|autopay|e-?mandate)\b.{0,55}\b(has been |is |was |successfully )?(activat|regist|creat|set ?up|setup|enabled)\b/i;
+function mandateMerchant(t){
+  const merchM = t.match(/(?:merchant|biller|payee|beneficiary)\s*[:\-]?\s*([^,.;\n]{2,60})/i);
+  if(merchM) return cleanMerchant(merchM[1]);
+  const toM = t.match(/(?:to|for|towards)\s+([A-Za-z][A-Za-z0-9&'.\- ]{2,50}?)(?=\s+(?:from|on|dated|for|amount|rs\.?|inr|₹)|[.;,]|$)/i);
+  return toM ? cleanMerchant(toM[1]) : '';
+}
+function deactivateRecurringFromSms(t){
+  const merchant = mandateMerchant(t);
+  const candidates = new Set();
+  if(merchant) candidates.add(mkey(merchant));
+  state.subsManual.forEach(m=>{ if(!merchant || mkey(m.name).includes(mkey(merchant)) || mkey(merchant).includes(mkey(m.name))) candidates.add(m.key); });
+  detectSubs().forEach(x=>{ if(!merchant || mkey(x.name).includes(mkey(merchant)) || mkey(merchant).includes(mkey(x.name))) candidates.add(x.key); });
+  const before = JSON.stringify([state.subsManual, state.subsHidden]);
+  candidates.forEach(k=>{ if(!k) return; state.subsManual = state.subsManual.filter(m=>m.key !== k); if(!state.subsHidden.includes(k)) state.subsHidden.push(k); });
+  return before !== JSON.stringify([state.subsManual, state.subsHidden]);
+}
+function parsePaymentConfirmation(t, fallbackDate){
+  if(!PAYMENT_CONFIRM.test(t)) return null;
+  const am = t.match(/(?:payment|paid|amount|received)(?:\s+of|\s+for|\s+is|\s*:)?\s*(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  if(!am) return null;
+  const amount = num(am[1]); if(!amount) return null;
+  const mer = extractMerchant(t, true);
+  let merchant = mer.name || mandateMerchant(t) || '';
+  if(!merchant){
+    const m = t.match(/payment.{0,30}?(?:for|towards)\s+(?:your\s+)?([A-Za-z][A-Za-z0-9&'.\- ]{2,45})/i);
+    if(m) merchant = cleanMerchant(m[1]);
+  }
+  const date = parseDate(t) || fallbackDate || todayISO();
+  const ref = (t.match(/(?:upi ref(?:erence)?|ref(?:erence)?(?: no)?|utr|rrn|txn id|transaction id)[:.\s#-]*([A-Za-z0-9]{6,})/i)||[])[1]||'';
+  return { id: uidGen(), date, amount, type: 'credit', merchant: merchant || 'Payment confirmation', category: 'Payment confirmation', account: acctOf(t), bank: bankOf(t), mode: detectMode(t.toLowerCase()), ref, raw: t, note: 'Confirmation of a payment already recorded elsewhere' };
+}
+function parseMandate(t, fallbackDate){
+  const merchM = t.match(/merchant:?\s*([^,]+)/i);
+  let merchant = merchM ? merchM[1].trim().replace(/\s+/g," ") : "";
+  const bank = bankOf(t);
+  if(!merchant) merchant = bank ? bank + " standing instruction" : "Standing instruction";
+  const amtM = t.match(/max(?:imum)? amount:?\s*(?:inr|rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) || t.match(/(?:inr|rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  const amount = amtM ? parseFloat(amtM[1].replace(/,/g,"")) : 0;
+  if(!amount) return null;
+  const freqM = t.match(/frequency:?\s*([a-z]+)/i);
+  const fw = freqM ? freqM[1].toLowerCase() : "";
+  const freq = /quart/.test(fw) ? "quarter" : /year|annual/.test(fw) ? "year" : "month";
+  const category = categorize(merchant, merchant.toLowerCase(), false, "", "");
+  return { id: uidGen(), key: mkey(merchant), name: merchant, amount, freq, category, source: "sms" };
+}
+// "Dear XXXX1153, your passbook balance against GNGGN... is Rs. 18,83,844. Contribution of
+// Rs. 29,936 for due month Dec-24 has been received." — two very different figures in one
+// message: a large running total (account context, read as a balance) and the actual event,
+// this month's contribution (the transaction amount). Reading the first Rs. figure in the
+// message, as the general parser does, would record the running total as if it were spent.
+const EPFO_PASSBOOK = /passbook balance/i;
+function parseEpfoPassbook(t, fallbackDate){
+  const balM = t.match(/passbook balance.{0,60}?(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  const contM = t.match(/contribution\s+of\s+(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  if(!contM) return null;
+  const amount = num(contM[1]);
+  if(!amount) return null;
+  const balance = balM ? num(balM[1]) : null;
+  const date = parseDate(t) || fallbackDate || todayISO();
+  // Unlike a SIP/NPS confirmation (money already sitting in an account you hold), a PF
+  // contribution is money you're receiving — from your own salary deduction or your employer's
+  // matching share — that just lands in your EPF account rather than your bank. It counts as
+  // income; the passbook total below is tracked as your EPFO balance, separately from this.
+  const txn = { id: uidGen(), date, amount, type: "credit", merchant: "EPF contribution", category: "Income",
+    account: acctOf(t), bank: "", mode: "", ref: "", raw: t, note: "" };
+  if(balance != null) txn.balance = balance;
+  return txn;
+}
+function parseOneCore(msg, fallbackDate){
+  const t = msg.replace(/\s+/g," ").trim();
+  const low = t.toLowerCase();
+  if(SKIP.test(t)) return { skip: "Not a completed transaction (OTP, offer or failed payment)" };
+  if(looksLikePromo(t)) return { skip: "Promotional message" };
+  if(MANDATE_STOP.test(t)){
+    const changed = deactivateRecurringFromSms(t);
+    return { recurringStop: true, changed, skip: "Standing instruction / mandate stopped" };
+  }
+  const confirmation = parsePaymentConfirmation(t, fallbackDate);
+  if(confirmation) return { txn: confirmation };
+  if(MANDATE_SETUP.test(t)){
+    const sub = parseMandate(t, fallbackDate);
+    return sub ? { subscription: sub } : { skip: "Standing instruction / mandate notice without an amount" };
+  }
+  if(EPFO_PASSBOOK.test(t)){
+    const txn = parseEpfoPassbook(t, fallbackDate);
+    return txn ? { txn } : { skip: "EPF passbook update without a contribution amount" };
+  }
+  if(AUTOPAY_DUE.test(t)){
+    const bill = parseBill(t, fallbackDate);
+    if(bill){
+      bill.label = /emi|loan/i.test(t) ? "EMI" : /mandate|nach|ecs/i.test(t) ? "E-mandate" : "Autopay"; bill.autopay = true;
+      if(!bill.dueDate) bill.dueDate = parseDate(t.slice(Math.max(0, t.search(AUTOPAY_DUE)))) || parseDate(t);
+      return { bill };
+    }
+    return { skip: "Upcoming auto-debit without an amount" };
+  }
+  if(DUE.test(t)){
+    const bill = parseBill(t, fallbackDate);
+    return bill ? { bill } : { skip: "Bill reminder without an amount" };
+  }
+  const bals = balancesOf(t);
+  const balanceOnly = ()=>{
+    if(bals.balance == null && bals.availLimit == null) return null;
+    const account = acctOf(t); if(!account) return null;
+    const it = investType(t);
+    const kind = it ? "invest" : (/card/i.test(t) || bals.availLimit != null ? "card" : "bank");
+    return { balance: { bank: it ? it.bank : bankOf(t), account, kind, typeLabel: it ? it.label : undefined, ...bals, asOf: parseDate(t) || fallbackDate || todayISO() } };
+  };
+  const stripped = t
+    .replace(/(avl\.?|available|avbl\.?|total|clr\.?|closing)\s*(bal(ance)?|lmt|limit|credit limit)[^0-9₹]{0,12}(rs\.?|inr|₹)?\s*-?[\d,]+(\.\d+)?/gi," ")
+    .replace(/\bbal(ance)?\b[^0-9₹]{0,8}(rs\.?|inr|₹)?\s*-?[\d,]+(\.\d+)?/gi," ");
+  let am = stripped.match(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) || stripped.match(/(?:debited|credited)\s+(?:by|for|with)\s+([\d,]+(?:\.\d{1,2})?)/i);
+  let smsCur = "";
+  if(!am){
+    const fm = stripped.match(new RegExp("\\b(" + CURRENCIES.filter(c=>c!=="INR").join("|") + ")\\s?([\\d,]+(?:\\.\\d{1,2})?)"));
+    if(fm){ am = [fm[0], fm[2]]; smsCur = fm[1]; }
+  }
+  if(!am) return balanceOnly() || { skip: "No amount found" };
+  const amount = parseFloat(am[1].replace(/,/g,""));
+  if(!amount || amount <= 0) return { skip: "No amount found" };
+  const di = firstIndex(low, DEBIT_WORDS), ci = firstIndex(low, CREDIT_WORDS);
+  const cardAckEarly = CARD_ACK.test(t);
+  if(di < 0 && ci < 0 && !cardAckEarly) return balanceOnly() || { skip: "Couldn't tell if money went out or came in" };
+  let isCredit = ci >= 0 && (di < 0 || ci < di);
+  // "Payment of Rs X received towards your card" / "Thank you for your payment": money arriving on your card,
+  // not a spend. It pairs with the bank debit that paid it, so neither side counts as an expense.
+  const cardAck = CARD_ACK.test(t);
+  if(cardAck) isCredit = true;
+  const account = acctOf(t);
+  const bank = bankOf(t);
+  const mode = detectMode(low);
+  const ref = (t.match(/(?:upi ref(?:\s*no)?|ref(?:erence)?(?:\s*no)?|utr|rrn|txn id|refno)[:.\s#-]*([A-Za-z0-9]{6,})/i) || [])[1] || "";
+  const mer = extractMerchant(t, isCredit);
+  let merchant = mer.name;
+  if(!merchant || (cardAck && /^money received$/i.test(merchant))) merchant = cardAck ? "Card payment received" : mode === "ATM" ? "ATM withdrawal" :
+    isCredit ? (PENSION_CONTRIB.test(low) ? ((investType(t)||{}).bank || "Pension") + " contribution" : "Money received") : (bank ? bank + " debit" : "Payment");
+  const nm = nameFor(mkey(merchant)); if(nm) merchant = nm;
+  const date = parseDate(t) || fallbackDate || todayISO();
+  const category = cardAck ? "Card payments" : categorize(merchant, low, isCredit, mode, mer.vpa);
+  const txn = { id: uidGen(), date, amount, type: isCredit ? "credit" : "debit", merchant, category,
+    account, bank, mode, ref, raw: t, note: "" };
+  if(smsCur) txn.currency = smsCur;
+  if(bals.balance != null) txn.balance = bals.balance;
+  if(bals.availLimit != null) txn.availLimit = bals.availLimit;
+  return { txn };
+}
+
+function syncLoanTranchesToBalance(a,newBalance){
+  if(!a || a.kind!=="loan" || !Array.isArray(a.loanTranches) || !a.loanTranches.length) return;
+  let target=Math.max(0,Number(newBalance)||0);
+  let current=a.loanTranches.reduce((s,t)=>s+Math.max(0,Number(t.outstanding)||0),0);
+  if(Math.abs(current-target)<0.01) return;
+  if(target<current){
+    let reduce=current-target;
+    a.loanTranches.slice().sort((x,y)=>String(x.startDate||"").localeCompare(String(y.startDate||""))).forEach(t=>{
+      if(reduce<=0)return; const v=Math.max(0,Number(t.outstanding)||0),d=Math.min(v,reduce); t.outstanding=v-d; reduce-=d;
+    });
+  }else{
+    let add=target-current; const t=a.loanTranches[a.loanTranches.length-1]; if(t) t.outstanding=Math.max(0,Number(t.outstanding)||0)+add;
+  }
+}
+function updateAccount(a){
+  if(!a || !a.account) return false;
+  const key = mkey(a.bank) + a.account;
+  const cur = state.accounts[key];
+  if(cur?.closed) return false;
+  if(cur && cur.asOf > a.asOf) return false;
+  const next = { ...(cur||{}), bank: a.bank || (cur && cur.bank) || "", account: a.account, kind: a.kind || (cur && cur.kind) || "bank", asOf: a.asOf };
+  if(a.balance != null){ next.balance = a.balance; if(next.kind==="loan") syncLoanTranchesToBalance(next,a.balance); }
+  if(a.availLimit != null){ next.availLimit = a.availLimit; next.kind = "card"; }
+  if(a.typeLabel) next.typeLabel = a.typeLabel;
+  state.accounts[key] = next; return true;
+}
+// Savings schemes and investments whose SMS states a running balance/value, beyond a plain
+// bank account. Matched against the raw message; first one to match wins, so more specific
+// terms (PPF, NPS) are listed before the generic "provident" catch-all that EPFO messages use.
+const INVEST_TYPES = [
+  [/\bnps\b|\bpran\b|national pension|pension (fund|scheme|account)/i, "NPS", "Pension (NPS)"],
+  [/\bppf\b|public provident fund/i, "PPF", "Public Provident Fund"],
+  [/sukanya samriddhi|\bssy\b/i, "SSY", "Sukanya Samriddhi"],
+  [/\bepfo\b|\buan\b|provident fund|passbook/i, "EPFO", "Provident fund"],
+  [/mutual fund|\bfolio\b|portfolio value|\bsip\b.{0,20}(units|value)/i, "Mutual funds", "Mutual fund value"],
+  [/fixed deposit|\bfd\b\s*(a\/?c|account|no\.?)/i, "Fixed deposits", "Fixed deposit"],
+  [/recurring deposit|\brd\b\s*(a\/?c|account|no\.?)/i, "Recurring deposits", "Recurring deposit"]
+];
+function investType(raw){
+  for(const [re, bank, label] of INVEST_TYPES) if(re.test(raw || "")) return { bank, label };
+  return null;
+}
+function absorbTxn(t){
+  if(t.balance == null && t.availLimit == null) return false;
+  const it = investType(t.raw);
+  const ok = updateAccount({ bank: it ? it.bank : t.bank, account: t.account, kind: it ? "invest" : t.availLimit != null || /card/i.test(t.mode) ? "card" : "bank", balance: t.balance, availLimit: t.availLimit, asOf: t.date });
+  if(it){ const a = state.accounts[mkey(it.bank) + t.account]; if(a){ a.typeLabel = it.label; a.bank = a.bank || it.bank; } }
+  return ok;
+}
+// Adds a mandate-detected subscription, or updates it if the same merchant sets one up again
+// with a different ceiling amount or frequency.
+function upsertSubscription(sub){
+  const existing = state.subsManual.find(m=>m.key === sub.key);
+  if(existing){
+    if(existing.amount === sub.amount && existing.freq === sub.freq) return false;
+    existing.amount = sub.amount; existing.freq = sub.freq; return true;
+  }
+  state.subsHidden = state.subsHidden.filter(k=>k !== sub.key);
+  state.subsManual.push(sub);
+  return true;
+}
+function upsertBill(b){
+  const same = state.bills.find(x=>x.key === b.key && ((x.dueDate && x.dueDate === b.dueDate) || (!x.paid && Math.abs(daysBetween(x.seen, b.seen)) <= 20)));
+  if(same){
+    if(b.seen < same.seen) return false;      // an older reminder for a bill we already have
+    Object.assign(same, { amount: b.amount, minDue: b.minDue, dueDate: b.dueDate || same.dueDate, seen: b.seen, raw: b.raw, name: b.name });
+    return true;
+  }
+  state.bills.push(b);
+  // keep the list tidy: at most 200 bills, dropping the oldest paid ones first
+  if(state.bills.length > 200){ state.bills.sort((a,c)=>(a.paid===c.paid ? (a.dueDate||a.seen).localeCompare(c.dueDate||c.seen) : a.paid ? -1 : 1)); state.bills.shift(); }
+  return true;
+}
+// A bill counts as paid when a card payment (or a matching biller debit) lands near its due date.
+// Money moved between your own accounts shows up twice: debited from one, credited to another
+// (both SMS reach your phone). Same amount, within 2 days, different accounts: mark both as not spending.
+function ownSign(t){
+  const me = mkey((state.family && state.family.me) || "");
+  const r = (t.raw || "").toLowerCase();
+  return /\bself\b|own a\/?c|own account|to your (a\/?c|account)|between your accounts/.test(r) || (me.length >= 4 && mkey(t.merchant).includes(me));
+}
+function linkPaymentConfirmations(){
+  const debits = state.txns.filter(t=>t.type === 'debit' && !t.confirmationId && t.category !== 'Card payments' && t.category !== 'Self transfer');
+  const confirmations = state.txns.filter(t=>t.category === 'Payment confirmation' && !t.confirmationLinked);
+  const months = new Set(); let n=0;
+  confirmations.forEach(c=>{
+    const candidates = debits.filter(d=>{
+      if(Math.abs(d.amount-c.amount) > 0.01) return false;
+      if(Math.abs(daysBetween(d.date,c.date)) > 3) return false;
+      const dm=mkey(d.merchant), cm=mkey(c.merchant);
+      const refMatch=c.ref && d.ref && c.ref.toLowerCase()===d.ref.toLowerCase();
+      const merchantMatch=dm.length>=4 && cm.length>=4 && (dm.includes(cm)||cm.includes(dm)||dm.slice(0,6)===cm.slice(0,6));
+      return refMatch || merchantMatch;
+    }).sort((a,b)=>Math.abs(daysBetween(a.date,c.date))-Math.abs(daysBetween(b.date,c.date)));
+    const d=candidates[0]; if(!d) return;
+    c.confirmationLinked=d.id; d.confirmationId=c.id; c.note='Linked to bank debit';
+    months.add(d.date.slice(0,7)); n++;
+  });
+  return {n,months:[...months]};
+}
+function matchRecurringTransactions(){
+  const active=[...(state.subsManual||[])];
+  const detected=detectSubs();
+  const subs=active.concat(detected.filter(d=>!active.some(m=>m.key===d.key)));
+  let changed=false; const months=new Set();
+  subs.forEach(sub=>{
+    const step=sub.freq==='year'?365:sub.freq==='quarter'?91:30;
+    const key=mkey(sub.name||''); if(!key) return;
+    state.txns.filter(t=>t.type==='debit'&&!t.recurringKey&&counts(t)).forEach(t=>{
+      const tm=mkey(t.merchant||'');
+      if(!tm || !(tm===key||tm.includes(key)||key.includes(tm)||tm.slice(0,6)===key.slice(0,6))) return;
+      if(sub.amount && Math.abs(t.amount-sub.amount)>Math.max(2,sub.amount*0.20)) return;
+      if(sub.last && t.date<sub.last) return;
+      const prev=state.txns.filter(x=>x!==t&&x.type==='debit'&&x.recurringKey===sub.key).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      if(prev && Math.abs(daysBetween(prev.date,t.date)-step)>18) return;
+      t.recurringKey=sub.key; t.recurringMatched=true; changed=true; months.add(t.date.slice(0,7));
+    });
+  });
+  return {changed,months:[...months]};
+}
+function mentionsOwnedAccount(t){
+  const known = Object.values(state.accounts||{}).map(a=>String(a.account||'')).filter(Boolean);
+  if(!known.length) return false;
+  const raw=String(t.raw||'');
+  const suffixes=[...raw.matchAll(/[xX*]{2,}(\d{3,6})/g)].map(m=>m[1]);
+  return suffixes.some(s=>known.includes(s));
+}
+function linkTransfers(){
+  const ok = t => !t.userCat && !isForeign(t) && !t.linked && t.category !== "Refunds" && t.source !== "finart";
+  const credits = {}, months = new Set();
+  state.txns.forEach(t=>{ if(t.type === "credit" && ok(t)) (credits[t.amount.toFixed(2)] = credits[t.amount.toFixed(2)] || []).push(t); });
+  let n = 0;
+  state.txns.forEach(d=>{
+    if(d.type !== "debit" || !ok(d)) return;
+    const list = credits[d.amount.toFixed(2)]; if(!list) return;
+    const c = list.find(c=>{
+      if(c.linked || Math.abs(daysBetween(d.date, c.date)) > 2) return false;
+      if(c.category === "Card payments" || d.category === "Card payments") return true;
+      if(d.mode === "Card" || d.mode === "ATM") return false;           // a card purchase is never a transfer
+      if(!(c.account && d.account && c.account !== d.account)) return false;
+      if(ownSign(d) || ownSign(c)) return true;
+      // same name on both sides (e.g. "To VAGEESH" / "from VAGEESH") means your own accounts
+      const a = mkey(d.merchant), b = mkey(c.merchant);
+      if(a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a) || a.slice(0,5) === b.slice(0,5))) return true;
+      // A transfer is auto-linked only when there is evidence that the destination is one of the user's own accounts.
+      return mentionsOwnedAccount(d) || mentionsOwnedAccount(c);
+    });
+    if(!c) return;
+    const card = c.category === "Card payments" || d.category === "Card payments" || /card/i.test(c.raw || "") && CARD_ACK.test(c.raw || "");
+    const cat = card ? "Card payments" : "Self transfer";
+    [d, c].forEach(x=>{ if(x.category !== cat){ x.autoCat = x.category; x.category = cat; } months.add(x.date.slice(0,7)); });
+    d.linked = c.id; c.linked = d.id; n++;
+  });
+  return { n, months: [...months] };
+}
+function autoMarkPaid(){
+  let changed = false;
+  const open = state.bills.filter(b=>!b.paid);
+  if(!open.length) return false;
+  const billers = open.map(b=>mkey(b.biller)).filter(Boolean);
+  // only look at payments that could possibly settle a bill, so 5-year imports stay quick
+  const cands = state.txns.filter(t=>t.category === "Card payments" ||
+    (billers.length && t.type === "debit" && billers.some(k=>mkey(t.merchant + " " + (t.raw||"")).includes(k))));
+  open.forEach(b=>{
+    const due = b.dueDate || addDays(b.seen, 20);
+    const need = (b.minDue || b.amount) * 0.95;
+    if(b.autopay){
+      const d = state.txns.find(t=>t.type === "debit" && Math.abs(t.amount - b.amount) <= 1 && t.date >= addDays(due, -2) && t.date <= addDays(due, 4));
+      if(d){ b.paid = true; b.paidOn = d.date; changed = true; }
+      return;
+    }
+    const hit = cands.find(t=>{
+      if(t.date < addDays(b.seen, -3) || t.date > addDays(due, 10)) return false;
+      if(t.amount < need) return false;
+      if(b.kind === "card") return t.category === "Card payments" && (!b.account || !t.account || t.account === b.account || t.type === "debit");
+      return t.type === "debit" && b.biller && mkey(t.merchant + " " + t.raw).includes(mkey(b.biller));
+    });
+    if(hit){ b.paid = true; b.paidOn = hit.date; changed = true; }
+  });
+  return changed;
+}
+function upcomingBills(){
+  const today = todayISO();
+  return state.bills.filter(b=>!b.paid && (b.dueDate ? daysBetween(b.dueDate, today) <= 30 : daysBetween(b.seen, today) <= 45))
+    .sort((a,b)=>(a.dueDate||"9999").localeCompare(b.dueDate||"9999"));
+}
+function dueText(b){
+  if(!b.dueDate) return `<span>Due date not in SMS</span>`;
+  const n = daysBetween(todayISO(), b.dueDate);
+  if(n < 0) return `<span class="late">Overdue by ${-n} ${n===-1?"day":"days"}</span>`;
+  if(n === 0) return `<span class="late">Due today</span>`;
+  return `<span class="${n<=3?"soon":""}">Due in ${n} ${n===1?"day":"days"}</span><span>${esc(niceDate(b.dueDate))}</span>`;
+}
+function billRow(b, actions){
+  return `<div class="due"><span class="n">${esc(b.name)}</span><span class="num" style="font-weight:600">${money(b.amount,true)}</span>
+    <span class="w" style="grid-column:1/3">${b.label ? `<span>${esc(b.label)}</span>` : ""}${dueText(b)}${b.minDue && b.minDue < b.amount ? `<span>Min ${money(b.minDue,true)}</span>` : ""}${b.amountPaid > 0 && b.amountPaid < b.amount ? `<span class="soon">Paid ${money(b.amountPaid,true)} so far</span>` : ""}
+    ${actions ? `<button class="mini" data-paid="${b.id}">Mark paid</button>` : ""}</span></div>`;
+}
+
+const ACCT_GROUPS = [["bank","Bank accounts",["bank"]],["other","Other accounts",["card","wallet","fastag","invest"]],["loan","Loan accounts",["loan"]]];
+const KIND_LABEL = { bank: "Balance", wallet: "Wallet balance", fastag: "FASTag balance", invest: "Investment", loan: "Loan outstanding" };
+const acctOpen = {};
+const acctSectionHidden = {};
+const KIND_ORDER = [["bank","Bank accounts"],["card","Credit cards"],["wallet","Wallets and prepaid"],["fastag","FASTag"],["invest","Investments, PF and pension"],["loan","Loans"]];
+function cleanDuplicateRecurringTransactions(){
+  const seen=new Map(), remove=new Set();
+  const recurringKeys=new Set(allSubs().map(x=>x.key));
+  const txs=(state.txns||[]).filter(t=>t&&t.type==="debit"&&recurringKeys.has(mkey(t.merchant)));
+  txs.sort((a,b)=>(a.added||0)-(b.added||0));
+  txs.forEach(t=>{ const k=[t.date,t.type,Number(t.amount).toFixed(2),mkey(t.merchant),t.account||""].join("|"); const prev=seen.get(k); if(!prev){seen.set(k,t);return;}
+    // Keep the richer record and merge statement/source/asset metadata before removing the duplicate.
+    const score=x=>Number(!!x.raw)+Number(!!x.note)+Number(!!x.assetId)+Number(!!x.statementSources?.length)+Number(!!x.event)+Number(!!x.person);
+    let keep=score(prev)>=score(t)?prev:t, drop=keep===prev?t:prev;
+    keep.statementSources=[...(keep.statementSources||[]),...(drop.statementSources||[])];
+    if(!keep.assetId&&drop.assetId)keep.assetId=drop.assetId; if(!keep.event&&drop.event)keep.event=drop.event; if(!keep.note&&drop.note)keep.note=drop.note;
+    seen.set(k,keep); remove.add(drop.id);
+  });
+  if(remove.size){ state.txns=state.txns.filter(t=>!remove.has(t.id)); persist([...new Set(state.txns.map(t=>t.date?.slice(0,7)).filter(Boolean))],true); }
+  return remove.size;
+}
+function allSubs(){
+  const det = detectSubs(), keys = new Set(det.map(x=>x.key));
+  const man = (state.subsManual||[]).filter(m=>!keys.has(m.key) && !state.subsHidden.includes(m.key)).map(m=>{
+    const last = state.txns.filter(t=>t.type==="debit" && mkey(t.merchant) === m.key).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const step = m.freq === "year" ? 365 : m.freq === "quarter" ? 91 : 30;
+    let next = null; if(last){ next = last.date; while(next <= todayISO()) next = addDays(next, step); }
+    const perMonth = m.freq === "year" ? m.amount/12 : m.freq === "quarter" ? m.amount/3 : m.amount;
+    return { ...m, next, perMonth: (!m.currency || m.currency === "INR") ? perMonth : 0, manual: true };
+  });
+  return det.concat(man);
+}
+
+/* ---------- Home ---------- */
+function periodsBack(n){
+  const out = []; let [y,m] = currentPK().split("-").map(Number);
+  for(let i=0;i<n;i++){ out.unshift(y + "-" + String(m).padStart(2,"0")); m--; if(m<1){ m=12; y--; } }
+  return out;
+}
+function lakh(n){ if(n < 500) return "0"; const v = n / 100000; return String(parseFloat(v >= 10 ? v.toFixed(1) : v.toFixed(2))); }
+// Whole thousands, for the income vs expenses graphs (e.g. 486000 -> "486").
+// Picks whichever unit (hundred / thousand / lakh) keeps the numbers on a graph short and readable.
+function chartScale(max){
+  if(max < 1000) return { div: 100, unit: "hundred" };
+  if(max < 100000) return { div: 1000, unit: "thousand" };
+  return { div: 100000, unit: "lakh" };
+}
+function chartNum(n, div){
+  if(div >= 100000) return lakh(n);
+  const v = n / div;
+  if(v === 0) return "0";
+  return String(parseFloat(v >= 10 ? v.toFixed(0) : v.toFixed(1)));
+}
+function shortInr(n){ return n >= 100000 ? "₹" + lakh(n) + "L" : n >= 1000 ? "₹" + Math.round(n/1000) + "k" : money(n); }
+// A dual-SIM phone: state.simOwners maps each SIM's Android subscription id to a name/colour and
+// whether it's the phone owner's own SIM. The other named SIM is treated exactly like a Bluetooth
+// family member for Home's Family view, without needing a second phone at all.
+function simOwnerList(){ return Object.entries(state.simOwners || {}).map(([id,o])=>({ id, ...o })); }
+// -------- People (local tags, not yet synced) --------
+function peopleList(){ return Object.entries(state.people||{}).map(([id,p])=>({ id, ...p })); }
+function addPerson(name){
+  name = String(name||"").trim(); if(!name) return null;
+  const id = mkey(name) || uidGen();
+  if(state.people[id]) return id;
+  state.people = state.people || {};
+  state.people[id] = { name, color: PALETTE[Object.keys(state.people).length % PALETTE.length] };
+  return id;
+}
+
+// -------- Events (local; the tagging target for "who's this for" style totals per occasion) --------
+function eventList(){
+  const local=Object.entries(state.events||{}).map(([id,e])=>({id,...e}));
+  const remote=Object.values((state.family&&state.family.members)||{}).flatMap(m=>(m.events||[]).map(e=>({...e,remote:true})));
+  const seen=new Set(), out=[]; [...local,...remote].forEach(e=>{if(!seen.has(e.id)){seen.add(e.id);out.push(e);}});
+  return out.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+}
+function eventById(id){
+  if(!id) return null;
+  if(state.events && state.events[id]) return {...state.events[id],id};
+  for(const m of Object.values((state.family&&state.family.members)||{})){
+    const e=(m.events||[]).find(x=>x && x.id===id);
+    if(e) return {...e,id,remote:true,ownerUid:e.ownerUid||m.googleUid};
+  }
+  return null;
+}
+function eventTransactions(id){
+  const out=state.txns.filter(t=>t.event===id);
+  Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t.event===id) out.push({...t,remote:true,ownerUid:t.ownerUid||m.googleUid});}));
+  return out;
+}
+function eventSpend(id){ return eventTransactions(id).filter(t=>t.type === "debit" && counts(t)).reduce((a,t)=>a+spendAmt(t),0); }
+// A simple 0..1 closeness score used for the near-duplicate nudge: name similarity plus same/near date.
+function eventMatchScore(name, date, ev){
+  const a = mkey(name), b = mkey(ev.name);
+  if(!a || !b) return 0;
+  let nameScore = 0;
+  if(a === b) nameScore = 1;
+  else if(a.startsWith(b.slice(0,5)) || b.startsWith(a.slice(0,5))) nameScore = 0.6;
+  else {
+    const short = a.length < b.length ? a : b, long = a.length < b.length ? b : a;
+    if(short.length >= 4 && long.includes(short)) nameScore = 0.5;
+  }
+  let dateScore = 0;
+  if(date && ev.date){ const d = Math.abs(daysBetween(date, ev.date)); dateScore = d === 0 ? 1 : d <= 2 ? 0.5 : 0; }
+  return nameScore * 0.65 + dateScore * 0.35;
+}
+function findEventNudge(name, date, excludeId){
+  const cands = eventList().filter(e=>e.id !== excludeId);
+  let best = null, bestScore = 0;
+  cands.forEach(e=>{ const s = eventMatchScore(name, date, e); if(s > bestScore){ bestScore = s; best = e; } });
+  return bestScore >= 0.55 ? best : null;
+}
+function familyShareMembers(){
+  const fam=state.family||{}; const out=[];
+  if(cloudUser) out.push({id:cloudUser.uid,name:cloudUser.name||cloudUser.email||"You"});
+  Object.entries(fam.members||{}).forEach(([id,m])=>{ if(id!==cloudUser?.uid) out.push({id,name:m.name||m.googleEmail||"Family member"}); });
+  return out;
+}
+function shareLabel(item){
+  if(!item || !item.shared) return "Private";
+  const a=item.shareWith;
+  if(a==="all" || !a || (Array.isArray(a)&&a.length>=familyShareMembers().length)) return "Shared with all";
+  const names=(Array.isArray(a)?a:[]).map(id=>{const m=familyShareMembers().find(x=>x.id===id);return m?m.name:id;});
+  return names.length?"Shared with "+names.join(", "):"Private";
+}
+function chooseShareAudience(item, done){
+  const members=familyShareMembers();
+  if(!members.length){ toast("Sign in and connect to a family first."); return; }
+  const current=item&&item.shareWith; const all=current==="all" || !current;
+  const selected=new Set(Array.isArray(current)?current:members.map(m=>m.id));
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>Share with family</h2><p class="help">Choose everyone or only specific members. The creator always keeps access.</p><label class="check"><input id="share-all" type="radio" name="shareMode" ${all?"checked":""}> All family members</label><label class="check"><input id="share-some" type="radio" name="shareMode" ${all?"":"checked"}> Specific members</label><div id="share-members" style="margin:8px 0 14px">${members.map(m=>`<label class="check"><input type="checkbox" data-shareuid="${esc(m.id)}" ${selected.has(m.id)?"checked":""}>${esc(m.name)}</label>`).join("")}</div><div class="row"><button class="btn primary" id="share-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const redraw=()=>{scrim.querySelector('#share-members').style.opacity=scrim.querySelector('#share-some').checked?'1':'.45';}; redraw();
+  scrim.querySelectorAll('input[name=shareMode]').forEach(x=>x.onchange=redraw);
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='share-save'){
+      if(scrim.querySelector('#share-all').checked) done({shared:true,shareWith:'all'});
+      else {const ids=[...scrim.querySelectorAll('[data-shareuid]:checked')].map(x=>x.dataset.shareuid); if(!ids.length){toast('Select at least one family member.');return;} done({shared:true,shareWith:ids});}
+      scrim.remove();
+    }
+  });
+}
+function createEventForm(existingId){
+  const ev=existingId ? state.events[existingId] : null; if(existingId&&!ev)return;
+  const scrim=document.createElement('div'); scrim.className='scrim';
+  const editable=!!ev;
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${editable?'Edit event':'Create event'}</h2><label class="field"><span>Event name</span><input id="nef-name" value="${esc(ev?.name||'')}" placeholder="Family trip, birthday…"></label><div class="two"><label class="field"><span>Date</span><input id="nef-date" type="date" value="${ev?.date||todayISO()}"></label><label class="field"><span>Budget</span><input id="nef-budget" inputmode="decimal" value="${ev?.budget||''}" placeholder="Optional"></label></div><label class="field"><span>Notes</span><input id="nef-note" value="${esc(ev?.note||'')}" placeholder="Optional"></label><div class="switchrow"><span><b>Share this event</b><small id="nef-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(ev))}</small></span><label class="switch"><input id="nef-shareToggle" type="checkbox" ${ev?.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="nef-shareArea" style="${ev?.shared?'':'display:none'}"><button class="mini" id="nef-share">${ev?.shareWith==='all'?'All family':'Choose members'}</button></div><div class="row"><button class="btn primary" id="nef-save">${editable?'Save changes':'Create event'}</button><button class="btn" data-s="cancel">Cancel</button>${editable?'<button class="btn danger" id="nef-delete" style="margin-left:auto">Delete</button>':''}</div></div>`;
+  document.body.appendChild(scrim);
+  let sharing=ev?{shared:!!ev.shared,shareWith:ev.shareWith||'all'}:{shared:false,shareWith:'all'};
+  const updateShare=()=>{ const tog=scrim.querySelector('#nef-shareToggle'); if(tog) tog.checked=!!sharing.shared; const area=scrim.querySelector('#nef-shareArea'); if(area) area.style.display=sharing.shared?'flex':'none'; const btn=scrim.querySelector('#nef-share'); if(btn) btn.textContent=sharing.shareWith==='all'?'All family':'Choose members'; const lab=scrim.querySelector('#nef-shareLabel'); if(lab) lab.textContent=shareLabel(sharing); }; updateShare();
+  scrim.querySelector('#nef-shareToggle').onchange=e=>{ sharing.shared=e.target.checked; if(!sharing.shared) sharing.shareWith='all'; updateShare(); };
+  scrim.querySelector('#nef-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;updateShare();});
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='nef-save'){
+      const name=scrim.querySelector('#nef-name').value.trim(); if(!name){toast('Enter an event name.');return;}
+      const budget=parseFloat(scrim.querySelector('#nef-budget').value.replace(/[,₹\s]/g,''))||0;
+      const id=existingId||mkey(name)||uidGen(); state.events=state.events||{};
+      state.events[id]={...(state.events[id]||{}),id,name,date:scrim.querySelector('#nef-date').value||todayISO(),budget:budget||undefined,note:scrim.querySelector('#nef-note').value.trim(),icon:(ev&&ev.icon)||'📌',createdAt:(ev&&ev.createdAt)||todayISO(),ownerUid:ev?.ownerUid||cloudUser?.uid||'',createdBy:ev?.createdBy||cloudUser?.uid||'',...sharing};
+      persist([],true); scrim.remove(); render();
+    }
+    if(e.target.id==='nef-delete' && existingId){ if(!confirm('Delete this event? Tagged expenses will remain but become untagged.'))return; const months=new Set();state.txns.forEach(t=>{if(t.event===existingId){delete t.event;months.add(t.date.slice(0,7));}});delete state.events[existingId];persist([...months],true);scrim.remove();render(); }
+  });
+}
+// -------- Family Hub: one place to manage people, events, and add a tagged expense --------
+// "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
+// is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
+function renderFamily(){
+  const people = peopleList(), events = eventList();
+  const fam = state.family = state.family || { members: {} };
+  if(cloudUser && fam.cloudId && window.Android && window.Android.listenFamily && familyCloudListeningId !== fam.cloudId){ familyCloudListeningId=fam.cloudId; window.Android.listenFamily(fam.cloudId); }
+  const cloudReady = !!(window.Android && window.Android.createFamily && cloudUser);
+  let html = `<div class="set-block" style="margin-bottom:14px"><p style="margin:4px 0"><b>Family Cloud</b><br>Events, calendar, shopping lists and family-shared transactions sync through Firebase. Your private SMS ledger stays on this phone unless you choose to share it.</p>`;
+  if(!cloudUser){ html += `<p class="help">Sign in with Google in Settings first.</p>`; }
+  else if(!fam.cloudId){ html += `<div class="row"><button class="btn primary" id="famCreateCloud">Create family</button><button class="btn" id="famJoinCloud">Join with code</button></div>`; }
+  else { html += `<p class="help">${esc(fam.cloudName||"My Family")} · Family code <b>${esc(fam.cloudCode||"")}</b></p><div class="row"><button class="btn" id="famCopyCode">Copy code</button><button class="btn" id="famSyncCloud">Sync now</button></div><div class="switchrow" style="margin-top:8px"><span><b>Share my SMS transactions</b><small style="display:block;color:var(--muted)">Allow family members to see transactions you choose to share.</small></span><label class="switch"><input type="checkbox" id="famShareTx" ${fam.shareTransactions!==false?"checked":""}><span class="track"></span></label></div><div class="switchrow" style="margin-top:8px"><span><b>Share complete data</b><small style="display:block;color:var(--muted)">Share your complete ledger, accounts, bills, budgets, events, lists and transaction details with selected family members.</small></span><label class="switch"><input type="checkbox" id="famShareComplete" ${fam.completeDataSharing===true?"checked":""}><span class="track"></span></label></div><div class="share-audience" id="famCompleteShareArea" style="${fam.completeDataSharing===true?'display:flex':''}"><button class="mini" id="famCompleteShare">${fam.completeDataShareWith==='all'||!fam.completeDataShareWith?'All family':'Choose members'}</button></div>`; }
+  html += `</div>`;
+
+  html += `<div class="row" style="margin-bottom:18px"><button class="btn primary" id="famAddExpense">+ Add an expense</button></div>`;
+
+  html += `<h2 class="section-h" style="margin-top:4px">People</h2>`;
+  html += people.length ? people.map(p=>{
+    const shared = !!p.shared;
+    return `<div class="family-row"><span class="n"><span class="av" style="background:${p.color};width:26px;height:26px;border-radius:50%;color:var(--brass-ink);font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;vertical-align:middle">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>
+      <span class="num" style="font-size:.78rem;color:var(--muted)">${shared?"Shared":"Private"}</span>
+      <span class="w" style="grid-column:1/3"><button class="mini" data-sharep="${esc(p.id)}">${shared?"Make private":"Share"}</button><button class="mini" data-delp2="${esc(p.id)}">Remove</button></span></div>`;
+  }).join("") : `<p class="help">No one added yet.</p>`;
+  html += `<div class="row"><input id="famNewPerson" placeholder="Name, e.g. Aarav" style="flex:1;min-width:0;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px"><button class="btn" id="famAddPerson">Add</button></div>`;
+
+  html += `<h2 class="section-h">Events</h2>`;
+  html += events.length ? events.map(e=>{
+    const shared = !!e.shared, spent = eventSpend(e.id);
+    return `<div class="family-row"><button data-openevfam="${esc(e.id)}" style="all:unset;cursor:pointer;grid-column:1/2"><span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span></button><span class="num" style="font-weight:600">${money(spent,true)}</span>
+      <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):"No date"}</span><span style="color:var(--muted)">${esc(shareLabel(e))}</span><button class="mini" data-editev="${esc(e.id)}">Edit</button><label class="switch" title="Share event"><input type="checkbox" data-shareet="${esc(e.id)}" ${shared?"checked":""}><span class="track"></span></label></span></div>`;
+  }).join("") : `<p class="help">No events yet.</p>`;
+  html += `<div class="row"><button class="btn" id="famAddEvent">+ Add an event</button></div>`;
+
+  document.getElementById("famBody").innerHTML = html;
+}
+document.getElementById("homeFamBtn").onclick = ()=>{ view = "family"; window.scrollTo(0,0); render(); };
+document.getElementById("famBack").onclick = ()=>{ view = "home"; window.scrollTo(0,0); render(); };
+document.getElementById("famBody").addEventListener("click", e=>{
+  if(e.target.id === "famCreateCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const name=(famPrompt("Family name", "My Family")||"").trim(); if(name && window.Android) window.Android.createFamily(name); return; }
+  if(e.target.id === "famJoinCloud"){ if(!cloudUser){toast("Sign in with Google first.");return;} const code=(famPrompt("Enter family code", "")||"").trim(); if(!code)return; const name=(famPrompt("Your name in the family", cloudUser.name||"")||"").trim(); if(window.Android) window.Android.joinFamily(code,name); return; }
+  if(e.target.id === "famCopyCode"){ try{ navigator.clipboard.writeText((state.family||{}).cloudCode||""); toast("Family code copied."); }catch(_){ toast("Family code: "+((state.family||{}).cloudCode||"")); } return; }
+  if(e.target.id === "famSyncCloud"){ publishFamilyCloud(true); return; }
+  if(e.target.id === "famCompleteShare"){ const current=state.family&&state.family.completeDataShareWith; chooseShareAudience({shared:true,shareWith:current||'all'}, r=>{ state.family=state.family||{members:{}}; state.family.completeDataShareWith=r.shareWith||'all'; persist([],true); publishFamilyCloud(true); render(); }); return; }
+  if(e.target.id === "famAddExpense"){ openSheet({ type:"debit", category:"Other", date: todayISO() }, true); return; }
+  if(e.target.id === "famAddPerson"){
+    const inp = document.getElementById("famNewPerson"), name = inp.value.trim();
+    if(!name){ toast("Type a name first."); return; }
+    addPerson(name); inp.value = ""; persist([], true); render(); toast("Added.");
+    return;
+  }
+  if(e.target.id === "famAddEvent"){ createEventForm(); return; }
+  const oev = e.target.closest("[data-openevfam]"); if(oev){ openEventDetail(oev.dataset.openevfam); return; }
+  const sp = e.target.closest("[data-sharep]");
+  if(sp){ const p = state.people[sp.dataset.sharep]; if(p){ p.shared = !p.shared; persist([], true); render(); toast(p.shared ? "Marked to share once sync is on." : "Made private."); } return; }
+  const ee=e.target.closest("[data-editev]"); if(ee){ const ev=state.events[ee.dataset.editev]; if(ev && (!ev.ownerUid || !cloudUser || ev.ownerUid===cloudUser.uid)) createEventForm(ee.dataset.editev); else toast("Only the person who created this event can modify it."); return; }
+  const se = e.target.closest("[data-sharee]");
+  if(se){ const ev = state.events[se.dataset.sharee]; if(ev){ chooseShareAudience(ev,r=>{Object.assign(ev,r);persist([],true);render();}); } return; }
+  const dp = e.target.closest("[data-delp2]");
+  if(dp){
+    if(!confirm("Remove this person? Entries already tagged to them keep the tag.")) return;
+    delete state.people[dp.dataset.delp2]; persist([], true); render();
+  }
+});
+document.getElementById("famBody").addEventListener("change", e=>{
+  if(e.target.id === "famShareTx"){ state.family=state.family||{members:{}}; state.family.shareTransactions=!!e.target.checked; persist([],true); publishFamilyCloud(true); }
+  if(e.target.id === "famShareComplete"){ state.family=state.family||{members:{}}; state.family.completeDataSharing=!!e.target.checked; if(e.target.checked && !state.family.completeDataShareWith) state.family.completeDataShareWith='all'; const area=document.getElementById('famCompleteShareArea'); if(area) area.style.display=e.target.checked?'flex':'none'; persist([],true); publishFamilyCloud(true); render(); }
+});
+function famPrompt(title, value){ return window.prompt(title, value||""); }
+
+let familyCloudTimer=null, familyCloudListeningId="";
+function scheduleFamilyCloudPublish(){ if(!(window.Android&&window.Android.publishFamily)) return; if(!(state.family&&state.family.cloudId)) return; clearTimeout(familyCloudTimer); familyCloudTimer=setTimeout(()=>publishFamilyCloud(false),900); }
+function publishFamilyCloud(force){
+  if(!(window.Android&&window.Android.publishFamily)) return; const fam=state.family||{}; if(!fam.cloudId||!cloudUser) return;
+  const memberIds=familyShareMembers().map(m=>m.id);
+  const audience=e=>e.shareWith==='all'||!Array.isArray(e.shareWith)?memberIds:[...new Set([cloudUser.uid,...e.shareWith])];
+  const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
+  const completeEnabled=fam.completeDataSharing===true;
+  const completeAudience=completeEnabled ? (fam.completeDataShareWith==='all'||!Array.isArray(fam.completeDataShareWith)?memberIds:[...new Set([cloudUser.uid,...fam.completeDataShareWith])]) : [];
+  const completeState=completeEnabled ? {...state, family:{cloudId:fam.cloudId,cloudName:fam.cloudName,cloudCode:fam.cloudCode,me:fam.me}, googleOnboardingDone:undefined, googleSkipped:undefined} : null;
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeData:completeState?JSON.stringify(completeState):'',completeShareWith:(completeEnabled && fam.completeDataShareWith!=='all' ? 'some' : 'all'),completeAudienceUids:completeAudience};
+  try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
+}
+window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
+window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){return}; if(!r.ok){toast(r.error||"Couldn\'t load family");return;} state.family=state.family||{members:{}}; state.family.cloudName=r.name||"My Family"; state.family.cloudCode=r.inviteCode||""; state.family.members=state.family.members||{}; const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):""; (r.members||[]).forEach(m=>{const id=String(m.uid||uidGen()); if(selfUid && id===selfUid) return; state.family.members[id]={...(state.family.members[id]||{}),name:m.name||m.email||"Member",googleUid:m.uid||"",googleEmail:m.email||""};}); if(selfUid) delete state.family.members[selfUid]; Object.keys(state.family.members).forEach(id=>{if(state.family.members[id]&&String(state.family.members[id].googleUid||"")===selfUid) delete state.family.members[id];}); saveLocal(); render(); };
+window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
+window.familyCloudArrived=function(json){
+  let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
+  const kinds=["members","transactions","events","calendar","shopping","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
+  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
+  saveLocal(); render();
+};
+window.familyCloudError=function(msg){ if(msg) toast(msg); };
+
+function familyMembers(){
+  const selfUid=cloudUser&&cloudUser.uid?String(cloudUser.uid):"";
+  const selfEmail=cloudUser&&cloudUser.email?String(cloudUser.email).trim().toLowerCase():"";
+  const selfName=(state.family&&state.family.me?String(state.family.me):cloudUser&&cloudUser.name?String(cloudUser.name):"").trim().toLowerCase();
+  const seen=new Set();
+  return Object.entries((state.family && state.family.members) || {}).filter(([id,m])=>{
+    const mid=String(id);
+    const muid=String(m&&m.googleUid||"");
+    const memail=String(m&&m.googleEmail||m&&m.email||"").trim().toLowerCase();
+    // Never show the signed-in account as a remote family member. Match by UID first,
+    // then email as a safeguard for stale/legacy family records created under the same account.
+    if(selfUid && (mid===selfUid || muid===selfUid)) return false;
+    if(selfEmail && memail && memail===selfEmail) return false;
+    // Remove exact duplicate remote records that represent the same Google identity.
+    const identity=muid||memail||mid;
+    if(seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  }).map(([id,m])=>({ id, ...m, kind: "remote" }));
+}
+let simListCache = null;
+async function refreshSimBlock(){
+  const head = document.getElementById("simHeading"), block = document.getElementById("simBlock");
+  if(!(window.Android && window.Android.getSimList)){ head.style.display = "none"; block.style.display = "none"; return; }
+  if(!simListCache){ try{ simListCache = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ simListCache = []; } }
+  if(simListCache.length < 2){ head.style.display = "none"; block.style.display = "none"; return; }
+  head.style.display = ""; block.style.display = "";
+  state.simOwners = state.simOwners || {};
+  if(!Object.values(state.simOwners).some(o=>o.isMe) && simListCache.length){ state.simOwners[simListCache[0].id] = { ...(state.simOwners[simListCache[0].id]||{}), isMe: true }; persist([], false); }
+  document.getElementById("simList").innerHTML = simListCache.map((sim,i)=>{
+    const o = state.simOwners[sim.id] || {};
+    return `<div class="simrow"><input type="text" data-simname="${sim.id}" value="${esc((o.name||"").startsWith("__SIM_") ? "" : (o.name || ""))}" placeholder="Enter person name (e.g. Vageesh)">
+      <label><input type="radio" name="simMe" data-simme="${sim.id}" ${o.isMe ? "checked" : ""}>Mine</label></div>`;
+  }).join("");
+}
+document.getElementById("historicalScan")?.addEventListener("click", startHistoricalScan);
+document.getElementById("statementImport")?.addEventListener("click", ()=>{
+  if(window.Android && window.Android.pickBankStatement) window.Android.pickBankStatement("bankStatementFilesResult");
+  else toast("Bank statement import is available in the Android build.");
+});
+function statementNorm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+function statementDate(s){
+  s=String(s||"").trim(); if(!s) return "";
+  let m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  if(m){ let y=+m[3]; if(y<100)y+=2000; return `${y}-${String(+m[2]).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}`; }
+  const d=new Date(s); if(!isNaN(d)) return iso(d); return "";
+}
+function statementAmount(s){
+  const v=String(s||"").replace(/₹|Rs\.?|INR/gi,"").replace(/,/g,"").replace(/[()]/g,"-").trim();
+  if(!v) return null; const n=parseFloat(v.replace(/[^0-9.\-]/g,"")); return isFinite(n)?Math.abs(n):null;
+}
+function parseStatementCsv(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i], n=text[i+1]; if(c==='"'){ if(q&&n==='"'){cell+='"';i++;}else q=!q; } else if(c===','&&!q){row.push(cell);cell="";} else if((c==='\n'||c==='\r')&&!q){ if(c==='\r'&&n==='\n')i++; row.push(cell);cell=""; if(row.some(x=>String(x).trim())) rows.push(row); row=[]; } else cell+=c; }
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+function statementHeaderMap(headers){
+  const h=headers.map(x=>statementNorm(x));
+  const find=(arr)=>{const i=h.findIndex(x=>arr.some(a=>x===a||x.includes(a)));return i;};
+  return {date:find(["date","transaction date","value date","txn date"]),desc:find(["description","narration","particulars","transaction details","remarks","transaction remarks"]),debit:find(["debit","withdrawal","withdrawals","withdrawal amount","debit amount"]),credit:find(["credit","deposit","deposits","deposit amount","credit amount"]),amount:find(["amount","transaction amount"]),type:find(["type","dr cr","debit credit"]),ref:find(["reference","ref no","reference no","transaction id","utr","upi ref","cheque number","cheque no"])};
+}
+function findStatementHeader(rows){
+  for(let i=0;i<Math.min(rows.length,60);i++){
+    const map=statementHeaderMap(rows[i]||[]);
+    const hasDate=map.date>=0;
+    const hasNarration=map.desc>=0;
+    const hasMoney=map.debit>=0||map.credit>=0||map.amount>=0;
+    if(hasDate && (hasNarration||hasMoney)) return {index:i,map};
+  }
+  return {index:-1,map:null};
+}
+function importStatementText(text, fileName, done, batch){
+  if(!batch) batch={files:0,rows:0,added:0,matched:0,review:0,skipped:0,errors:0};
+  if(!text || text.startsWith("__ERROR__:")){ batch.errors++; toast(text?text.slice(10):"Could not read the statement."); if(done) done(); return; }
+  const rows=parseStatementCsv(text);
+  if(rows.length<2){ batch.errors++; toast(`No statement rows were found in ${fileName||"the statement"}.`); if(done) done(); return; }
+  const header=findStatementHeader(rows);
+  if(header.index<0 || !header.map){ batch.errors++; toast(`I couldn't identify the transaction table in ${fileName||"the statement"}. Please check that the file contains Date/Value Date and transaction description/amount columns.`); if(done) done(); return; }
+  const map=header.map;
+  const includePre2022=!!document.getElementById("includePre2022Statements")?.checked;
+  const existing=state.txns||[];
+  const used=new Set(); const months=new Set();
+  batch.files++; batch.rows += Math.max(0,rows.length-header.index-1);
+  rows.slice(header.index+1).forEach(r=>{
+    const date=statementDate(r[map.date]);
+    if(!date || (!includePre2022 && date<"2022-01-01")){ if(date) batch.skipped++; return; }
+    let debit=map.debit>=0?statementAmount(r[map.debit]):null, credit=map.credit>=0?statementAmount(r[map.credit]):null;
+    if(map.amount>=0 && debit==null && credit==null){ const a=statementAmount(r[map.amount]); const typ=statementNorm(map.type>=0?r[map.type]:""); if(/credit|cr|deposit|inward/.test(typ)) credit=a; else debit=a; }
+    if((debit==null||debit===0)&&(credit==null||credit===0)){batch.skipped++;return;}
+    const type=(credit!=null&&credit>0&&!(debit>0))?"credit":"debit"; const amount=type==="credit"?credit:debit;
+    const raw=r.join(" | "), desc=map.desc>=0?String(r[map.desc]||"").trim():raw, ref=map.ref>=0?String(r[map.ref]||"").trim():"";
+    const all=state.txns||existing;
+    const cand=all.filter(t=>t&&t.date&&t.type===type&&Math.abs(Number(t.amount)-amount)<0.01&&Math.abs(daysBetween(t.date,date))<=1&&!used.has(t.id));
+    const exactRef=ref?cand.find(t=>statementNorm(t.raw||"").includes(statementNorm(ref))||statementNorm(t.note||"").includes(statementNorm(ref))):null;
+    const best=exactRef||cand.find(t=>{
+      const a=mkey((t.merchant||"")+" "+(t.raw||"")), b=mkey(desc);
+      return b.length>=4 && (a.includes(b)||b.includes(mkey(t.merchant||"")));
+    });
+    if(best){ best.statementSources=[...(best.statementSources||[]),{date,description:desc,reference:ref,sourceFile:fileName||"statement",importedAt:Date.now()}]; best.source=(best.source&&best.source.includes("sms"))?"sms+statement":"statement"; used.add(best.id); batch.matched++; months.add(best.date.slice(0,7)); return; }
+    const soft=cand[0]; if(soft){ batch.review++; return; }
+    const merchant=desc.split(/\s{2,}|\/|\|/)[0].trim().slice(0,80)||"Bank transaction";
+    const t={id:uidGen(),date,amount,type,merchant,category:type==="credit"?"Other income":"Other",raw:`[Bank statement: ${fileName||"statement"}] ${raw}`,source:"statement",statementSources:[{date,description:desc,reference:ref,sourceFile:fileName||"statement",importedAt:Date.now()}],added:Date.now()};
+    state.txns.push(t); batch.added++; months.add(date.slice(0,7));
+  });
+  persist([...months],false); render();
+  if(done) done();
+}
+window.bankStatementFilesResult=function(payload){
+  let files=[]; try{ files=JSON.parse(payload||"[]"); }catch(e){ toast("Could not read the selected statement files."); return; }
+  if(!Array.isArray(files)||!files.length){ toast("No statement files selected."); return; }
+  const status=document.getElementById("statementStatus");
+  const ok=files.filter(f=>f&&f.text); const bad=files.filter(f=>f&&f.error);
+  if(!ok.length){ toast(bad[0]?.error||"Could not read the selected statements."); return; }
+  const batch={files:0,rows:0,added:0,matched:0,review:0,skipped:0,errors:bad.length};
+  if(status) status.innerHTML=`<b>Importing ${ok.length} file${ok.length===1?"":"s"}…</b><br>Reading transaction rows and reconciling against SMS and earlier statement files.`;
+  let i=0;
+  const next=()=>{
+    if(i>=ok.length){
+      render();
+      const pre=!!document.getElementById("includePre2022Statements")?.checked;
+      const summary=`Import complete: ${batch.files} file${batch.files===1?"":"s"}, ${batch.added} new, ${batch.matched} matched to existing transactions, ${batch.review} possible matches, ${batch.skipped} skipped${batch.errors?`, ${batch.errors} file error${batch.errors===1?"":"s"}`:""}.`;
+      if(status) status.innerHTML=`<b>${summary}</b><br>${pre?"Pre-2022 transactions were included.":"Transactions before 1 Jan 2022 were skipped."} Open Ledger/Summary to see the imported transactions.`;
+      toast(summary);
+      return;
+    }
+    const f=ok[i++];
+    importStatementText(f.text,f.name,next,batch);
+  };
+  next();
+};
+window.bankStatementFileResult=function(text){ importStatementText(text,"statement",()=>{}); };
+
+document.getElementById("simList").addEventListener("change", e=>{
+  const nm = e.target.closest("[data-simname]");
+  if(nm){
+    const v=nm.value.trim(); const cur=state.simOwners[nm.dataset.simname] || {};
+    cur.name = v || cur.name || `__SIM_${(simListCache.findIndex(s=>String(s.id)===String(nm.dataset.simname))+1)||1}__`;
+    cur.hidden = !v; if(v) delete cur.hidden;
+    state.simOwners[nm.dataset.simname]=cur; persist([], false); render(); return;
+  }
+  const me = e.target.closest("[data-simme]");
+  if(me){
+    Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
+    state.simOwners[me.dataset.simme] = { ...(state.simOwners[me.dataset.simme]||{}), isMe: true };
+    simListCache.filter(s=>String(s.id) !== me.dataset.simme).forEach((s,i)=>{ if(!state.simOwners[s.id]) state.simOwners[s.id] = {}; if(!state.simOwners[s.id].color) state.simOwners[s.id].color = PALETTE[i % PALETTE.length]; });
+    persist([], false); toast("Saved."); render();
+  }
+});
+function renderLedgerHome(){
+  const members = familyMembers();
+  const fam = homeFamily && members.length > 0;
+  const k = currentPK();
+  document.getElementById("homeHi").textContent = fam ? "Your family's money at a glance" : "Your money at a glance";
+  document.getElementById("homeMonth").textContent = monthLabel(k);
+  const [py, pm] = k.split("-").map(Number); const prevK = pm === 1 ? (py-1) + "-12" : py + "-" + String(pm-1).padStart(2,"0");
+  const meName = (state.family && state.family.me) || "You";
+  const simExcluded = new Set(members.filter(m=>m.kind === "sim").map(m=>m.simId));
+  const baseTxns = displayTxns();
+  const meTxns = simExcluded.size ? baseTxns.filter(t=>!simExcluded.has(String(t.sim))) : baseTxns;
+  const people = [{ id: "me", name: meName, color: "var(--brass)", txns: meTxns }]
+    .concat(fam ? members.map((m,i)=>{
+      const rawName=m.name || "Member";
+      const displayName=(rawName.trim().toLowerCase()===String(meName).trim().toLowerCase())
+        ? (rawName + " (family)") : rawName;
+      return { id: m.id, name: displayName, color: m.color || (i === 0 ? "var(--spouse)" : PALETTE[(i*3) % PALETTE.length]),
+        txns: m.kind === "sim" ? baseTxns.filter(t=>String(t.sim) === m.simId) : (m.txns || []) };
+    }) : []);
+  const tot = { inc: 0, exp: 0, prevExp: 0, refunds: 0 }, byCat = {}, bySrc = {}, byPerson = {};
+  people.forEach(p=>{
+    byPerson[p.id] = { inc: 0, exp: 0 };
+    p.txns.forEach(t=>{
+      if(!counts(t)) return;
+      const tk = pk(t.date);
+      if(tk === prevK && t.type === "debit") tot.prevExp += spendAmt(t);
+      if(tk === prevK && t.type === "credit" && t.category === "Refunds") tot.prevExp -= inAmt(t);
+      if(tk !== k) return;
+      if(t.type === "debit"){ const v = spendAmt(t); tot.exp += v; byPerson[p.id].exp += v; byCat[t.category] = (byCat[t.category]||0) + v; }
+      else if(t.category === "Refunds"){ const v = inAmt(t); tot.exp -= v; tot.refunds += v; byPerson[p.id].exp -= v; }
+      else { const v = inAmt(t); tot.inc += v; byPerson[p.id].inc += v; const sk = p.id + "|" + t.merchant; bySrc[sk] = bySrc[sk] || { name: t.merchant, v: 0, who: p }; bySrc[sk].v += v; }
+    });
+  });
+  const inc = tot.inc, exp = tot.exp, saved = inc - exp;
+  const body = document.getElementById("homeBody");
+  let html = "";
+  if(members.length) html += `<div class="seg wide" id="homeScope" role="group" aria-label="Whose money"><button data-f="0" aria-pressed="${!fam}">Just me</button><button data-f="1" aria-pressed="${fam}">Family</button></div>`;
+  if(fam){
+    const remoteM = members.filter(m=>m.kind !== "sim"), simM = members.filter(m=>m.kind === "sim");
+    const famBits = [];
+    if(remoteM.length) famBits.push(remoteM.map(m=>`${esc(m.name)}'s ledger synced ${m.syncedAt ? esc(niceDate(m.syncedAt.slice(0,10))) : "earlier"}`).join(" · ") + ". Sync again from Settings when you're together.");
+    if(simM.length) famBits.push(`${simM.map(m=>esc(m.name)).join(", ")} read from the other SIM on this phone.`);
+    html += `<div class="card"><div class="members">${people.map(p=>`<span class="member"><span class="av" style="background:${p.color}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name)}</span>`).join("")}</div>
+      <p class="hint">${famBits.join(" ")}</p></div>`;
+  }
+  if(!inc && !exp && !Object.keys(byCat).length){
+    body.innerHTML = html + `<div class="card"><div class="empty"><p>Nothing recorded for ${esc(monthLabel(k))} yet.<br>New bank SMS appear here as they arrive.</p><button class="btn primary" data-go="add">Add entries</button></div></div>`;
+    return;
+  }
+  const rate = inc > 0 ? Math.round(saved / inc * 100) : 0;
+  html += `<div class="card"><div class="hint" style="margin:0">${fam ? "Family saved" : "Saved"} this month</div>
+    <div class="saved-big num">${saved < 0 ? "−" : ""}<span class="rupee">₹</span>${inr.format(Math.round(Math.abs(saved)))}${inc > 0 ? `<span class="pill">${rate}% of income</span>` : ""}</div>
+    <div class="split-bar" aria-hidden="true"><span style="flex:${Math.max(exp,1)};background:var(--brass)"></span><span style="flex:${Math.max(saved,0)};background:var(--good)"></span></div>
+    <div class="inout num"><span>Money in<b>${money(inc)}</b></span><span class="o">Money out<b>${money(exp)}</b></span></div>
+    <p class="hint">Excludes card bill payments and transfers between your own accounts${tot.refunds > 0 ? `, and is after ${money(tot.refunds)} of refunds and cashback` : ""}.</p>
+    ${fam ? `<div class="psplit num">${people.map(p=>{ const b = byPerson[p.id]; const sv = b.inc - b.exp; return `<div><span class="dot" style="background:${p.color};border-radius:50%"></span><span class="nm">${esc(p.name)}</span><span class="mid">in ${shortInr(b.inc)} · out ${shortInr(b.exp)}</span><span class="sv" style="${sv<0?"color:var(--over)":""}">${sv<0?"−":"+"}${shortInr(Math.abs(sv))}</span></div>`; }).join("")}</div>` : ""}
+  </div>`;
+  // income vs expenses, this month
+  const mx = Math.max(inc, exp, 1);
+  const diff = tot.prevExp > 0 ? Math.round((exp - tot.prevExp) / tot.prevExp * 100) : null;
+  const homeScale = chartScale(mx);
+  html += `<div class="card"><div class="card-h"><h2>Income vs expenses</h2><span class="chart-note">Amounts in ₹ ${homeScale.unit}</span></div>
+    <div class="hbars num">
+      <div><span class="hl">Money in</span><span class="ht"><i style="width:${Math.max(1, inc/mx*100)}%;background:var(--inc)"></i></span><b style="color:var(--inc)">${chartNum(inc, homeScale.div)}</b></div>
+      <div><span class="hl">Money out</span><span class="ht"><i style="width:${Math.max(1, exp/mx*100)}%;background:var(--brass)"></i></span><b style="color:var(--brass)">${chartNum(exp, homeScale.div)}</b></div>
+    </div>
+    ${diff != null ? `<p class="hint">${diff === 0 ? "Spending is the same as last month" : diff > 0 ? `Spending is ${diff}% higher than last month` : `Spending is ${-diff}% lower than last month`} (${money(tot.prevExp)}).</p>` : ""}
+    <p class="hint"><button class="btn link" data-trends style="padding:0;font-size:inherit">See trends by month and year</button>. Card bill payments and transfers between your own accounts aren't counted.</p></div>`;
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  if(cats.length){
+    const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
+    const shown = cats.slice(0,6), rest = cats.slice(6).reduce((a,c)=>a+c[1],0);
+    const segs = shown.map(([c,v])=>[c, v, CAT_COLOR[c]||"#8a8272"]); if(rest > 0) segs.push(["Everything else", rest, "#8a8272"]);
+    let acc = 0; const stops = segs.map(([,v,col])=>{ const a = acc; acc += v/gross*360; return `${col} ${(a+0.6).toFixed(1)}deg ${acc.toFixed(1)}deg`; });
+    html += `<div class="card"><div class="card-h"><h2>Where it went</h2><span class="hint" style="margin:0">${esc(monthLabel(k))}</span></div>
+      <div class="donut-row"><div class="donut" style="background:conic-gradient(${stops.join(",")})" role="img" aria-label="Spending by category"><div><small>Spent</small><b class="num">${shortInr(gross)}</b></div></div>
+      <div class="dleg">${segs.map(([c,v,col])=>`<div><span class="dot" style="background:${col}"></span><span class="n">${esc(c)}</span><span class="p num">${Math.round(v/gross*100)}%</span></div>`).join("")}</div></div></div>`;
+  }
+  const srcs = Object.values(bySrc).sort((a,b)=>b.v-a.v).slice(0,5);
+  if(srcs.length) html += `<div class="toplist"><h2>Top income sources${fam ? "" : `<button data-see="__credit">See all</button>`}</h2>${srcs.map(s=>`<div class="trow"><div class="l1 num"><span>${fam ? esc(s.name) : `<button class="mname" data-merchant="${esc(s.name)}">${esc(s.name)}</button>`}${fam ? `<span class="owner" style="background:${s.who.color}">${esc(s.who.name)}</span>` : ""}</span><b style="color:var(--inc)">${money(s.v)}</b></div>
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(s.v/srcs[0].v*100))}%;background:var(--inc)"></i></span><small class="num">${inc ? Math.round(s.v/inc*100) : 0}%</small></div></div>`).join("")}</div>`;
+  const topC = cats.slice(0,5), gross2 = cats.reduce((a,c)=>a+c[1],0) || 1;
+  if(topC.length) html += `<div class="toplist"><h2>Top expense categories${fam ? "" : `<button data-see="__debit">See all</button>`}</h2>${topC.map(([c,v])=>`<button class="trow" ${fam ? "disabled" : `data-cat="${esc(c)}"`}><div class="l1 num"><span><span class="dot" style="background:${CAT_COLOR[c]||"#8a8272"}"></span>${esc(c)}</span><b>${money(v)}</b></div>
+      <div class="l2"><span class="track"><i style="width:${Math.max(2,Math.round(v/topC[0][1]*100))}%;background:${CAT_COLOR[c]||"#8a8272"}"></i></span><small class="num">${Math.round(v/gross2*100)}%</small></div></button>`).join("")}</div>`;
+  body.innerHTML = html;
+}
+
+// Other payments with the same amount (to the rupee) in different months: the same monthly deduction
+// can arrive under slightly different names each month.
+function sameAmountOthers(t){
+  if(!t || !t.amount || t.type !== "debit") return [];
+  const m = (t.date||"").slice(0,7);
+  const tk = mkey(t.merchant);
+  return state.txns.filter(x=>x !== t && x.id !== t.id && x.type === "debit" && Math.abs(x.amount - t.amount) < 1 && x.date.slice(0,7) !== m &&
+    Math.abs(daysBetween(x.date, t.date)) <= 750 &&
+    // the same deduction: same account, a similar name, or both automatic debits
+    ((x.account && t.account && x.account === t.account) || (tk.length >= 4 && mkey(x.merchant).slice(0,4) === tk.slice(0,4)) || (x.mode === "Auto-debit" && t.mode === "Auto-debit")) &&
+    (mkey(x.merchant) !== tk || x.category !== t.category));
+}
+function isRecurringKey(k){
+  if(!k) return false;
+  if(state.subsManual.some(m=>m.key === k)) return true;
+  if(state.subsHidden.includes(k)) return false;
+  return detectSubs().some(x=>x.key === k);
+}
+function setRecurring(t, on){
+  const k = mkey(t.merchant);
+  if(on){
+    state.subsHidden = state.subsHidden.filter(x=>x !== k);
+    if(!state.subsManual.some(m=>m.key === k) && !detectSubs().some(x=>x.key === k))
+      state.subsManual.push({ id: uidGen(), key: k, name: t.merchant, amount: t.amount, freq: "month", category: t.category });
+  } else {
+    state.subsManual = state.subsManual.filter(m=>m.key !== k);
+    if(!state.subsHidden.includes(k)) state.subsHidden.push(k);
+  }
+}
+function openRecurringSheet(key){
+  const x = allSubs().find(s=>s.key === key); if(!x) return;
+  const entries = state.txns.filter(t=>t.type === "debit" && mkey(t.merchant) === key);
+  sheet("Edit recurring payment", `
+    <label class="field"><span>Name</span><input id="rc-name" value="${esc(x.name)}"></label>
+    <div class="two"><label class="field"><span>Category</span><select id="rc-cat">${CATS.map(([c])=>`<option${c===x.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Repeats every</span><select id="rc-freq">${[["month","Month"],["quarter","Quarter"],["year","Year"]].map(([v,l])=>`<option value="${v}"${v===x.freq?" selected":""}>${l}</option>`).join("")}</select></label></div>
+    <p class="help">Changes apply to all ${entries.length} ${entries.length===1?"entry":"entries"} from this merchant, and to new ones.</p>`,
+  sc=>{
+    const name = sc.querySelector("#rc-name").value.trim() || x.name, cat = sc.querySelector("#rc-cat").value, freq = sc.querySelector("#rc-freq").value;
+    const months = new Set(), nk = mkey(name);
+    entries.forEach(t=>{ t.merchant = name; t.category = cat; t.userCat = true; months.add(t.date.slice(0,7)); });
+    if(nk !== key) state.names[key] = name;
+    state.rules[key] = cat; state.rules[nk] = cat; prefixCache = null;
+    const man = state.subsManual.find(m=>m.key === key);
+    if(man){ Object.assign(man, { key: nk, name, category: cat, freq }); }
+    else if(freq !== x.freq || nk !== key){ state.subsHidden.push(key); state.subsManual.push({ id: uidGen(), key: nk, name, amount: x.amount, freq, category: cat }); }
+    persist([...months], true); toast("Recurring payment updated.");
+  });
+}
+
+/* ---------- Subscriptions ---------- */
+function detectSubs(){
+  const groups = {};
+  state.txns.forEach(t=>{
+    if(t.type !== "debit" || !counts(t) || ["Transfers","Cash"].includes(t.category)) return;
+    const k = mkey(t.merchant); if(!k) return;
+    (groups[k] = groups[k] || []).push(t);
+  });
+  const today = todayISO(), out = [];
+  Object.entries(groups).forEach(([k, arr])=>{
+    if(state.subsHidden.includes(k)) return;
+    arr.sort((a,b)=>a.date.localeCompare(b.date));
+    // one payment per month at most counts toward the pattern
+    const byMonth = []; arr.forEach(t=>{ if(!byMonth.length || byMonth[byMonth.length-1].date.slice(0,7) !== t.date.slice(0,7)) byMonth.push(t); });
+    const known = SUB_WORDS.some(w=>(" "+arr[0].merchant.toLowerCase()+" ").includes(w)) || arr.some(t=>t.mode === "Auto-debit");
+    if(byMonth.length < 2 && !(known && arr.some(t=>t.mode === "Auto-debit"))) return;
+    const gaps = []; for(let i=1;i<byMonth.length;i++) gaps.push(daysBetween(byMonth[i-1].date, byMonth[i].date));
+    const g = gaps.length ? gaps.slice().sort((a,b)=>a-b)[Math.floor(gaps.length/2)] : 30;
+    const freq = g >= 25 && g <= 35 ? "month" : g >= 85 && g <= 95 ? "quarter" : g >= 350 && g <= 380 ? "year" : null;
+    if(!freq) return;
+    const recent = byMonth.slice(-3).map(t=>t.amount);
+    const med = recent.slice().sort((a,b)=>a-b)[Math.floor(recent.length/2)];
+    const steady = recent.every(a=>Math.abs(a - med) <= med * 0.2);
+    if(!steady) return;
+    if(!known && byMonth.length < 3) return;
+    const last = byMonth[byMonth.length-1];
+    const step = freq === "month" ? 30 : freq === "quarter" ? 91 : 365;
+    if(daysBetween(last.date, today) > step * 1.6) return;       // looks stopped
+    let next = last.date; while(next <= today) next = addDays(next, step);
+    const perMonth = freq === "month" ? last.amount : freq === "quarter" ? last.amount / 3 : last.amount / 12;
+    out.push({ key: k, name: last.merchant, amount: last.amount, freq, last: last.date, next, perMonth, category: last.category });
+  });
+  return out.sort((a,b)=>a.next.localeCompare(b.next));
+}
+
+/* ---------- Accounts tab ---------- */
+function renderNetWorthCard(){
+  const physical=physicalAssetTotal(), financial=totalHeldBalance(), liabilities=totalLiabilities(), nw=netWorth();
+  return `<div class="card networth-card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num networth-big">${money(nw)}</div><div class="networth-grid"><div><small>Financial assets</small><b>${money(financial)}</b></div><div><small>Other assets</small><b>${money(physical)}</b></div><div><small>Liabilities</small><b class="over">−${money(liabilities)}</b></div></div></div>`;
+}
+function accountRowHtml(a,today){
+  const kind=a.kind||"bank", v=kind==="card"?a.availLimit:a.balance, age=a.asOf?daysBetween(a.asOf,today):null;
+  return `<button class="account-row" data-acct="${esc(a.key)}"><span class="n">${esc(a.label || ((a.bank || "Account") + (a.account ? " ··"+a.account : "")))}</span><span class="num account-value">${v!=null?money(v,true):"–"}</span><span class="account-meta"><span>${kind==="card"?"Available limit":a.typeLabel||KIND_LABEL[kind]||"Balance"}</span>${kind==="loan"&&a.loanCategory?`<span>${esc(a.loanCategory)}</span>`:""}${kind==="loan"&&a.originalAmount!=null?`<span>Original ${money(a.originalAmount)}</span>`:""}${kind==="loan"&&Array.isArray(a.loanTranches)?`<span>${a.loanTranches.length} tranche${a.loanTranches.length===1?'':'s'}${loanWeightedRate(a)!=null?` · ${loanWeightedRate(a).toFixed(2)}% weighted`:''}</span>`:""}${kind==="loan"?`<span>Paid ${money(state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"Loan")))).reduce((s,t)=>s+spendAmt(t),0))}</span>`:""}${a.asOf&&a.asOf>"2000"?`<span>as of ${esc(niceDate(a.asOf))}</span>`:""}${age!=null&&age>30&&a.asOf>"2000"?`<span class="late">Not updated for ${age} days</span>`:""}</span></button>`;
+}
+function renderAccounts(){
+  const el=document.getElementById("accountsBody"); if(!el) return;
+  try{
+    const today=todayISO();
+    const assets=(state.assets||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+    assets.forEach(a=>{ try{ syncAssetLoanDerivedFields(a,false); }catch(e){ console.warn("asset loan sync",e); } });
+    const all=Object.entries(state.accounts||{}).map(([key,a])=>({key,...a}));
+    const visible=all.filter(a=>!a.hidden&&!a.closed);
+    const bank=visible.filter(a=>(a.kind||"bank")==="bank").sort((a,b)=>(b.asOf||"").localeCompare(a.asOf||""));
+    const other=visible.filter(a=>["card","wallet","fastag","invest"].includes(a.kind||"bank")).sort((a,b)=>(b.asOf||"").localeCompare(a.asOf||""));
+    const loans=visible.filter(a=>a.kind==="loan").sort((a,b)=>(b.asOf||"").localeCompare(a.asOf||""));
+    const assetTotal=assets.reduce((s,a)=>s+assetCurrentValue(a),0);
+    const bankTotal=bank.reduce((s,a)=>s+(Number(a.balance)||0),0);
+    const otherTotal=other.reduce((s,a)=>s+((a.kind==="card"?Number(a.availLimit):Number(a.balance))||0),0);
+    const loanTotal=loans.reduce((s,a)=>s+(Number(a.balance)||0),0);
+    let html=renderNetWorthCard();
+    html+=`<div class="asset-tab-actions"><button class="btn primary" id="addAssetAccounts">+ Add asset</button><button class="btn" id="addAcct">+ Add account</button></div>`;
+    html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Assets</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${money(assetTotal)}</p></div><span class="pane-icon">◆</span></div>`;
+    html+=assets.length?assets.map(a=>{
+      const linked=assetLinkedExpenses(a).length;
+      const loan=a.loanAccount&&state.accounts?.[a.loanAccount];
+      return `<button class="asset-card-row" data-asset="${esc(a.id)}"><span class="asset-icon">${a.type==="vehicle"?'🚗':a.type==="gold"?'◈':a.type==="land"?'⌂':'▦'}</span><span class="asset-row-main"><b>${esc(a.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a.type))}${linked?` · ${linked} linked`:''}${loan?` · ${esc(loan.label||'Loan linked')}: ${money(Number(loan.balance)||0)}`:''}</small></span><strong class="num">${money(assetCurrentValue(a))}</strong><span class="chev">›</span></button>`;
+    }).join(''):`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
+    html+=`</section>`;
+    const accountPane=(title,subtitle,items,total,id)=>`<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${money(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></div>${items.length?items.map(a=>{try{return accountRowHtml(a,today)}catch(e){return `<div class="pane-empty">${esc(a.label||'Account')} · ${money(Number(a.balance)||0)}</div>`;}}).join(''):`<div class="pane-empty">No ${subtitle.toLowerCase()}s yet.</div>`}</section>`;
+    html+=accountPane('Bank accounts','account',bank,bankTotal,'bank');
+    html+=accountPane('Other accounts','account',other,otherTotal,'other');
+    html+=accountPane('Loan accounts','loan',loans,loanTotal,'loan');
+    const thisMonth=currentPK();
+    const futureBills=(state.bills||[]).filter(b=>!b.paid && b.dueDate && String(b.dueDate).slice(0,7)>thisMonth).sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate)));
+    if(futureBills.length) html+=`<section class="asset-pane bills-pane"><div class="asset-pane-head"><div><h2>Future bills</h2><p>${futureBills.length} bill${futureBills.length===1?'':'s'} · ${money(futureBills.reduce((s,b)=>s+(Number(b.amount)||0),0))}</p></div><span class="pane-icon">◷</span></div>${futureBills.slice(0,12).map(b=>billRow(b,true)).join('')}</section>`;
+    let subs=[]; try{subs=allSubs()||[]}catch(e){console.warn("subscriptions render",e);}
+    if(subs.length) html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(subs.reduce((a,x)=>a+(Number(x.perMonth)||0),0))}/month</p></div><span class="pane-icon">↻</span></div>${subs.slice(0,12).map(x=>`<div class="account-row static"><span class="n">${esc(x.name||'Subscription')}</span><span class="num account-value">${money(Number(x.amount)||0,true)}</span><span class="account-meta"><span>${esc(x.freq||'Recurring')}</span><span>Next ${esc(niceDate(x.next))}</span></span></div>`).join('')}</section>`;
+    const hid=all.length-visible.length;
+    if(hid) html+=`<div class="row" style="justify-content:center"><button class="btn link" id="unhideAccts">Show ${hid} hidden accounts</button></div>`;
+    el.innerHTML=html;
+  }catch(err){
+    console.error("Assets tab render failed",err);
+    el.innerHTML=`<div class="card"><div class="card-h"><h2>Assets</h2></div><p class="help">Your Assets tab could not finish loading. Your saved data is still on this phone.</p><div class="row"><button class="btn primary" id="addAssetAccounts">+ Add asset</button><button class="btn" id="addAcct">+ Add account</button></div></div>`;
+  }
+}
+/* ---------- Reminders (phone app only) ---------- */
+let remTimer = null;
+function scheduleReminders(){
+  if(!(window.Android && window.Android.setReminders)) return;
+  clearTimeout(remTimer);
+  remTimer = setTimeout(()=>{
+    const now = Date.now(), list = [];
+    const at = (dateISO, h) => { const d = toDate(dateISO); d.setHours(h, 0, 0, 0); return d.getTime(); };
+    upcomingBills().forEach(b=>{
+      if(!b.dueDate) return;
+      [[3,"due in 3 days"],[1,"due tomorrow"],[0,"due today"]].forEach(([n, txt])=>{
+        const t = at(addDays(b.dueDate, -n), 9);
+        if(t > now) list.push({ id: "b" + b.id + n, at: t, title: `${b.name} ${txt}`, text: `${money(b.amount,true)}${b.minDue ? " · minimum " + money(b.minDue,true) : ""}` });
+      });
+    });
+    detectSubs().forEach(x=>{
+      const t = at(addDays(x.next, -1), 10);
+      if(t > now && t - now < 40 * 86400000) list.push({ id: "s" + x.key, at: t, title: `${x.name} renews tomorrow`, text: `About ${money(x.amount,true)} will be charged` });
+    });
+    list.sort((a,b)=>a.at-b.at);
+    try{ window.Android.setReminders(JSON.stringify(list.slice(0, 60))); }catch(e){}
+  }, 800);
+}
+
+// Entries imported from FinArt have different merchant names, so match them on amount, date and direction instead.
+function softKeys(){ return new Set(state.txns.filter(t=>t.source === "finart").map(t=>[t.amount.toFixed(2), t.date, t.type].join("|"))); }
+function softKey(x){ return [x.amount.toFixed(2), x.date, x.type].join("|"); }
+/* ---------- Exchange rates ---------- */
+const CURRENCIES = ["INR","USD","AED","EUR","GBP","SGD","SAR","QAR","OMR","KWD","BHD","LKR","NPR","BDT","THB","MYR","IDR","JPY","AUD","CAD","CHF","HKD","CNY","NZD","ZAR"];
+const rateCache = {};
+let rateSeq = 0; const rateWaiters = {};
+window.rateResult = function(id, rate){ const w = rateWaiters[id]; delete rateWaiters[id]; if(w) w(rate > 0 ? Math.round(rate*10000)/10000 : null); };
+function getRate(cur, date){
+  if(!cur || cur === "INR") return Promise.resolve(1);
+  const k = cur + "@" + date;
+  if(rateCache[k]) return Promise.resolve(rateCache[k]);
+  let p;
+  if(window.Android && window.Android.getRate){
+    p = new Promise(res=>{ const id = "r" + (++rateSeq); rateWaiters[id] = res; window.Android.getRate(id, cur, date); setTimeout(()=>{ if(rateWaiters[id]) window.rateResult(id, 0); }, 25000); });
+  } else {
+    // Web version: the page's security rules usually block other sites, so this quietly falls back to a typed rate.
+    p = fetch(`https://api.frankfurter.dev/v1/${date}?base=${cur}&symbols=INR`).then(r=>r.json()).then(j=>j && j.rates && j.rates.INR || null).catch(()=>null);
+  }
+  return p.then(r=>{ if(r) rateCache[k] = r; return r; });
+}
+let converting = false;
+async function convertPending(announce){
+  if(converting) return; converting = true;
+  const todo = state.txns.filter(t=>isForeign(t) && !t.fxRate);
+  let done = 0; const months = new Set();
+  for(const t of todo.slice(0, 400)){
+    const r = await getRate(t.currency, t.date);
+    if(r){ t.fxRate = r; t.fxAuto = true; done++; months.add(t.date.slice(0,7)); }
+  }
+  converting = false;
+  if(done){ persist([...months]); render(); }
+  if(announce) toast(todo.length ? `Converted ${done} of ${todo.length} foreign-currency ${todo.length===1?"entry":"entries"} to ₹.` + (done < todo.length ? " The rest had no rate available; you can type one in each entry." : "") : "No foreign-currency entries need converting.");
+}
+
+function dupKey(x){ return [x.amount.toFixed(2), x.date, x.type, x.account, x.ref || mkey(x.merchant)].join("|"); }
+
+/* ---------- Rendering ---------- */
+function monthTx(m){ return displayTxns().filter(t=>pk(t.date) === m); }
+function monthLabel(m){
+  const [y,mo] = m.split("-").map(Number);
+  if((state.monthStart||1) === 1) return MONTH_NAMES[mo-1] + " " + y;
+  const [a,b] = periodRange(m);
+  const f = d => d.getDate() + " " + mShort(d.getMonth());
+  return f(a) + " – " + f(b) + " " + b.getFullYear();
+}
+
+function familyLocalPeople(){
+  const owners = state.simOwners || {};
+  const out = [];
+  Object.entries(owners).forEach(([simId,o])=>{
+    if(o && o.name) out.push({ id:"sim:"+simId, name:o.name, color:o.color || "var(--brass)", simId });
+  });
+  if(!out.length) out.push({ id:"me", name:(state.family&&state.family.me)||"You", color:"var(--brass)" });
+  return out;
+}
+function homeFamilyTotals(){
+  const people=[]; const owners=state.simOwners||{}; const localTxns=displayTxns(); const currentMonth=currentPK();
+  const inPeriod=(t)=>{
+    if(homePeriodMode==="day") return t.date===homePeriodDay;
+    if(homePeriodMode==="year") return String(t.date||"").slice(0,4)===String(homePeriodYear);
+    if(homePeriodMode==="all") return true;
+    return pk(t.date)===homePeriodMonth;
+  };
+  const addPerson=(id,name,color,txns)=>{ const list=(txns||[]).filter(inPeriod); let income=0,expense=0,refunds=0; list.forEach(t=>{ if(!counts(t))return; if(t.type==="credit"&&t.category==="Refunds")refunds+=inAmt(t); else if(t.type==="credit")income+=inAmt(t); else if(t.type==="debit")expense+=spendAmt(t); }); expense=Math.max(0,expense-refunds); people.push({id,name,color,txns:txns||[],income,expense,balance:income-expense}); };
+  const namedSimIds=new Set();
+  Object.entries(owners).forEach(([sid,o],i)=>{const name=String(o?.name||"").trim(); if(!name||name.startsWith("__SIM_"))return; namedSimIds.add(String(sid)); addPerson("sim:"+sid,name,o.color||PALETTE[i%PALETTE.length],localTxns.filter(t=>String(t.sim||"")===String(sid)));});
+  addPerson("me",(state.family&&state.family.me)||"You","var(--brass)",localTxns.filter(t=>!namedSimIds.has(String(t.sim||""))));
+  Object.entries((state.family&&state.family.members)||{}).forEach(([id,m],i)=>{if(m&&m.name)addPerson("remote:"+id,m.name,m.color||PALETTE[(i+1)%PALETTE.length],m.txns||[]);});
+  const visible=homePersonFilter==="all"?people:people.filter(p=>p.id===homePersonFilter); const rows=visible.length?visible:people;
+  const income=rows.reduce((a,p)=>a+p.income,0), expense=rows.reduce((a,p)=>a+p.expense,0);
+  return {people,income,expense,balance:income-expense,selected:homePersonFilter};
+}
+
+function renderRecentExpenses(){
+  const tx=displayTxns().filter(t=>t.type==="debit" && counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0)).slice(0,6);
+  if(!tx.length) return '<p class="help">No expenses yet.</p>';
+  return tx.map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('');
+}
+function openEntriesSheet(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const tx=displayTxns().filter(t=>counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.added||0)-(a.added||0));
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Expenses"><h2>Expenses</h2><input id="float-q" class="evsearch" placeholder="Search merchant, category or note"><div id="float-list"></div><div class="row"><button class="btn" data-s="cancel">Close</button></div></div>`;
+  document.body.appendChild(scrim); const draw=()=>{const q=scrim.querySelector('#float-q').value.trim().toLowerCase(); const rows=q?tx.filter(t=>[t.merchant,t.category,t.note,t.bank].join(' ').toLowerCase().includes(q)):tx; scrim.querySelector('#float-list').innerHTML=rows.slice(0,80).map(t=>`<button class="trow" data-float-id="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||"Payment")}</span><b>${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div><div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span><span>${esc(niceDate(t.date))}</span></div></button>`).join('')||'<p class="help">No matching entries.</p>';}; draw(); scrim.querySelector('#float-q').oninput=draw; scrim.addEventListener('click',e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} const b=e.target.closest('[data-float-id]'); if(b){const t=state.txns.find(x=>x.id===b.dataset.floatId); if(t){scrim.remove();openSheet(t,false);}}});
+}
+/* ---------- Assets / net worth ---------- */
+const ASSET_TYPES = [
+  ["property","Property / home"],["land","Land / farmland"],["vehicle","Vehicle"],["gold","Gold / jewellery"],
+  ["investment","Investment / security"],["business","Business / ownership"],["electronics","Electronics"],["other","Other asset"]
+];
+function assetTypeLabel(k){ const x=ASSET_TYPES.find(a=>a[0]===k); return x?x[1]:"Other asset"; }
+function assetLoanOutstanding(a){
+  if(!a || !a.loanAccount) return Number(a&&a.loanOutstanding)||0;
+  const ac=state.accounts&&state.accounts[a.loanAccount];
+  return ac && ac.kind==="loan" ? Math.max(0,Number(ac.balance)||0) : Number(a.loanOutstanding)||0;
+}
+function assetOriginalLoan(a){
+  if(!a) return 0;
+  if(a.loanAccount){ const ac=state.accounts&&state.accounts[a.loanAccount]; if(ac&&ac.originalAmount!=null) return Number(ac.originalAmount)||0; }
+  return Number(a.originalLoan)||0;
+}
+function assetCurrentValue(a){ return Math.max(0,Number(a&&a.currentValue)||0); }
+function assetInvestmentMetrics(a){
+  const purchase=Number(a.purchasePrice)||0, originalLoan=assetOriginalLoan(a), outstanding=assetLoanOutstanding(a);
+  const down=Math.max(0,purchase-originalLoan), principalPaid=Math.max(0,originalLoan-outstanding);
+  const interest=Number(a.interestPaid)||0, acquisition=Number(a.acquisitionCosts)||0, maintenance=Number(a.ownershipCosts)||0;
+  const income=Number(a.incomeReceived)||0, saleCosts=Number(a.saleCosts)||0;
+  const cashInvested=down+principalPaid+interest+acquisition+maintenance;
+  const netSale=assetCurrentValue(a)-outstanding-saleCosts;
+  const profit=netSale+income-cashInvested;
+  const equity=assetCurrentValue(a)-outstanding;
+  const appreciation=assetCurrentValue(a)-purchase;
+  const roi=cashInvested>0 ? profit/cashInvested*100 : null;
+  return {purchase,originalLoan,outstanding,down,principalPaid,interest,acquisition,maintenance,income,saleCosts,cashInvested,netSale,profit,equity,appreciation,roi};
+}
+function physicalAssetTotal(){ return (state.assets||[]).reduce((s,a)=>s+assetCurrentValue(a),0); }
+function totalLiabilities(){ return Object.values(state.accounts||{}).reduce((s,a)=>{ if(!a||a.hidden)return s; if(a.kind==="loan") return s+Math.max(0,Number(a.balance)||0); return s; },0); }
+function totalAssetsValue(){ return totalHeldBalance()+physicalAssetTotal(); }
+function netWorth(){ return totalAssetsValue()-totalLiabilities(); }
+function assetLinkedExpenses(a){ return a ? (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&t.assetId===a.id).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0)) : []; }
+function assetIndirectExpenseTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category!=="EMI & loans"&&t.category!=="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
+function assetLoanPaymentTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category==="EMI & loans"||t.category==="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
+function assetTxnLabel(t){ return `${niceDate(t.date)} · ${t.merchant||"Payment"} · ${money(spendAmt(t),true)}`; }
+function assetTxnTypeLabel(t){ return (t.category==="EMI & loans"||t.category==="Loan repayment") ? "EMI / loan" : (t.category||"Expense"); }
+function openAssetTxnPicker(assetId){
+  const a=(state.assets||[]).find(x=>x.id===assetId); if(!a) return;
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Link existing transactions"><h2>Link existing transactions</h2>
+    <p class="help">Select transactions already imported into Ledger. Linking does not create a duplicate transaction; it only attaches the existing entry to <b>${esc(a.name)}</b>.</p>
+    <div class="two" style="margin-top:10px"><label class="field"><span>Show</span><select id="at-filter"><option value="unlinked">Unlinked only</option><option value="this">Already linked to this asset</option><option value="other">Linked to another asset</option><option value="all">All eligible debits</option></select></label><label class="field"><span>Search</span><input id="at-search" placeholder="Merchant, note, SMS or amount"></label></div>
+    <div class="at-datefilters"><select id="at-year"><option value="">All years</option></select><select id="at-month"><option value="">All months</option>${MONTH_NAMES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join("")}</select><input id="at-date" type="date" aria-label="Exact date"></div>
+    <div class="row" style="margin:6px 0 4px"><button class="btn" id="at-selectAll">Select visible</button><button class="btn" id="at-clear">Clear selection</button><span class="help" id="at-count" style="margin-left:auto">0 selected</span></div>
+    <div id="at-list" style="max-height:52vh;overflow:auto;border-top:1px solid var(--rule)" data-notr></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="at-link">Link selected</button><button class="btn" id="at-cancel">Cancel</button></div>
+  </div>`;
+  document.body.appendChild(scrim);
+  const close=()=>scrim.remove();
+  scrim.addEventListener("click",e=>{if(e.target===scrim)close();});
+  scrim.querySelector("#at-cancel").onclick=close;
+  const list=scrim.querySelector("#at-list"), count=scrim.querySelector("#at-count"), filter=scrim.querySelector("#at-filter"), search=scrim.querySelector("#at-search"), year=scrim.querySelector("#at-year"), month=scrim.querySelector("#at-month"), exactDate=scrim.querySelector("#at-date");
+  const years=[...new Set((state.txns||[]).map(t=>String(t.date||"").slice(0,4)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)); years.forEach(y=>{year.insertAdjacentHTML("beforeend",`<option value="${y}">${y}</option>`);});
+  const selected=new Set();
+  const eligible=()=> (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t));
+  const renderList=()=>{
+    const q=mkey(search.value||""); const mode=filter.value;
+    let rows=eligible().filter(t=>{
+      const same=t.assetId===assetId, other=!!t.assetId&&!same;
+      if(mode==="unlinked" && t.assetId) return false; if(mode==="this"&&!same)return false; if(mode==="other"&&!other)return false;
+      if(year.value && String(t.date||"").slice(0,4)!==year.value) return false;
+      if(month.value && String(t.date||"").slice(5,7)!==month.value) return false;
+      if(exactDate.value && t.date!==exactDate.value) return false;
+      if(!q)return true; return mkey((t.merchant||"")+" "+(t.note||"")+" "+(t.raw||"")+" "+(t.category||"")+" "+spendAmt(t)).includes(q);
+    }).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0));
+    if(rows.length>300) rows=rows.slice(0,300);
+    list.innerHTML=rows.length?rows.map(t=>{
+      const checked=selected.has(t.id); const owner=t.assetId ? ((state.assets||[]).find(x=>x.id===t.assetId)?.name||"Other asset") : "Unlinked";
+      return `<label class="check" style="display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 4px;border-bottom:1px solid var(--rule);margin:0"><input type="checkbox" data-at-id="${esc(t.id)}" ${checked?"checked":""}><span><b>${esc(t.merchant||"Payment")}</b> · ${money(spendAmt(t),true)}<br><small class="help">${esc(niceDate(t.date))} · ${esc(assetTxnTypeLabel(t))} · ${esc(owner)}</small></span></label>`;
+    }).join(""):'<p class="help" style="padding:14px 4px">No matching imported transactions.</p>';
+    count.textContent=`${selected.size} selected`;
+    list.querySelectorAll("[data-at-id]").forEach(cb=>cb.onchange=()=>{if(cb.checked)selected.add(cb.dataset.atId);else selected.delete(cb.dataset.atId);count.textContent=`${selected.size} selected`;});
+  };
+  filter.onchange=renderList; search.oninput=renderList; year.onchange=renderList; month.onchange=renderList; exactDate.onchange=renderList;
+  scrim.querySelector("#at-selectAll").onclick=()=>{list.querySelectorAll("[data-at-id]").forEach(cb=>{cb.checked=true;selected.add(cb.dataset.atId);});count.textContent=`${selected.size} selected`;};
+  scrim.querySelector("#at-clear").onclick=()=>{selected.clear();list.querySelectorAll("[data-at-id]").forEach(cb=>cb.checked=false);count.textContent="0 selected";};
+  scrim.querySelector("#at-link").onclick=()=>{
+    if(!selected.size){toast("Select at least one transaction.");return;}
+    let n=0; (state.txns||[]).forEach(t=>{if(selected.has(t.id)){t.assetId=assetId;n++;}});
+    const months=[...new Set((state.txns||[]).filter(t=>selected.has(t.id)).map(t=>t.date&&t.date.slice(0,7)).filter(Boolean))];
+    persist(months); close(); render(); toast(`${n} transaction${n===1?"":"s"} linked to ${a.name}.`);
+  };
+  renderList();
+}
+function suggestAssetForTxn(t){
+  if(!t||t.type!=="debit") return null; const text=mkey((t.merchant||"")+" "+(t.raw||"")+" "+(t.note||"")); const assets=state.assets||[];
+  const keys=[["vehicle",/(car|bike|vehicle|automobile|tyre|tire|service|garage|petrol|diesel|fuel|insurance)/],["property",/(home|house|property|repair|renovation|plumb|electric|paint|furniture|interior|builder|maintenance)/],["gold",/(gold|jewell|jewel|ornament|muthoot|manappuram|malabar|tanishq)/]];
+  for(const [typ,re] of keys){if(re.test(text)){const hit=assets.find(a=>a.type===typ);if(hit)return hit;}}
+  return assets.find(a=>a.name&&text.includes(mkey(a.name)))||null;
+}
+function assetMarketNote(a){
+  const v=assetCurrentValue(a), p=Number(a.purchasePrice)||0;
+  const trend=a.marketTrend || (v>p?"Upward since purchase":v<p?"Below purchase value":"Stable vs purchase");
+  const src=a.marketSource || (a.type==="gold"?"Live gold market rate":"User-entered current value");
+  const asOf=a.marketUpdated || a.valuationDate || todayISO();
+  const lo=Number(a.marketLow)||0, hi=Number(a.marketHigh)||0; const range=lo>0&&hi>=lo?` Range ${money(lo)}–${money(hi)}.`:""; const conf=a.valuationConfidence?` Confidence: ${a.valuationConfidence}.`:"";
+  return `${trend}. ${src}.${range}${conf} Last updated ${niceDate(asOf)}. This is an estimate, not a guaranteed sale price.`;
+}
+function syncAssetLoanDerivedFields(a, persistIfChanged=false){
+  if(!a || !a.loanAccount) return false;
+  const ac=state.accounts?.[a.loanAccount];
+  if(!ac || ac.kind!=="loan") return false;
+  let changed=false;
+  const set=(obj,key,val,allowZero=false)=>{
+    if(val===undefined || val===null || val==="") return;
+    const n=typeof val==='number'?val:Number(val);
+    if(!Number.isFinite(n) && typeof val!=='string') return;
+    if(allowZero ? Number(a[key]||0)!==Number(n||0) : (a[key]==null || Number(a[key])!==Number(n))){ obj[key]=val; changed=true; }
+  };
+  if(ac.originalAmount!=null && Number(ac.originalAmount)>0) set(a,"originalLoan",Number(ac.originalAmount));
+  if(ac.balance!=null) set(a,"loanOutstanding",Math.max(0,Number(ac.balance)));
+  if(ac.loanRate!=null) set(a,"loanRate",Number(ac.loanRate));
+  if(ac.emi!=null) set(a,"loanEmi",Number(ac.emi));
+  if(ac.loanStartDate) { if(a.loanStartDate!==ac.loanStartDate){a.loanStartDate=ac.loanStartDate;changed=true;} }
+  if(ac.interestPaidFromDocuments!=null && Number.isFinite(Number(ac.interestPaidFromDocuments))) set(a,"interestPaid",Number(ac.interestPaidFromDocuments),true);
+  if(ac.loanRateHistory && JSON.stringify(a.loanRateHistory||[])!==JSON.stringify(ac.loanRateHistory)) { a.loanRateHistory=ac.loanRateHistory; changed=true; }
+  if(ac.loanEmiHistory && JSON.stringify(a.loanEmiHistory||[])!==JSON.stringify(ac.loanEmiHistory)) { a.loanEmiHistory=ac.loanEmiHistory; changed=true; }
+  if(ac.loanInterestHistory && JSON.stringify(a.loanInterestHistory||[])!==JSON.stringify(ac.loanInterestHistory)) { a.loanInterestHistory=ac.loanInterestHistory; changed=true; }
+  if(ac.asOf && a.loanLastStatementDate!==ac.asOf){a.loanLastStatementDate=ac.asOf;changed=true;}
+  if(persistIfChanged && changed) persist([],true);
+  return changed;
+}
+function loanHistorySummary(a){
+  const emi=Array.isArray(a?.loanEmiHistory)?a.loanEmiHistory.filter(x=>x&&Number(x.emi)>0).sort((x,y)=>String(x.date).localeCompare(String(y.date))):[];
+  const rates=Array.isArray(a?.loanRateHistory)?a.loanRateHistory.filter(x=>x&&Number(x.rate)>0).sort((x,y)=>String(x.date).localeCompare(String(y.date))):[];
+  return {emi,rates};
+}
+function openAssetSheet(id){
+  const a=id ? (state.assets||[]).find(x=>x.id===id) : {type:"property",purchaseDate:todayISO()};
+  if(!a) return;
+  if(id) syncAssetLoanDerivedFields(a, true);
+  const loanOpts=Object.entries(state.accounts||{}).filter(([k,x])=>x&&x.kind==="loan"&&!x.hidden).map(([k,x])=>`<option value="${esc(k)}"${a.loanAccount===k?" selected":""}>${esc(x.label||"Loan")}</option>`).join("");
+  const inner=`
+    <div class="two"><label class="field"><span>Asset type</span><select id="as-type">${ASSET_TYPES.map(([k,l])=>`<option value="${k}"${k===(a.type||"property")?" selected":""}>${l}</option>`).join("")}</select></label>
+    <label class="field"><span>Name</span><input id="as-name" value="${esc(a.name||"")}" placeholder="e.g. Bangalore home"></label></div>
+    <div class="two"><label class="field"><span>Purchase date</span><input id="as-date" type="date" value="${esc(a.purchaseDate||todayISO())}"></label>
+    <label class="field"><span>Purchase price (₹)</span><input id="as-purchase" inputmode="decimal" value="${a.purchasePrice!=null?a.purchasePrice:""}"></label></div>
+    <div class="two"><label class="field"><span>Current market value (₹)</span><input id="as-current" inputmode="decimal" value="${a.currentValue!=null?a.currentValue:""}"></label>
+    <label class="field"><span>Acquisition costs (₹)</span><input id="as-acq" inputmode="decimal" value="${a.acquisitionCosts||""}" placeholder="Stamp duty, registration, etc."></label></div>
+    <div class="two"><label class="field"><span>Interest paid so far (₹)</span><input id="as-interest" inputmode="decimal" value="${a.interestPaid||""}"></label>
+    <label class="field"><span>Other ownership costs (₹)</span><input id="as-costs" inputmode="decimal" value="${a.ownershipCosts||""}"></label></div>
+    <div class="two"><label class="field"><span>Income received (₹)</span><input id="as-income" inputmode="decimal" value="${a.incomeReceived||""}" placeholder="Rent, dividends, etc."></label>
+    <label class="field"><span>Estimated sale costs (₹)</span><input id="as-sale" inputmode="decimal" value="${a.saleCosts||""}"></label></div>
+    <div class="two"><label class="field"><span>Initial amount paid (₹)</span><input id="as-down" type="number" step="0.01" min="0" inputmode="decimal" value="${a.initialPaid!=null?a.initialPaid:""}" placeholder="e.g. 2000000"><small class="help">Your own/down-payment amount paid at purchase. The app can calculate the financed amount from this.</small></label>
+    <label class="field"><span>Original loan amount (₹)</span><input id="as-loan" type="number" step="0.01" min="0" inputmode="decimal" value="${a.originalLoan!=null?a.originalLoan:(a.loanAccount&&state.accounts?.[a.loanAccount]?.originalAmount!=null?state.accounts[a.loanAccount].originalAmount:"")}"><small class="help" id="as-loan-help">${a.loanAccount?"Linked loan selected. You can edit the original loan amount here.":"Enter the loan amount, or use Initial amount paid to calculate it."}</small></label></div>
+    <div class="two"><label class="field"><span>Linked loan account</span><select id="as-loanacct"><option value="">None</option>${loanOpts}</select></label>
+    <label class="field"><span>Loan start date</span><input id="as-loanstart" type="date" value="${esc(a.loanStartDate||a.purchaseDate||todayISO())}"></label></div>
+    <div class="two"><label class="field"><span>Current loan outstanding (₹)</span><input id="as-outstanding" inputmode="decimal" value="${a.loanOutstanding!=null?a.loanOutstanding:(a.loanAccount&&state.accounts?.[a.loanAccount]?.balance!=null?state.accounts[a.loanAccount].balance:"")}"></label>
+    <label class="field"><span>Current interest rate (% p.a.)</span><input id="as-current-rate" inputmode="decimal" value="${a.loanRate!=null?a.loanRate:(a.loanAccount&&state.accounts?.[a.loanAccount]?.loanRate!=null?state.accounts[a.loanAccount].loanRate:"")}"></label></div>
+    <div class="two"><label class="field"><span>Current EMI (₹)</span><input id="as-current-emi" inputmode="decimal" value="${a.loanEmi!=null?a.loanEmi:(a.loanAccount&&state.accounts?.[a.loanAccount]?.emi!=null?state.accounts[a.loanAccount].emi:"")}"></label><div></div></div>
+    ${id ? `<div class="card" style="margin-top:8px"><div class="card-h"><b>Loan documents</b><button type="button" class="btn" id="as-importLoanDocs">Import documents</button></div><p class="help">Import all yearly statements/schedules for this asset together. The app will reconcile them with SMS and update this asset and its linked loan.</p></div>` : ""}
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>EMI calculator</b><button type="button" class="mini" id="as-calcEmi">Calculate EMI</button></div>
+      <div class="two" style="margin-top:8px"><label class="field"><span>Interest rate (% p.a.)</span><input id="as-rate" type="number" step="0.01" min="0" inputmode="decimal" value="${a.loanRate!=null?a.loanRate:""}" placeholder="e.g. 8.5"></label>
+      <label class="field"><span>Tenure (years)</span><input id="as-tenure" type="number" step="1" min="1" inputmode="numeric" value="${a.loanTenureYears!=null?a.loanTenureYears:""}" placeholder="e.g. 20"></label></div>
+      <div id="as-emi-result" class="msum num" style="margin-top:8px"><div><small>Calculated EMI</small><b>${a.calculatedEmi?money(a.calculatedEmi):"–"}</b></div><div><small>Total interest</small><b>${a.calculatedInterest?money(a.calculatedInterest):"–"}</b></div><div><small>Total repayment</small><b>${a.calculatedTotal?money(a.calculatedTotal):"–"}</b></div></div>
+      <p class="help" style="margin:8px 0 0">EMI uses the reducing-balance method. Each payment is split between interest and principal, with interest reducing as the outstanding balance falls.</p>
+    </div>
+    <div class="two"><label class="field"><span>Quantity (optional)</span><input id="as-qty" inputmode="decimal" value="${a.quantity||""}" placeholder="e.g. 100"></label>
+    <label class="field"><span>Purity % (for gold)</span><input id="as-purity" inputmode="decimal" value="${a.purity||""}" placeholder="e.g. 22"></label></div>
+    <div class="two"><label class="field"><span>Market value — low (₹)</span><input id="as-low" inputmode="decimal" value="${a.marketLow||""}" placeholder="Optional"></label>
+    <label class="field"><span>Market value — high (₹)</span><input id="as-high" inputmode="decimal" value="${a.marketHigh||""}" placeholder="Optional"></label></div>
+    <div class="two"><label class="field"><span>Valuation confidence</span><select id="as-confidence"><option${!a.valuationConfidence?" selected":""}>Not rated</option><option${a.valuationConfidence==="High"?" selected":""}>High</option><option${a.valuationConfidence==="Medium"?" selected":""}>Medium</option><option${a.valuationConfidence==="Low"?" selected":""}>Low</option></select></label>
+    <label class="field"><span>Market outlook</span><select id="as-outlook"><option${!a.marketOutlook?" selected":""}>Not set</option><option${a.marketOutlook==="Positive"?" selected":""}>Positive</option><option${a.marketOutlook==="Stable"?" selected":""}>Stable</option><option${a.marketOutlook==="Negative"?" selected":""}>Negative</option></select></label></div>
+    <label class="field"><span>Market note / source</span><input id="as-source" value="${esc(a.marketSource||"")}" placeholder="e.g. local broker, dealer quote, portal, API"></label>
+    <div class="card" style="margin-top:8px"><b>Market intelligence</b><p class="help" style="margin:6px 0 0">Gold can be refreshed from the live market service. Property, vehicle and other assets keep a source-backed/manual valuation so the app does not invent a price. Add a low/high range, confidence and outlook to make the estimate more useful.</p>${a.type==="gold"?`<button type="button" class="btn" id="as-refreshGold" style="margin-top:8px">Refresh live gold value</button>`:""}</div>
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>Asset-linked spending</b><button type="button" class="mini" id="as-linkTxns">+ Link existing</button></div><p class="help" style="margin:6px 0 0">Link transactions that are already imported into Ledger. The transaction stays in your normal spending totals and is not duplicated.</p><div class="msum num" style="margin-top:8px"><div><small>EMI / loan payments</small><b>${money(assetLoanPaymentTotal(a))}</b></div><div><small>Indirect expenses</small><b>${money(assetIndirectExpenseTotal(a))}</b></div><div><small>Linked entries</small><b>${assetLinkedExpenses(a).length}</b></div></div>${assetLinkedExpenses(a).slice(0,8).map(t=>`<div class="due" style="grid-template-columns:1fr auto"><span class="n">${esc(t.merchant||"Payment")}</span><span class="num">${money(spendAmt(t),true)}</span><span class="w" style="grid-column:1/3"><span>${esc(niceDate(t.date))}</span><span>${esc(assetTxnTypeLabel(t))}</span></span></div>`).join("")}${assetLinkedExpenses(a).length>8?`<p class="help" style="margin-top:8px">Showing 8 of ${assetLinkedExpenses(a).length}. Tap “Link existing” to manage all linked transactions.</p>`:""}</div>`;
+  sheet(id?"Edit asset":"Add asset",inner,sc=>{
+    const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
+    const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
+    const linkedLoanAccount=sc.querySelector("#as-loanacct").value||"";
+    const purchasePrice=num("#as-purchase");
+    const initialPaid=num("#as-down");
+    let originalLoan=num("#as-loan");
+    if(!originalLoan && purchasePrice>0 && initialPaid>0 && initialPaid<=purchasePrice) originalLoan=Math.max(0,purchasePrice-initialPaid);
+    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice,currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),initialPaid,originalLoan,loanAccount:linkedLoanAccount,loanStartDate:sc.querySelector("#as-loanstart").value||null,loanOutstanding:num("#as-outstanding"),loanRate:(sc.querySelector("#as-current-rate")?.value.trim()!==""?num("#as-current-rate"):num("#as-rate")),loanEmi:num("#as-current-emi"),loanTenureYears:num("#as-tenure"),calculatedEmi:Number(a.calculatedEmi)||0,calculatedInterest:Number(a.calculatedInterest)||0,calculatedTotal:Number(a.calculatedTotal)||0,quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim()};
+    // Keep the asset's manually entered original loan amount authoritative. If a loan account is linked,
+    // also initialise/update that account's original amount so asset calculations and the account agree.
+    if(linkedLoanAccount){
+      const linkedLoan=state.accounts&&state.accounts[linkedLoanAccount];
+      if(linkedLoan&&linkedLoan.kind==="loan"&&originalLoan>0) linkedLoan.originalAmount=originalLoan;
+    }
+    next.marketUpdated=todayISO(); next.marketTrend=next.currentValue>next.purchasePrice?"Upward":next.currentValue<next.purchasePrice?"Downward":"Stable";
+    state.assets=state.assets||[]; const i=state.assets.findIndex(x=>x.id===next.id); if(i>=0) state.assets[i]=next; else state.assets.push(next); persist([],true); toast("Asset saved."); if(next.type==="gold" && next.quantity>0){ refreshGoldAsset(next.id); }
+  },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
+  const scr=document.querySelector(".scrim:last-of-type"), rb=scr&&scr.querySelector("#as-refreshGold");
+  const loanAmountEl=scr&&scr.querySelector("#as-loan"), loanAccountEl=scr&&scr.querySelector("#as-loanacct"), loanHelpEl=scr&&scr.querySelector("#as-loan-help");
+  if(loanAccountEl){
+    loanAccountEl.onchange=()=>{
+      const key=loanAccountEl.value, ac=key&&state.accounts?state.accounts[key]:null;
+      if(ac&&ac.kind==="loan"){
+        if(ac.originalAmount!=null && Number(ac.originalAmount)>0) loanAmountEl.value=ac.originalAmount;
+        const outEl=scr?.querySelector("#as-outstanding"), rateEl=scr?.querySelector("#as-current-rate"), startEl=scr?.querySelector("#as-loanstart");
+        if(outEl&&ac.balance!=null) outEl.value=ac.balance;
+        if(rateEl&&ac.loanRate!=null) rateEl.value=ac.loanRate;
+        const emiEl=scr?.querySelector("#as-current-emi"); if(emiEl&&ac.emi!=null) emiEl.value=ac.emi;
+        if(startEl&&ac.loanStartDate) startEl.value=ac.loanStartDate;
+        if(loanHelpEl) loanHelpEl.textContent="Linked loan selected. You can edit the original loan amount here.";
+      }else if(loanHelpEl){
+        loanHelpEl.textContent="Optional — enter the original loan amount if this asset was financed.";
+      }
+    };
+  }
+  const downEl=scr&&scr.querySelector("#as-down"), purchaseEl=scr&&scr.querySelector("#as-purchase"), loanEl=scr&&scr.querySelector("#as-loan");
+  if(downEl&&purchaseEl&&loanEl){
+    const suggestLoan=()=>{ const purchase=parseFloat(String(purchaseEl.value||"").replace(/,/g,""))||0; const down=parseFloat(String(downEl.value||"").replace(/,/g,""))||0; if(purchase>0&&down>0&&down<=purchase&&!loanEl.value) loanEl.value=(purchase-down).toFixed(2).replace(/\.00$/,"" ); };
+    downEl.oninput=suggestLoan; purchaseEl.oninput=()=>{ if(!loanEl.value) suggestLoan(); };
+  }
+  const calcEmiBtn=scr&&scr.querySelector("#as-calcEmi");
+  if(calcEmiBtn){
+    calcEmiBtn.onclick=()=>{
+      const p=parseFloat(String((loanEl?.value||"")).replace(/,/g,""))||0, rate=parseFloat(String(scr.querySelector("#as-rate")?.value||"").replace(/,/g,""))||0, years=parseFloat(String(scr.querySelector("#as-tenure")?.value||"").replace(/,/g,""))||0;
+      if(p<=0||rate<0||years<=0){toast("Enter loan amount, interest rate and tenure.");return;}
+      const n=Math.round(years*12), r=rate/12/100; const emi=r===0?p/n:(p*r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+      const total=emi*n, interest=total-p, result=scr.querySelector("#as-emi-result");
+      if(result) result.innerHTML=`<div><small>Calculated EMI</small><b>${money(emi)}</b></div><div><small>Total interest</small><b>${money(interest)}</b></div><div><small>Total repayment</small><b>${money(total)}</b></div>`;
+      a.calculatedEmi=emi; a.calculatedInterest=interest; a.calculatedTotal=total;
+      toast(`Estimated EMI ${money(emi)} per month.`);
+    };
+  }
+  if(rb) rb.onclick=()=>{ rb.disabled=true; rb.textContent="Refreshing…"; refreshGoldAsset(id).finally(()=>{if(document.body.contains(scr)){rb.disabled=false;rb.textContent="Refresh live gold value";}}); };
+  const linkBtn=scr&&scr.querySelector("#as-linkTxns"); if(linkBtn) linkBtn.onclick=()=>openAssetTxnPicker(id);
+  const loanImportBtn=scr&&scr.querySelector("#as-importLoanDocs"); if(loanImportBtn) loanImportBtn.onclick=()=>startLoanDocumentImport(id, loanAccountEl?.value||a.loanAccount||"");
+}
+async function refreshGoldAsset(id){
+  const a=(state.assets||[]).find(x=>x.id===id); if(!a||a.type!=="gold"||!(Number(a.quantity)>0)) return;
+  try{
+    const r=await fetch("https://xaus.com/api/v1/spot?currency=INR&unit=gram",{cache:"no-store"});
+    if(!r.ok) throw new Error("market service unavailable");
+    const d=await r.json(); const perGram=Number(d?.xau?.price); if(!Number.isFinite(perGram)||perGram<=0) throw new Error("invalid price");
+    const purity=Number(a.purity)>0?Number(a.purity):24; const estimated=perGram*(purity/24)*Number(a.quantity);
+    a.currentValue=Math.round(estimated); a.marketUpdated=todayISO(); a.marketSource=`Live gold spot estimate at ₹${Math.round(perGram).toLocaleString("en-IN")}/g for 24K; adjusted for ${purity}K purity`;
+    a.marketTrend=(Number(a.currentValue)||0)>(Number(a.purchasePrice)||0)?"Upward":"Downward"; persist([],true); render();
+    toast("Gold market value refreshed.");
+  }catch(e){ /* retain user-entered value when market data is unavailable */ }
+}
+function renderAssetsAndNetWorth(){
+  const assets=state.assets||[], physical=physicalAssetTotal(), financial=totalHeldBalance(), liabilities=totalLiabilities(), nw=netWorth();
+  let html=`<div class="card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(nw)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(financial)}</b></div><div><small>Other assets</small><b>${money(physical)}</b></div><div><small>Liabilities</small><b style="color:var(--over)">−${money(liabilities)}</b></div></div></div>`;
+  return `<div class="card"><div class="card-h"><h2>Net worth</h2><span class="chart-note">Assets − liabilities</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(nw)}</div><div class="msum num" style="margin-top:12px"><div><small>Financial assets</small><b>${money(financial)}</b></div><div><small>Other assets</small><b>${money(physical)}</b></div><div><small>Liabilities</small><b style="color:var(--over)">−${money(liabilities)}</b></div></div></div>`;
+}
+function totalHeldBalance(){
+  return Object.values(state.accounts||{}).reduce((sum,a)=>{
+    if(!a || a.hidden) return sum;
+    const kind=a.kind||'bank';
+    if(kind==='card'||kind==='loan') return sum;
+    const v=Number(a.balance);
+    return Number.isFinite(v)?sum+v:sum;
+  },0);
+}
+function homeSharedItemsForSelected(){
+  const members=Object.entries((state.family&&state.family.members)||{}).map(([id,m])=>({id,m}));
+  const selected=homePersonFilter;
+  const isAll=selected==='all';
+  const currentUid=cloudUser?.uid||'';
+  const allRemote=members.map(x=>({...x.m,_uid:x.id}));
+  const localSharedEvents=Object.values(state.events||{}).filter(e=>e&&e.shared).map(e=>({...e,_uid:e.ownerUid||currentUid,remote:false}));
+  const localSharedShopping=(state.shopping||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const localSharedCalendar=(state.calendar||[]).filter(x=>x&&x.shared).map(x=>({...x,_uid:x.ownerUid||currentUid,remote:false}));
+  const remoteEvents=allRemote.flatMap(m=>(m.events||[]).filter(Boolean).map(e=>({...e,remote:true,_uid:e.ownerUid||m._uid})));
+  const remoteShopping=allRemote.flatMap(m=>(m.shopping||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const remoteCalendar=allRemote.flatMap(m=>(m.calendar||[]).filter(Boolean).map(x=>({...x,remote:true,_uid:x.ownerUid||m._uid})));
+  const localSharedTxns=(state.family&&state.family.shareTransactions!==false)?displayTxns().filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:false,_uid:t.ownerUid||currentUid})):[];
+  const remoteTxns=allRemote.flatMap(m=>(m.txns||[]).filter(t=>t&&t.shared&&!t.private&&counts(t)).map(t=>({...t,remote:true,_uid:t.ownerUid||m._uid})));
+  let events=[...localSharedEvents,...remoteEvents];
+  let shopping=[...localSharedShopping,...remoteShopping];
+  let calendar=[...localSharedCalendar,...remoteCalendar];
+  let txns=[...localSharedTxns,...remoteTxns];
+  if(!isAll){
+    const memberId=selected==='me' ? currentUid : (selected.startsWith('remote:')?selected.slice(7):selected);
+    const ownedEvents=events.filter(e=>String(e._uid)===String(memberId) || String(e.ownerUid)===String(memberId));
+    // Include events created by this member even when other family members tagged expenses to them.
+    const taggedEventIds=new Set();
+    Object.values((state.family&&state.family.members)||{}).forEach(m=>(m.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));}));
+    (state.txns||[]).forEach(t=>{if(t&&t.event) taggedEventIds.add(String(t.event));});
+    const taggedEvents=events.filter(e=>taggedEventIds.has(String(e.id)) && (String(e.ownerUid||e._uid)===String(memberId)));
+    const seenE=new Set(); events=[...ownedEvents,...taggedEvents].filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    shopping=shopping.filter(x=>String(x._uid)===String(memberId) || String(x.ownerUid)===String(memberId));
+    calendar=[];
+    txns=[];
+  } else {
+    const seenE=new Set(); events=events.filter(e=>{if(seenE.has(e.id))return false;seenE.add(e.id);return true;});
+    const seenS=new Set(); shopping=shopping.filter(x=>{if(seenS.has(x.id))return false;seenS.add(x.id);return true;});
+    const seenC=new Set(); calendar=calendar.filter(x=>{if(seenC.has(x.id))return false;seenC.add(x.id);return true;});
+  }
+  return {events,shopping,calendar,txns,isAll};
+}
+function renderHome(){
+  const body=document.getElementById("homeBody");
+  if(!body) return;
+  // Family Hub must never become blank because one malformed cloud record breaks one card.
+  // Sanitize family collections before rendering and keep the Hub independent of SMS readiness.
+  try{
+    state.family=state.family||{members:{}};
+    state.family.members=state.family.members||{};
+    state.events=state.events||{}; state.shopping=Array.isArray(state.shopping)?state.shopping:[]; state.calendar=Array.isArray(state.calendar)?state.calendar:[];
+    const items=homeSharedItemsForSelected();
+    const members=familyMembers();
+    const meName=(state.family&&state.family.me)||cloudUser?.name||cloudUser?.email||"You";
+    const meChip=`<button class="member" data-home-person="me" aria-pressed="${homePersonFilter==='me'}"><span class="av" style="background:var(--brass)">${esc(String(meName).slice(0,1).toUpperCase())}</span>${esc(meName)}</button>`;
+    const memberChips=members.filter(m=>m&&m.visible!==false).map(p=>`<button class="member" data-home-person="remote:${esc(p.id)}" aria-pressed="${homePersonFilter===`remote:${p.id}`}"><span class="av" style="background:${p.color||'var(--brass)'}">${esc((p.name||"?").slice(0,1).toUpperCase())}</span>${esc(p.name||"Family member")}</button>`).join("");
+    const allChip=`<button class="member" data-home-person="all" aria-pressed="${homePersonFilter==='all'}"><span class="av" style="background:var(--brass)">A</span>All family</button>`;
+    const selectedMember=homePersonFilter==='all'||homePersonFilter==='me' ? null : members.find(m=>`remote:${m.id}`===homePersonFilter);
+    const selectedName=homePersonFilter==='me'?meName:(selectedMember?selectedMember.name:null);
+    const title=selectedName ? `${esc(selectedName)}'s family view` : 'All family';
+    const eventHtml=items.events.length ? items.events.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(0,12).map(e=>{
+      let spend=0; try{ spend=eventSpend(e.id); }catch(_){ spend=0; }
+      return `<button class="due" data-home-event="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(e.icon||'📌')} ${esc(e.name||'Event')}</span><span class="num" style="font-weight:600">${money(Number(spend)||0,true)}</span><span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):'No date'}</span><span>${e.ownerUid===cloudUser?.uid?'Created by you':'Shared'}</span></span></button>`;
+    }).join('') : '<p class="help">No shared events yet.</p>';
+    const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item||'Shopping item')}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
+    const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
+    const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
+    body.innerHTML=`
+      <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span></div>
+        <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
+        <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
+      </div>
+      <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
+      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}
+      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+  }catch(err){
+    console.error('Family Hub render failed', err);
+    body.innerHTML=`<div class="card"><div class="card-h"><h2>Family Hub</h2></div><p class="help">Family Hub is loading. Your family data is safe on this phone.</p><div class="row"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button></div></div>`;
+  }
+}
+function addHomeCalendar(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet"><h2>Add calendar item</h2><label class="field"><span>Title</span><input id="hc-title"></label><label class="field"><span>Date</span><input id="hc-date" type="date" value="${todayISO()}"></label><label class="field"><span>Note</span><input id="hc-note"></label><div class="switchrow"><span><b>Share this item</b><small id="hc-shareLabel" style="display:block;color:var(--muted)">Private</small></span><label class="switch"><input id="hc-shareToggle" type="checkbox"><span class="track"></span></label></div><div class="share-audience" id="hc-shareArea" style="display:none"><button class="mini" id="hc-share">All family</button></div><div class="row"><button class="btn primary" id="hc-save">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hc-title").focus(); scrim.querySelector('#hc-shareToggle').onchange=e=>{sharing.shared=e.target.checked;scrim.querySelector('#hc-shareArea').style.display=sharing.shared?'flex':'none';}; scrim.querySelector('#hc-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hc-shareToggle').checked=sharing.shared;scrim.querySelector('#hc-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{ if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;} if(e.target.id==="hc-save"){const title=scrim.querySelector("#hc-title").value.trim();if(!title){toast("Enter a title.");return;} state.calendar=state.calendar||[];state.calendar.push({id:uidGen(),title,date:scrim.querySelector("#hc-date").value,note:scrim.querySelector("#hc-note").value.trim(),createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
+}
+function addHomeShopping(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet"><h2>Add shopping item</h2><label class="field"><span>Item</span><input id="hs-item" placeholder="Milk, rice, detergent…"></label><div class="switchrow"><span><b>Share this item</b><small id="hs-shareLabel" style="display:block;color:var(--muted)">Private</small></span><label class="switch"><input id="hs-shareToggle" type="checkbox"><span class="track"></span></label></div><div class="share-audience" id="hs-shareArea" style="display:none"><button class="mini" id="hs-share">All family</button></div><div class="row"><button class="btn primary" id="hs-save">Add</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim); let sharing={shared:false,shareWith:'all'}; scrim.querySelector("#hs-item").focus(); scrim.querySelector('#hs-shareToggle').onchange=e=>{sharing.shared=e.target.checked;scrim.querySelector('#hs-shareArea').style.display=sharing.shared?'flex':'none';}; scrim.querySelector('#hs-share').onclick=()=>chooseShareAudience(sharing,r=>{sharing=r;scrim.querySelector('#hs-shareToggle').checked=sharing.shared;scrim.querySelector('#hs-shareLabel').textContent=shareLabel(sharing);});
+  scrim.addEventListener("click",e=>{if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}if(e.target.id==="hs-save"){const item=scrim.querySelector("#hs-item").value.trim();if(!item){toast("Enter an item.");return;}state.shopping=state.shopping||[];state.shopping.push({id:uidGen(),item,done:false,createdAt:todayISO(),ownerUid:cloudUser?.uid||"",...sharing});persist([],true);scrim.remove();render();}});
+}
+function smsDataUnlocked(){ return !!(state.smsPermissionConfirmed && state.smsDataReady); }
+function renderSmsLockedView(){
+  const title = LANG === "kn" ? "SMS ಡೇಟಾ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ" : "SMS data is not available yet";
+  const msg = LANG === "kn" ? "ಮೊದಲು ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ, Google ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ ಅಥವಾ Skip ಮಾಡಿ, ನಂತರ SMS ಅನುಮತಿ ನೀಡಿ. ಅನುಮತಿ ಮತ್ತು ಪ್ರಾಥಮಿಕ SMS ಆಮದು ಪೂರ್ಣವಾದ ನಂತರ ಮಾತ್ರ SMS ಆಧಾರಿತ ಡೇಟಾ ಕಾಣಿಸುತ್ತದೆ." : "First choose your language, sign in with Google or skip, then allow SMS access. SMS-based data will appear only after permission is granted and the initial SMS import has finished.";
+  const body = view === "home" ? document.getElementById("homeBody") : view === "overview" ? document.getElementById("ovBody") : view === "list" ? document.getElementById("listBody") : view === "accounts" ? document.getElementById("accountsBody") : document.getElementById("merchantBody");
+  if(body) body.innerHTML = `<div class="card"><div class="empty"><h2>${esc(title)}</h2><p>${esc(msg)}</p></div></div>`;
+}
+function render(){
+  document.querySelectorAll("main > section").forEach(s=>s.classList.toggle("hidden", s.id !== "v-" + (view === "merchant" ? "merchant" : view)));
+  document.querySelectorAll(".tabs button").forEach(b=>b.toggleAttribute("aria-current", b.dataset.v === view) || (b.dataset.v === view && b.setAttribute("aria-current","page")));
+  document.querySelectorAll(".tabs button").forEach(b=>{ if(b.dataset.v === view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const isNow = cursor >= currentPK();
+  document.getElementById("nextM2").disabled = isNow;
+  if(ovMode === "month") document.getElementById("nextM").disabled = isNow;
+  const gatedView = ["overview","list","accounts","merchant"].includes(view);
+  if(gatedView && !smsDataUnlocked()) renderSmsLockedView();
+  else {
+    if(view === "home") renderHome();
+    if(view === "overview") renderOverview();
+    if(view === "list") renderList();
+    if(view === "settings") renderSettings();
+    if(view === "accounts") renderAccounts();
+    if(view === "merchant") renderMerchant();
+    if(view === "family") renderFamily();
+  }
+  if(LANG === "kn") trNode(document.querySelector("main"));
+  scheduleReminders();
+}
+
+function expenseDonut(byCat, spent){
+  const cats=Object.entries(byCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const top=cats.slice(0,7), other=cats.slice(7).reduce((s,[,v])=>s+v,0);
+  if(other>0) top.push(["Other",other]);
+  const total=top.reduce((s,[,v])=>s+v,0)||1;
+  const cx=105, cy=105, r=72, sw=28, circ=2*Math.PI*r;
+  let offset=0;
+  const colors=top.map(([c])=>CAT_COLOR[c]||"#777");
+  const seg=top.map(([c,v],i)=>{const len=circ*(v/total); const dash=`${len} ${circ-len}`; const el=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${colors[i]}" stroke-width="${sw}" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"><title>${esc(c)}: ${money(v)}</title></circle>`; offset+=len; return el;}).join("");
+  const rows=top.map(([c,v],i)=>`<button class="donut-row" data-cat="${esc(c)}"><span class="dot" style="background:${colors[i]}"></span><span class="donut-name">${esc(c)}</span><b class="num">${money(v)}</b><span class="donut-pct num">${Math.round(v/total*100)}%</span></button>`).join("");
+  return `<div class="card expense-donut-card"><div class="card-h"><h2>Expenses this month</h2><span class="chart-note">${inr.format(Math.round(spent))} · ${top.length} categories</span></div><div class="donut-layout"><div class="donut-wrap"><svg viewBox="0 0 210 210" role="img" aria-label="Expense category donut chart">${seg}<circle cx="${cx}" cy="${cy}" r="${r-sw/2}" fill="var(--panel)"/><text x="${cx}" y="98" text-anchor="middle" class="donut-total">${money(spent)}</text><text x="${cx}" y="121" text-anchor="middle" class="donut-label">Total expenses</text></svg></div><div class="donut-legend">${rows}</div></div><div class="donut-footer"><span>Income <b class="in">${money(Number(document.getElementById('income')?.textContent?.replace(/[^0-9.-]/g,'')||0))}</b></span><span>Net <b class="over">−${money(spent)}</b></span></div><p class="hint">Tap a category to view its transactions. Excludes card bill payments and transfers between your own accounts.</p></div>`;
+}
+
+function currentMonthBills(){
+  const mk=currentPK();
+  return (state.bills||[]).filter(b=>!b.paid && ((b.dueDate&&String(b.dueDate).slice(0,7)===mk) || (!b.dueDate&&String(b.seen||"").slice(0,7)===mk))).sort((a,b)=>String(a.dueDate||a.seen||"").localeCompare(String(b.dueDate||b.seen||"")));
+}
+function billsDueThisMonthHtml(){
+  const bills=currentMonthBills();
+  if(!bills.length) return "";
+  const total=bills.reduce((s,b)=>s+(Number(b.amount)||0),0);
+  return `<section class="card month-bills-card"><div class="card-h"><div><h2>Bills due this month</h2><span class="chart-note" style="justify-content:flex-start">${bills.length} bill${bills.length===1?'':'s'} · ${money(total)}</span></div><span class="pane-icon">◷</span></div><div class="month-bills-list">${bills.map(b=>billRow(b,true)).join('')}</div><p class="hint">These unpaid bills are due during ${esc(monthLabel(currentPK()))}. Future-dated bills remain in Assets so they are not mixed into this month’s spending view.</p></section>`;
+}
+
+function renderOverview(){
+  document.querySelectorAll("#ovMode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m === ovMode)));
+  document.getElementById("monthName").classList.toggle("nopick", ovMode !== "month");
+  if(ovMode === "events") return renderEventsSummary();
+  if(ovMode === "day") return renderDaySummary();
+  if(ovMode !== "month") return renderPeriodSummary();
+  document.querySelector(".spent-label").textContent = "Expenses this month";
+  document.getElementById("prevM").disabled = false;
+  document.getElementById("monthName").textContent = monthLabel(cursor);
+  const tx = monthTx(cursor);
+  const out = tx.filter(t=>t.type==="debit" && counts(t)), inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category !== "Refunds");
+  const refundTotal = tx.filter(t=>t.type==="credit" && counts(t) && t.category === "Refunds").reduce((a,t)=>a+inAmt(t),0);
+  const spent = out.reduce((a,t)=>a+spendAmt(t),0) - refundTotal, got = inc.reduce((a,t)=>a+inAmt(t),0);
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(spent));
+  document.getElementById("income").textContent = money(got);
+  const net = got - spent;
+  document.getElementById("net").textContent = (net < 0 ? "−" : "+") + money(Math.abs(net));
+  document.getElementById("count").textContent = tx.length;
+  const fx = {};
+  tx.forEach(t=>{ if(isForeign(t) && !t.fxRate && t.type === "debit") fx[t.currency] = (fx[t.currency]||0) + (t.share != null ? t.share : t.amount); });
+  let fxEl = document.getElementById("fxLine");
+  if(!fxEl){ fxEl = document.createElement("div"); fxEl.id = "fxLine"; fxEl.className = "sub num"; document.querySelector(".strip").appendChild(fxEl); }
+  fxEl.innerHTML = Object.keys(fx).length ? `<span>Also spent ${Object.entries(fx).map(([c,v])=>`<b>${money(v,false,c)}</b>`).join(", ")} (no exchange rate yet, so not in the ₹ total)</span>` : "";
+  let exclEl = document.getElementById("exclLine");
+  if(!exclEl){ exclEl = document.createElement("p"); exclEl.id = "exclLine"; exclEl.className = "hint"; exclEl.style.margin = "10px 0 0"; document.querySelector(".strip").appendChild(exclEl); }
+  exclEl.textContent = "Excludes card bill payments and transfers between your own accounts" + (refundTotal > 0 ? ", and is after " + money(refundTotal) + " of refunds and cashback" : "") + ".";
+  const inLabel=document.querySelector("#income")?.parentElement; if(inLabel) inLabel.innerHTML='Income <b id="income">'+money(got)+'</b>';
+
+  const byCat = {};
+  out.forEach(t=>byCat[t.category] = (byCat[t.category]||0) + spendAmt(t));
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("band").innerHTML = "";
+
+  const body = document.getElementById("overviewBody");
+  const monthBillsHtml = cursor === currentPK() ? billsDueThisMonthHtml() : "";
+  if(!tx.length){
+    body.innerHTML = monthBillsHtml + `<div class="empty"><p>No entries for ${esc(monthLabel(cursor))} yet.<br>Paste your bank SMS to fill this month in.</p><button class="btn primary" data-go="add">Add SMS</button></div>`;
+    return;
+  }
+  // budgets not yet spent in also shown
+  Object.keys(state.budgets).forEach(c=>{ if(state.budgets[c] > 0 && !byCat[c]) cats.push([c,0]); });
+  let html = monthBillsHtml + expenseDonut(byCat, spent);
+  if(cats.length){ html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`; }
+  html += `<h2 class="section-h">Where it went</h2><ul class="cats">`;
+  cats.forEach(([c,v])=>{
+    const b = state.budgets[c];
+    const pct = spent ? Math.round(v/spent*100) : 0;
+    let meta = `<span>${pct}% of spend</span>`;
+    if(b > 0){
+      const p = Math.min(100, v/b*100), over = v > b;
+      meta = `<div class="meter${over?" over":""}"><i style="width:${p}%"></i></div><span class="${over?"over-t":""}">${over ? money(v-b)+" over" : money(b-v)+" left"} of ${money(b)}</span>`;
+    }
+    html += `<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button><div class="meta num">${meta}</div></li>`;
+  });
+  html += `</ul>`;
+
+  // daily bars
+  const [pStart, pEnd] = periodRange(cursor);
+  const startISO = iso(pStart), dim = daysBetween(startISO, iso(pEnd)) + 1;
+  const daily = new Array(dim).fill(0);
+  out.forEach(t=>{ const i = daysBetween(startISO, t.date); if(i>=0 && i<dim) daily[i] += spendAmt(t); });
+  const max = Math.max(...daily, 1);
+  const dayLbl = i => { const d = new Date(pStart); d.setDate(d.getDate()+i); return d.getDate() + (i===0 || d.getDate()===1 ? " " + mShort(d.getMonth()) : ""); };
+  const CW=360, CH=190, CL=34, CR=10, CT=16, CB=30;
+  const px=i=>dim<=1?(CW-CL-CR)/2+CL:CL+i*(CW-CL-CR)/(dim-1);
+  const py=v=>CT+(CH-CT-CB)*(1-v/max);
+  const linePts=daily.map((v,i)=>`${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ");
+  const areaPts=`${CL},${CH-CB} ${linePts} ${CW-CR},${CH-CB}`;
+  const grid=[0,.5,1].map(r=>{const v=max*r;return `<line x1="${CL}" x2="${CW-CR}" y1="${py(v)}" y2="${py(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${CL-6}" y="${py(v)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${esc(chartNum(v,chartScale(max).div))}</text>`;}).join("");
+  const dots=daily.map((v,i)=>v>0?`<circle cx="${px(i)}" cy="${py(v)}" r="2.8" fill="var(--brass)"><title>${esc(dayLbl(i))}: ${money(v)}</title></circle>`:"").join("");
+  html += `<div class="chart-card fancy-chart"><div class="card-h"><div><h2 style="margin:0">Spending trend</h2><span class="chart-note">${esc(monthLabel(cursor))} · daily</span></div><span class="chart-kpi">${money(spent)}</span></div><svg viewBox="0 0 ${CW} ${CH}" class="lchart daily-chart" role="img" aria-label="Daily spending trend for ${esc(monthLabel(cursor))}"><defs><linearGradient id="spendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--brass)" stop-opacity=".32"/><stop offset="100%" stop-color="var(--brass)" stop-opacity=".02"/></linearGradient></defs>${grid}<polygon points="${areaPts}" fill="url(#spendFill)"/><polyline points="${linePts}" fill="none" stroke="var(--brass)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${[0,Math.floor(dim/2),dim-1].map(i=>`<text x="${px(i)}" y="${CH-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(dayLbl(i))}</text>`).join("")}</svg></div>`;
+
+  // top merchants
+  const byM = {};
+  out.forEach(t=>{ const k = t.merchant; byM[k] = byM[k] || {v:0,n:0,c:t.category}; byM[k].v += spendAmt(t); byM[k].n++; });
+  const top = Object.entries(byM).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
+  if(top.length){
+    html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>
+      `<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]}"></span><span>${esc(k)}</span><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${o.n} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
+  }
+  body.innerHTML = html;
+}
+
+let ovMode = "month", ovYear = new Date().getFullYear();
+function yearsWithData(){ const ys = new Set(state.txns.map(t=>+pk(t.date).slice(0,4))); ys.add(+currentPK().slice(0,4)); return [...ys].sort((a,b)=>a-b); }
+// Line chart: two series over the given labels, unit (hundred/thousand/lakh) picked from the data.
+function lineChart(labels, a, b, aLabel, bLabel){
+  const W = 340, H = 190, L = 34, R = 10, T = 14, B = 26;
+  const max = Math.max(1, ...a, ...b), n = labels.length;
+  const scl = chartScale(max);
+  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  const path = arr => arr.map((v,i)=>`${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const ticks = [0, max/2, max];
+  const every = Math.ceil(n / 7);
+  return `<svg viewBox="0 0 ${W} ${H}" class="lchart" role="img" aria-label="${esc(aLabel)} and ${esc(bLabel)} over time">
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${chartNum(v, scl.div)}</text>`).join("")}
+    <path d="${path(a)}" fill="none" stroke="var(--inc)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="${path(b)}" fill="none" stroke="var(--brass)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${a.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--inc)"><title>${esc(labels[i])}: ${money(v)} in</title></circle>`).join("")}
+    ${b.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--brass)"><title>${esc(labels[i])}: ${money(v)} out</title></circle>`).join("")}
+    ${labels.map((l,i)=>(i % every === 0 || i === n-1) ? `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(l)}</text>` : "").join("")}
+  </svg>`;
+}
+let dayCursor = todayISO();
+function renderDaySummary(){
+  const d = dayCursor || todayISO();
+  document.getElementById("monthName").textContent = niceDate(d);
+  document.getElementById("prevM").disabled = false;
+  document.getElementById("nextM").disabled = d >= todayISO();
+  document.querySelector(".spent-label").textContent = "Expenses on this day";
+  const tx = displayTxns().filter(t=>t.date===d);
+  const out = tx.filter(t=>t.type==="debit" && counts(t));
+  const inc = tx.filter(t=>t.type==="credit" && counts(t) && t.category!=="Refunds");
+  const refund = tx.filter(t=>t.type==="credit" && counts(t) && t.category==="Refunds").reduce((a,t)=>a+inAmt(t),0);
+  const spent = Math.max(0,out.reduce((a,t)=>a+spendAmt(t),0)-refund);
+  const got = inc.reduce((a,t)=>a+inAmt(t),0);
+  document.getElementById("spent").innerHTML='<span class="rupee">₹</span>'+inr.format(Math.round(spent));
+  document.getElementById("income").textContent=money(got);
+  const net=got-spent; document.getElementById("net").textContent=(net<0?"−":"+")+money(Math.abs(net));
+  document.getElementById("count").textContent=tx.length;
+  document.getElementById("band").innerHTML="";
+  const byCat={}; out.forEach(t=>byCat[t.category]=(byCat[t.category]||0)+spendAmt(t));
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const body=document.getElementById("overviewBody");
+  let html='<h2 class="section-h">Categories</h2>';
+  if(cats.length) html+='<ul class="cats">'+cats.map(([c,v])=>`<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button></li>`).join('')+'</ul>';
+  else html+='<div class="empty"><p>No income or expenses recorded on this day.</p></div>';
+  if(refund) html+=`<p class="hint">Includes ${money(refund)} of refunds/cashback.</p>`;
+  body.innerHTML=html;
+}
+
+function renderEventsSummary(){
+  document.getElementById("monthName").textContent = tr("Events");
+  document.getElementById("prevM").disabled = true;
+  document.getElementById("nextM").disabled = true;
+  const evs = eventList();
+  const total = evs.reduce((a,e)=>a+eventSpend(e.id),0);
+  document.querySelector(".spent-label").textContent = tr("Tagged to events");
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(total));
+  document.getElementById("income").textContent = money(0);
+  document.getElementById("net").textContent = "";
+  document.getElementById("count").textContent = inr.format(evs.length);
+  document.getElementById("band").innerHTML = "";
+  const fxEl = document.getElementById("fxLine"); if(fxEl) fxEl.innerHTML = "";
+  const exclEl = document.getElementById("exclLine"); if(exclEl) exclEl.textContent = "";
+  document.getElementById("overviewBody").innerHTML = evs.length
+    ? evs.map(e=>{
+        const spent = eventSpend(e.id);
+        return `<button class="due" data-openevov="${esc(e.id)}" style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0">
+          <span class="n">${esc(e.icon||"📌")} ${esc(e.name)}</span><span class="num" style="font-weight:600">${money(spent,true)}</span>
+          <span class="w" style="grid-column:1/3"><span>${e.date?esc(niceDate(e.date)):tr("No date")}</span></span></button>`;
+      }).join("")
+    : `<div class="empty"><p>${tr("No events yet.")}<br>${tr("Tag an entry to one from Entries, or add one from Accounts.")}</p></div>`;
+}
+function renderPeriodSummary(){
+  // Year or All years view
+  const years = yearsWithData();
+  const yr = ovMode === "year" ? ovYear : null;
+  document.getElementById("monthName").textContent = yr ? String(yr) : (years[0] === years[years.length-1] ? String(years[0]) : years[0] + " – " + years[years.length-1]);
+  document.getElementById("prevM").disabled = !yr || yr <= years[0];
+  document.getElementById("nextM").disabled = !yr || yr >= years[years.length-1];
+  const tx = displayTxns().filter(t=>!yr || +pk(t.date).slice(0,4) === yr);
+  const buckets = yr ? Array.from({length:12},(_,i)=>yr + "-" + String(i+1).padStart(2,"0")).filter(k=>k <= currentPK()) : years.map(String);
+  const per = {}; buckets.forEach(k=>per[k] = { inc: 0, exp: 0 });
+  const byCat = {}, byM = {}; let inc = 0, exp = 0, refunds = 0;
+  tx.forEach(t=>{
+    if(!counts(t)) return;
+    const bk = yr ? pk(t.date) : pk(t.date).slice(0,4); if(!per[bk]) return;
+    if(t.type === "debit"){ const v = spendAmt(t); per[bk].exp += v; exp += v; byCat[t.category] = (byCat[t.category]||0) + v; const m = t.merchant; byM[m] = byM[m] || { v: 0, n: 0, c: t.category }; byM[m].v += v; byM[m].n++; }
+    else if(t.category === "Refunds"){ const v = inAmt(t); per[bk].exp -= v; exp -= v; refunds += v; }
+    else { const v = inAmt(t); per[bk].inc += v; inc += v; }
+  });
+  document.querySelector(".spent-label").textContent = yr ? `Expenses in ${yr}` : "Expenses in all years";
+  document.getElementById("spent").innerHTML = '<span class="rupee">₹</span>' + inr.format(Math.round(exp));
+  document.getElementById("income").textContent = money(inc);
+  const net = inc - exp;
+  document.getElementById("net").textContent = (net < 0 ? "−" : "+") + money(Math.abs(net));
+  document.getElementById("count").textContent = inr.format(tx.length);
+  const fxEl = document.getElementById("fxLine"); if(fxEl) fxEl.innerHTML = "";
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const gross = cats.reduce((a,c)=>a+c[1],0) || 1;
+  document.getElementById("band").innerHTML = cats.map(([c,v])=>`<span style="flex:${v};background:${CAT_COLOR[c]||"#777"}" title="${esc(c)}"></span>`).join("");
+  const labels = yr ? buckets.map(k=>mShort(+k.slice(5,7)-1)) : buckets;
+  const lcVals = [...buckets.map(k=>per[k].inc), ...buckets.map(k=>Math.max(0, per[k].exp))];
+  const lcScale = chartScale(Math.max(1, ...lcVals));
+  let html = "";
+  html += `<div class="card" style="margin-top:14px"><div class="card-h"><h2>Income vs expenses</h2><div class="legend"><span><i style="background:var(--inc)"></i>In</span><span><i style="background:var(--brass)"></i>Out</span></div></div>
+    <div class="chart-note">Amounts in ₹ ${lcScale.unit}${yr ? ", by month" : ", by year"}</div>
+    ${lineChart(labels, buckets.map(k=>per[k].inc), buckets.map(k=>Math.max(0, per[k].exp)), "Money in", "Money out")}
+    ${refunds > 0 ? `<p class="hint">Money out is after ${money(refunds)} of refunds and cashback.</p>` : ""}</div>`;
+  html += `<div class="card"><h2 style="margin-bottom:8px">${yr ? "Month by month" : "Year by year"}</h2>${buckets.slice().reverse().map(k=>{ const d = per[k], nt = d.inc - d.exp;
+    return `<button class="due" ${yr ? `data-open="${k}"` : `data-year="${k}"`} style="width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0"><span class="n">${esc(yr ? monthLabel(k) : k)}</span><span class="num" style="font-weight:700;color:${nt<0?"var(--over)":"var(--good)"}">${nt<0?"−":"+"}${money(Math.abs(nt))}</span>
+      <span class="w num" style="grid-column:1/3"><span style="color:var(--inc)">in ${money(d.inc)}</span><span>out ${money(Math.max(0,d.exp))}</span></span></button>`; }).join("")}</div>`;
+  if(cats.length){
+    html += `<div class="summary-cats" aria-label="Categories">${cats.map(([c])=>`<button class="${listCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
+    html += `<h2 class="section-h">Where it went</h2><ul class="cats">` + cats.map(([c,v])=>`<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button><div class="meta num"><span>${Math.round(v/gross*100)}% of spend</span></div></li>`).join("") + `</ul>`;
+  }
+  const top = Object.entries(byM).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
+  if(top.length) html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>`<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]||"#777"}"></span><button class="mname" data-merchant="${esc(k)}">${esc(k)}</button><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${inr.format(o.n)} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
+  document.getElementById("overviewBody").innerHTML = html;
+}
+
+let listCat = "", merchantFocus = "", merchantReturn = "list", merchantYearOpen = null;
+function openMerchant(name, from){
+  if(!name) return;
+  merchantFocus = name; merchantReturn = from || view; merchantYearOpen = null;
+  view = "merchant"; window.scrollTo(0,0); render();
+}
+function renderMerchant(){
+  const mk = mkey(merchantFocus);
+  const entries = displayTxns().filter(t=>mkey(t.merchant) === mk).sort((a,b)=>b.date.localeCompare(a.date) || (b.added||0)-(a.added||0));
+  document.getElementById("mTitle").textContent = merchantFocus;
+  const el = document.getElementById("mBody");
+  if(!entries.length){ el.innerHTML = `<p class="empty">No entries from ${esc(merchantFocus)} yet.</p>`; return; }
+  let totalOut = 0, totalIn = 0, nOut = 0, nIn = 0;
+  const byYear = {};
+  entries.forEach(t=>{
+    const y = t.date.slice(0,4); const yr = byYear[y] = byYear[y] || { out: 0, in: 0, n: 0, items: [] };
+    yr.n++; yr.items.push(t);
+    if(!counts(t)) return;
+    if(t.type === "debit"){ const v = spendAmt(t); totalOut += v; nOut++; yr.out += v; }
+    else { const v = inAmt(t); totalIn += v; nIn++; yr.in += v; }
+  });
+  const years = Object.keys(byYear).sort((a,b)=>b-a);
+  let html = `<div class="card"><div class="msum num">
+    ${nOut ? `<div><small>Total paid</small><b style="color:var(--brass)">${money(totalOut)}</b></div>` : ""}
+    ${nIn ? `<div><small>Total received</small><b style="color:var(--inc)">${money(totalIn)}</b></div>` : ""}
+    <div><small>Entries</small><b>${inr.format(entries.length)}</b></div>
+  </div></div>`;
+  html += `<h2 class="section-h">By year</h2>`;
+  years.forEach(y=>{
+    const yr = byYear[y], open = merchantYearOpen === y;
+    html += `<button class="yrow" data-yr="${y}" aria-expanded="${open}">
+      <span class="yh"><span>${y}</span><span class="num">${inr.format(yr.n)} ${yr.n===1?"entry":"entries"}</span></span>
+      <span class="ys num">${yr.out ? `<span style="color:var(--brass)">paid ${money(yr.out)}</span>` : ""}${yr.in ? `<span style="color:var(--inc)">received ${money(yr.in)}</span>` : ""}</span>
+    </button>`;
+    if(open){
+      html += yr.items.map(t=>`<button class="trow" data-id="${t.id}"><div class="l1 num"><span>${esc(niceDate(t.date))}</span><b style="${t.type==="credit"?"color:var(--inc)":""}">${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}</b></div>
+        <div class="l2"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span></div></button>`).join("");
+    }
+  });
+  el.innerHTML = html;
+}
+document.getElementById("mBack").onclick = ()=>{ view = merchantReturn || "list"; window.scrollTo(0,0); render(); };
+document.getElementById("mBody").addEventListener("click", e=>{
+  const yb = e.target.closest("[data-yr]"); if(yb){ merchantYearOpen = merchantYearOpen === yb.dataset.yr ? null : yb.dataset.yr; renderMerchant(); return; }
+  const eb = e.target.closest("[data-id]"); if(eb){ const t = state.txns.find(x=>x.id === eb.dataset.id); if(t) openSheet(t, false); }
+});
+
+function renderList(){
+  document.getElementById("monthName2").textContent = monthLabel(cursor);
+  const sel = document.getElementById("catFilter");
+  if(sel.options.length !== CATS.length + 4){
+    sel.innerHTML = `<option value="">All categories</option><option value="__debit">Money out</option><option value="__credit">Money in</option><option value="__reimb">Reimbursable</option>` + CATS.map(([c])=>`<option>${esc(c)}</option>`).join("");
+  }
+  sel.value = listCat;
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  let tx = monthTx(cursor).sort((a,b)=> b.date.localeCompare(a.date) || (b.added||0)-(a.added||0));
+  if(listCat === "__debit") tx = tx.filter(t=>t.type==="debit");
+  else if(listCat === "__credit") tx = tx.filter(t=>t.type==="credit");
+  else if(listCat === "__reimb") tx = tx.filter(t=>t.reimb);
+  else if(listCat) tx = tx.filter(t=>t.category === listCat);
+  if(q) tx = tx.filter(t=>[t.merchant,t.bank,t.note,t.category,t.mode,t.account].join(" ").toLowerCase().includes(q));
+  const el = document.getElementById("list");
+  if(!tx.length){ el.innerHTML = `<div class="empty"><p>Nothing matches here.</p></div>`; return; }
+  const groups = {};
+  tx.forEach(t=>(groups[t.date] = groups[t.date] || []).push(t));
+  el.innerHTML = Object.entries(groups).map(([d, arr])=>{
+    const dayOut = arr.filter(t=>t.type==="debit" && counts(t)).reduce((a,t)=>a+spendAmt(t),0);
+    return `<div class="dayhead"><span>${esc(niceDate(d))}</span><span class="num">${dayOut ? money(dayOut) : ""}</span></div>` +
+      arr.map(t=>`<div class="tx" data-id="${t.id}" tabindex="0" role="button">
+        <span class="m"><button class="mname" data-merchant="${esc(t.merchant)}">${esc(t.merchant)}</button></span>
+        <span class="a num${t.type==="credit"?" cr":""}">${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}${isForeign(t) ? `<small style="display:block;font-weight:400;color:var(--muted);text-align:right">${t.fxRate ? money(inrOf(t),false) : "rate pending"}</small>` : ""}</span>
+        <span class="d"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span>${t.mode?`<span>${esc(t.mode)}</span>`:""}${t.bank||t.account?`<span>${esc(t.bank)}${t.account?" ··"+esc(t.account):""}</span>`:""}${t.share!=null?`<span>Split · your share ${money(t.share,true,t.currency)}</span>`:""}${t.reimb?`<span>${t.reimbDone?"Reimbursed":"Reimbursable"}</span>`:""}${t.note?`<span>${esc(t.note)}</span>`:""}</span>
+      </div>`).join("");
+  }).join("");
+}
+
+function catOptions(selected, isCredit){
+  const list = isCredit ? CATS.filter(([c])=>CREDIT_CATS.includes(c)) : CATS.filter(([c])=>!["Income","Refunds"].includes(c));
+  return list.map(([c])=>`<option${c===selected?" selected":""}>${esc(c)}</option>`).join("");
+}
+
+function commitExtras(){
+  let changed = false;
+  pendingBills.forEach(b=>{ changed = upsertBill(b) || changed; });
+  pendingBals.forEach(b=>{ changed = updateAccount(b) || changed; });
+  pendingSubs.forEach(sub=>{ changed = upsertSubscription(sub) || changed; });
+  pendingBills = []; pendingBals = []; pendingSubs = [];
+  if(autoMarkPaid()) changed = true;
+  if(changed) persist([], true);
+  return changed;
+}
+function renderPreview(skipped){
+  const el = document.getElementById("preview");
+  if(!pending.length && !skipped.length){ el.innerHTML = ""; return; }
+  const fresh = pending.filter(p=>!p.dup && p.use).length;
+  let html = "";
+  if(pending.length){
+    html += `<h2 class="section-h">Found ${pending.length} ${pending.length===1?"transaction":"transactions"}</h2>`;
+    html += pending.map((p,i)=>{
+      const t = p.txn;
+      return `<div class="pv${p.dup?" dup":""}">
+        <input type="checkbox" data-i="${i}" ${p.use?"checked":""} aria-label="Include ${esc(t.merchant)}">
+        <div><div style="font-weight:600">${esc(t.merchant)}</div></div>
+        <div class="num" style="font-weight:600;${t.type==="credit"?"color:var(--credit)":""}">${t.type==="credit"?"+":""}${money(t.amount,true)}</div>
+        <div class="d"><span>${esc(niceDate(t.date))}</span>${t.bank?`<span>${esc(t.bank)}${t.account?" ··"+esc(t.account):""}</span>`:""}${t.mode?`<span>${esc(t.mode)}</span>`:""}
+          <select data-ci="${i}" aria-label="Category">${catOptions(t.category, t.type==="credit")}</select>
+          ${p.dup?`<span>Already in your ledger</span>`:""}</div>
+      </div>`;
+    }).join("");
+    if(pendingBills.length || pendingBals.length || pendingSubs.length) html += `<p class="help">Also found ${[pendingBills.length ? pendingBills.length + (pendingBills.length===1?" bill reminder":" bill reminders") : "", pendingBals.length ? pendingBals.length + (pendingBals.length===1?" balance update":" balance updates") : "", pendingSubs.length ? pendingSubs.length + (pendingSubs.length===1?" subscription":" subscriptions") : ""].filter(Boolean).join(" and ")}. They'll be saved with these entries.</p>`;
+    html += `<div class="row"><button class="btn primary" id="commitBtn" ${fresh?"":"disabled"}>Add ${fresh} to ledger</button><button class="btn link" id="discardBtn">Discard</button></div>`;
+  }
+  if(skipped.length){
+    html += `<details class="skipped"><summary>${skipped.length} ${skipped.length===1?"message":"messages"} skipped</summary><ul>` +
+      skipped.map(s=>`<li><b>${esc(s.reason)}.</b> ${esc(s.text.slice(0,140))}${s.text.length>140?"…":""}</li>`).join("") + `</ul></details>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderBudgetSummary(){
+  const el=document.getElementById("budgetSummary"); if(!el) return;
+  const entries=Object.entries(state.budgets||{}).filter(([c,v])=>Number(v)>0 && c!=="__overall__");
+  const overall=Number((state.budgets||{}).__overall__||0);
+  const parts=[];
+  if(overall) parts.push(`Overall: ${money(overall,true)}`);
+  entries.slice(0,4).forEach(([c,v])=>parts.push(`${c}: ${money(v,true)}`));
+  el.textContent=parts.length ? parts.join(" · ") + (entries.length>4 ? " · …" : "") : "No monthly budget set.";
+}
+function openBudgetSheet(){
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const cats=CATS.filter(([c])=>!["Income","Refunds","Transfers"].includes(c));
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Set monthly budget"><h2>Set monthly budget</h2>
+    <p class="help">Choose a category if you want a category-specific limit. Leave the category as Overall for one total monthly limit.</p>
+    <label class="field"><span>Category (optional)</span><select id="budgetCat"><option value="__overall__">Overall monthly budget</option>${cats.map(([c])=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Monthly limit</span><input id="budgetAmt" inputmode="decimal" placeholder="₹ amount"></label>
+    <div class="row"><button class="btn primary" id="budgetSave">Save</button><button class="btn" data-s="cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const cat=scrim.querySelector('#budgetCat'), amt=scrim.querySelector('#budgetAmt');
+  const refresh=()=>{ const k=cat.value; amt.value=state.budgets?.[k]||""; };
+  cat.onchange=refresh; refresh();
+  scrim.addEventListener('click',e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.id==='budgetSave'){
+      const k=cat.value, v=parseFloat(amt.value.replace(/[,₹\s]/g,''))||0;
+      state.budgets=state.budgets||{}; if(v>0) state.budgets[k]=v; else delete state.budgets[k];
+      persist([],true); scrim.remove(); render(); toast(v>0?"Budget saved.":"Budget removed.");
+    }
+  });
+}
+function renderHistoricalCoverage(){
+  const el=document.getElementById("historicalCoverage"); if(!el) return;
+  const start=new Date("2022-01-01T00:00:00"); const now=new Date(); const seen=new Set();
+  (state.txns||[]).forEach(t=>{ const d=new Date(t.date||t.ts||0); if(!isNaN(d)&&d>=start) seen.add(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")); });
+  const missing=[]; let d=new Date(2022,0,1); const end=new Date(now.getFullYear(),now.getMonth(),1);
+  while(d<=end){ const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); if(!seen.has(k)) missing.push(k); d.setMonth(d.getMonth()+1); }
+  el.innerHTML=missing.length ? `<b>${missing.length} month(s) have no imported transactions:</b> ${missing.slice(0,18).join(", ")}${missing.length>18?"…":""}` : "No completely empty months found from January 2022 onward.";
+}
+function startHistoricalScan(){
+  renderHistoricalCoverage();
+  const el=document.getElementById("historicalCoverage"); if(el) el.scrollIntoView({block:"nearest"});
+  toast("Missing months checked from January 2022.");
+}
+function renderSettings(){
+  renderBudgetSummary();
+  renderHistoricalCoverage();
+  document.getElementById("ruleCount").textContent = inr.format(new Set([...Object.keys(state.rules), ...Object.keys(state.names)]).size);
+  document.getElementById("monthStart").value = String(state.monthStart || 1);
+  refreshImportedBlock();
+  document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.themePick === (state.theme || "system"))));
+  refreshSimBlock();
+  refreshCloudBlock();
+  document.getElementById("fxPending").textContent = state.txns.filter(t=>isForeign(t) && !t.fxRate).length;
+  document.getElementById("catList").innerHTML = CATS.map(([c,col])=>`<span class="chip" style="margin:0 12px 6px 0"><span class="dot" style="background:${col}"></span>${esc(c)}</span>`).join("");
+  renderBudgetSummary();
+  const bs=state.backupSchedule || (window.Android && window.Android.getBackupSchedule ? window.Android.getBackupSchedule() : "off");
+  state.backupSchedule=bs;
+  document.querySelectorAll("#backupSeg [data-backup]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.backup===bs)));
+}
+
+/* ---------- Edit sheet ---------- */
+// The best open "owed to you" debit that this incoming credit could be repaying, by amount.
+function findLoanMatch(forCredit){
+  if(!forCredit || forCredit.type !== "credit") return null;
+  const open = state.txns.filter(x=>x.type==="debit" && x.share!=null && !x.settled && x.amount>x.share && x.id!==forCredit.id);
+  let best = null, bestDiff = Infinity;
+  open.forEach(x=>{
+    const owed = x.amount - x.share, diff = Math.abs(owed - forCredit.amount);
+    if(diff <= Math.max(5, owed * 0.05) && diff < bestDiff){ best = x; bestDiff = diff; }
+  });
+  return best;
+}
+// -------- Event picker: search-first, nudges toward a close existing match, create as a last step --------
+function openEventPicker(currentId, forName, forDate, onPick){
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose an event"><h2>Choose an event</h2>
+    <input id="ev-q" class="evsearch" placeholder="Search or name a new one…" value="">
+    <div id="ev-nudge"></div>
+    <div id="ev-list" class="evlist"></div>
+    <div class="row"><button class="btn" id="ev-new">+ Create as a new event</button><button class="btn" data-s="cancel" id="ev-cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const q = scrim.querySelector("#ev-q"), listEl = scrim.querySelector("#ev-list"), nudgeEl = scrim.querySelector("#ev-nudge"), newBtn = scrim.querySelector("#ev-new");
+  const close = ()=>scrim.remove();
+  const draw = ()=>{
+    const query = q.value.trim(), qk = mkey(query);
+    const all = eventList();
+    const results = qk ? all.filter(e=>mkey(e.name).includes(qk) || qk.includes(mkey(e.name).slice(0,5))) : all;
+    listEl.innerHTML = results.length ? results.map(e=>`<button class="evrow" data-pick="${esc(e.id)}"><span class="ic">${esc(e.icon||"📌")}</span>
+      <div style="flex-grow:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}</div>
+      <div style="font-size:.8rem;color:var(--muted)">${e.date?esc(niceDate(e.date)):"No date"} · ${money(eventSpend(e.id),true)} tagged so far${e.remote?" · Shared event":""}</div></div></button>`).join("")
+      : `<p class="help">No events yet. Create one below.</p>`;
+    const near = query ? findEventNudge(query, forDate, currentId) : null;
+    nudgeEl.innerHTML = near ? `<button class="nudge" data-usenudge="${esc(near.id)}"><span>💡</span><span>Close to an event already here — <b>${esc(near.name)}</b>${near.date?", "+esc(niceDate(near.date)):""}. Use that instead?</span></button>` : "";
+    newBtn.textContent = query ? `+ Create "${query}" as a new event` : "+ Create a new event";
+  };
+  q.value = forName ? "" : ""; // start blank; searching is the primary path
+  draw();
+  q.addEventListener("input", draw);
+  scrim.addEventListener("click", e=>{
+    if(e.target === scrim || e.target.closest("#ev-cancel")){ close(); return; }
+    const pick = e.target.closest("[data-pick]"); if(pick){ onPick(pick.dataset.pick); close(); return; }
+    const nudge = e.target.closest("[data-usenudge]"); if(nudge){ onPick(nudge.dataset.usenudge); close(); return; }
+    if(e.target === newBtn){
+      const name = q.value.trim(); if(!name){ q.focus(); return; }
+      const id = mkey(name) || uidGen();
+      state.events = state.events || {};
+      if(!state.events[id]) state.events[id] = { name, date: forDate || todayISO(), icon: "📌", createdAt: todayISO(), ownerUid: cloudUser?.uid||"", createdBy: cloudUser?.uid||"" };
+      persist([], true);
+      onPick(id); close();
+    }
+  });
+}
+
+function openSheet(t, isNew){
+  const loanMatch = !isNew ? findLoanMatch(t) : null;
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${isNew?"New entry":"Edit entry"}">
+    <h2>${isNew?"New entry":"Edit entry"}</h2>
+    <div class="two">
+      <label class="field"><span>Amount</span><input id="e-amt" inputmode="decimal" value="${t.amount||""}"></label>
+      <label class="field"><span>Type</span><select id="e-type"><option value="debit"${t.type!=="credit"?" selected":""}>Money out</option><option value="credit"${t.type==="credit"?" selected":""}>Money in</option></select></label>
+    </div>
+    <div class="fxrow">
+      <label class="field"><span>Currency</span><select id="e-cur">${CURRENCIES.map(c=>`<option${c===(t.currency||"INR")?" selected":""}>${c}</option>`).join("")}</select></label>
+      <label class="field" id="e-rateBox"><span>₹ per 1 <b id="e-curLbl">${esc(t.currency||"")}</b></span><input id="e-rate" inputmode="decimal" value="${t.fxRate||""}" placeholder="Fetched automatically"></label>
+    </div>
+    <p class="fxnote" id="e-fxNote"></p>
+    <label class="field"><span>Paid to / received from</span><input id="e-mer" value="${esc(t.merchant||"")}"></label>
+    <div class="two">
+      <label class="field"><span>Date</span><input id="e-date" type="date" value="${t.date||todayISO()}"></label>
+      <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    </div>
+    <label class="field"><span>Link to asset / EMI / indirect expense</span><select id="e-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${t.assetId===a.id?" selected":""}>${esc(a.name)} · ${esc(assetTypeLabel(a.type))}${a.loanAccount?" · linked loan":""}</option>`).join("")}</select></label>
+    ${(()=>{const sug=suggestAssetForTxn(t); return sug&&!t.assetId?`<p class="help" id="e-assetSuggest">Suggested asset: <b>${esc(sug.name)}</b> based on merchant/message. Please confirm by selecting it.</p>`:"";})()}
+    ${peopleList().length ? `<label class="field"><span>Who's this for</span></label>
+    <div class="ppl" id="e-people">${peopleList().map(p=>`<button type="button" class="pchip${t.person===p.id?" on":""}" data-pid="${esc(p.id)}"><span class="av" style="background:${p.color}">${esc(p.name.slice(0,1).toUpperCase())}</span>${esc(p.name)}</button>`).join("")}</div>` : ""}
+    <label class="field"><span>Tag to an event</span></label>
+    <button type="button" class="evbtn" id="e-evBtn" style="margin-bottom:14px">
+      <span class="ic" id="e-evIcon">${t.event && state.events[t.event] ? esc((state.events[t.event].icon)||"📌") : "+"}</span>
+      <span id="e-evLabel" style="flex-grow:1;text-align:left;font-weight:600">${t.event && state.events[t.event] ? esc(state.events[t.event].name) : "None — tap to tag"}</span>
+      <span style="color:var(--muted)">›</span>
+    </button>
+    ${cloudUser && state.family?.cloudId ? `<div class="switchrow"><span><b>Share this expense</b><small id="e-shareLabel" style="display:block;color:var(--muted)">${esc(shareLabel(t))}</small></span><label class="switch"><input type="checkbox" id="e-shareToggle" ${t.shared?'checked':''}><span class="track"></span></label></div><div class="share-audience" id="e-shareArea" style="${t.shared?'':'display:none'}"><button type="button" class="mini" id="e-shareBtn">${t.shareWith==='all'?'All family':'Choose members'}</button></div>` : ""}
+    ${loanMatch?`<label class="check"><input type="checkbox" id="e-loan">This looks like ${loanMatch.splitWith?esc(loanMatch.splitWith)+" ":""}paying back the ${money(loanMatch.amount-loanMatch.share,true)} you lent on ${esc(niceDate(loanMatch.date))}. Mark it as a repayment (not income) and settle it?</label>`:""}
+    <label class="field"><span>Note</span><input id="e-note" value="${esc(t.note||"")}" placeholder="Optional"></label>
+    <label class="check"><input type="checkbox" id="e-reimb" ${t.reimb?"checked":""}>Reimbursable, e.g. a work expense</label>
+    ${t.reimb?`<label class="check"><input type="checkbox" id="e-reimbDone" ${t.reimbDone?"checked":""}>Reimbursement received</label>`:""}
+    ${isNew ? "" : `<label class="check"><input type="checkbox" id="e-recur" ${isRecurringKey(mkey(t.merchant)) ? "checked" : ""}>Recurring payment</label>`}
+    ${sameAmountOthers(t).length ? `<label class="check"><input type="checkbox" id="e-same">Also apply the name and category to ${sameAmountOthers(t).length} other ${sameAmountOthers(t).length===1?"payment":"payments"} of ${money(t.amount,true)} in other months</label>` : ""}
+    <label class="check" id="e-splitRow"><input type="checkbox" id="e-split" ${t.share!=null?"checked":""}>Split this with others</label>
+    <div class="split-box ${t.share!=null?"":"hidden"}" id="e-splitBox">
+      <div class="two">
+        <label class="field"><span>People, including you</span><input id="e-n" inputmode="numeric" value="${t.splitN||2}"></label>
+        <label class="field"><span>Your share (₹)</span><input id="e-share" inputmode="decimal" value="${t.share!=null?t.share:""}"></label>
+      </div>
+      <label class="field"><span>Split with</span><input id="e-with" value="${esc(t.splitWith||"")}" placeholder="Names, e.g. Ravi, Anu"></label>
+      ${t.share!=null?`<label class="check"><input type="checkbox" id="e-settled" ${t.settled?"checked":""}>They've paid me back</label>`:""}
+    </div>
+    ${!isNew?`<label class="check"><input type="checkbox" id="e-rule" checked>Apply the name and category to all ${esc(t.merchant)} entries</label>
+    <label class="check" id="e-ruleAmtRow" style="margin-left:26px"><input type="checkbox" id="e-ruleAmt">Only entries of ${money(t.amount,true)} too</label>`:""}
+    ${t.raw?`<div class="field"><span>Original SMS</span><div class="raw">${esc(t.raw)}</div></div>`:""}
+    <div class="row">
+      <button class="btn primary" id="e-save">Save</button>
+      <button class="btn" id="e-cancel">Cancel</button>
+      ${!isNew?`<button class="btn danger" id="e-del" style="margin-left:auto">Delete</button>`:""}
+    </div></div>`;
+  document.body.appendChild(scrim);
+  const close = ()=>scrim.remove();
+  scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
+  scrim.querySelector("#e-cancel").onclick = close;
+  scrim.querySelector("#e-amt").focus();
+  const catSelect=scrim.querySelector("#e-cat");
+  catSelect.value=t.category||"Other";
+  let selPerson = t.person || "";
+  let selEvent = t.event || "";
+  let selShare = {shared:!!t.shared, shareWith:t.shareWith||"all"};
+  const shareBtn = scrim.querySelector("#e-shareBtn");
+  const shareToggle=scrim.querySelector("#e-shareToggle"), shareArea=scrim.querySelector("#e-shareArea");
+  if(shareToggle) shareToggle.onchange=e=>{selShare.shared=e.target.checked;if(!selShare.shared)selShare.shareWith="all";if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";if(shareBtn)shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);};
+  if(shareBtn) shareBtn.onclick=()=>chooseShareAudience(selShare,r=>{selShare=r;if(shareToggle)shareToggle.checked=selShare.shared;if(shareArea)shareArea.style.display=selShare.shared?"flex":"none";shareBtn.textContent=selShare.shareWith==='all'?"All family":"Choose members";scrim.querySelector("#e-shareLabel").textContent=shareLabel(selShare);});
+  const evBtn = scrim.querySelector("#e-evBtn");
+  const refreshEvBtn = ()=>{
+    const ev = eventById(selEvent);
+    scrim.querySelector("#e-evIcon").textContent = ev ? (ev.icon || "📌") : "+";
+    scrim.querySelector("#e-evLabel").textContent = ev ? ev.name : "None — tap to tag";
+  };
+  evBtn.onclick = ()=>openEventPicker(selEvent, t.merchant, t.date, (id)=>{ selEvent = id; refreshEvBtn(); });
+  const peopleBox = scrim.querySelector("#e-people");
+  if(peopleBox) peopleBox.addEventListener("click", e=>{
+    const b = e.target.closest("[data-pid]"); if(!b) return;
+    selPerson = selPerson === b.dataset.pid ? "" : b.dataset.pid;
+    peopleBox.querySelectorAll(".pchip").forEach(c=>c.classList.toggle("on", c.dataset.pid === selPerson));
+  });
+  const curSel = scrim.querySelector("#e-cur"), rateIn = scrim.querySelector("#e-rate"), fxNote = scrim.querySelector("#e-fxNote");
+  let rateTouched = false;
+  const fxRefresh = ()=>{
+    const cur = curSel.value, foreign = cur !== "INR";
+    scrim.querySelector("#e-rateBox").classList.toggle("hidden", !foreign);
+    scrim.querySelector("#e-curLbl").textContent = cur;
+    if(!foreign){ fxNote.textContent = ""; return; }
+    const a = parseFloat(scrim.querySelector("#e-amt").value.replace(/[,\s]/g,"")), r = parseFloat(rateIn.value);
+    fxNote.textContent = a && r ? `≈ ${money(a*r, true)} at ₹${r} per ${cur}. Change the rate to match your card statement if it differs.` : "Rate for the entry date will be fetched when you're online. You can also type it.";
+  };
+  const autoRate = ()=>{
+    const cur = curSel.value, date = scrim.querySelector("#e-date").value || todayISO();
+    if(cur === "INR" || rateTouched) return fxRefresh();
+    fxNote.textContent = "Getting the " + cur + " rate for " + niceDate(date) + "…";
+    getRate(cur, date).then(r=>{ if(r && !rateTouched && curSel.value === cur){ rateIn.value = r; } fxRefresh(); });
+  };
+  curSel.onchange = ()=>{ rateTouched = false; rateIn.value = ""; autoRate(); };
+  rateIn.oninput = ()=>{ rateTouched = true; fxRefresh(); };
+  scrim.querySelector("#e-amt").addEventListener("input", fxRefresh);
+  scrim.querySelector("#e-date").addEventListener("change", ()=>{ if(!rateTouched){ rateIn.value = ""; autoRate(); } });
+  if(isForeign(t) && !t.fxRate) autoRate(); else fxRefresh();
+  const splitBox = scrim.querySelector("#e-splitBox"), shareIn = scrim.querySelector("#e-share"), nIn = scrim.querySelector("#e-n");
+  const evenShare = ()=>{ const a = parseFloat(scrim.querySelector("#e-amt").value.replace(/[,₹\s]/g,"")) || 0, n = Math.max(1, parseInt(nIn.value)||1); shareIn.value = a ? Math.round(a/n*100)/100 : ""; };
+  const syncSplitRow = ()=>{ const deb = scrim.querySelector("#e-type").value === "debit"; scrim.querySelector("#e-splitRow").classList.toggle("hidden", !deb); if(!deb){ scrim.querySelector("#e-split").checked = false; splitBox.classList.add("hidden"); } };
+  scrim.querySelector("#e-split").onchange = e=>{ splitBox.classList.toggle("hidden", !e.target.checked); if(e.target.checked && !shareIn.value) evenShare(); };
+  nIn.oninput = evenShare;
+  scrim.querySelector("#e-type").onchange = ()=>{ syncSplitRow(); }; syncSplitRow();
+  const ruleBox = scrim.querySelector("#e-rule"), ruleAmtRow = scrim.querySelector("#e-ruleAmtRow");
+  if(ruleBox){ const syncRule = ()=>ruleAmtRow.classList.toggle("hidden", !ruleBox.checked); ruleBox.onchange = syncRule; syncRule(); }
+  scrim.querySelector("#e-save").onclick = ()=>{
+    const amount = parseFloat(scrim.querySelector("#e-amt").value.replace(/[,₹\s]/g,""));
+    if(!amount || amount <= 0){ toast("Enter an amount above zero."); return; }
+    const oldMonth = t.date ? t.date.slice(0,7) : null;
+    const upd = { ...t, amount,
+      type: scrim.querySelector("#e-type").value,
+      merchant: scrim.querySelector("#e-mer").value.trim() || "Payment",
+      date: scrim.querySelector("#e-date").value || todayISO(),
+      category: scrim.querySelector("#e-cat").value || "Other",
+      userCat: t.userCat || (!isNew && scrim.querySelector("#e-cat").value !== t.category) || undefined,
+      note: scrim.querySelector("#e-note").value.trim() };
+    const cur = scrim.querySelector("#e-cur").value;
+    if(cur === "INR"){ delete upd.currency; delete upd.fxRate; delete upd.fxAuto; }
+    else {
+      upd.currency = cur;
+      const r = parseFloat(scrim.querySelector("#e-rate").value);
+      if(r > 0){ upd.fxRate = r; upd.fxAuto = !rateTouched && !!upd.fxRate && upd.fxAuto !== false; } else { delete upd.fxRate; }
+      if(rateTouched) upd.fxAuto = false;
+    }
+    upd.reimb = scrim.querySelector("#e-reimb").checked;
+    const rd = scrim.querySelector("#e-reimbDone"); upd.reimbDone = upd.reimb && !!(rd && rd.checked);
+    if(!upd.reimb){ delete upd.reimb; delete upd.reimbDone; }
+    const assetSel=scrim.querySelector("#e-asset"); if(assetSel&&assetSel.value) upd.assetId=assetSel.value; else delete upd.assetId;
+    if(selPerson) upd.person = selPerson; else delete upd.person;
+    if(selEvent) upd.event = selEvent; else delete upd.event;
+    if(shareBtn){ if(selShare.shared){upd.shared=true;upd.shareWith=selShare.shareWith;} else {delete upd.shared;delete upd.shareWith;} }
+    if(scrim.querySelector("#e-split").checked && upd.type === "debit"){
+      const share = parseFloat(shareIn.value.replace(/[,₹\s]/g,""));
+      if(!(share >= 0) || share > amount){ toast("Your share should be between ₹0 and the full amount."); return; }
+      upd.share = share; upd.splitN = Math.max(1, parseInt(nIn.value)||2); upd.splitWith = scrim.querySelector("#e-with").value.trim();
+      const st = scrim.querySelector("#e-settled"); upd.settled = st ? st.checked : false;
+    } else { delete upd.share; delete upd.splitN; delete upd.splitWith; delete upd.settled; }
+    const months = new Set([upd.date.slice(0,7)]); if(oldMonth) months.add(oldMonth);
+    let settings = false;
+    const loanBox = scrim.querySelector("#e-loan");
+    if(loanMatch && loanBox && loanBox.checked){
+      upd.category = "Loan repayment"; upd.userCat = true;
+      loanMatch.settled = true; months.add(loanMatch.date.slice(0,7)); settings = true;
+    }
+    if(isNew){ upd.id = uidGen(); upd.added = Date.now(); state.txns.push(upd); }
+    else {
+      state.txns = state.txns.map(x=>x.id === t.id ? upd : x);
+      const rule = scrim.querySelector("#e-rule");
+      const ruleAmt = scrim.querySelector("#e-ruleAmt");
+      const sameEnough = x => !ruleAmt || !ruleAmt.checked || Math.abs(x.amount - t.amount) < 1;
+      if(rule && rule.checked && upd.merchant !== t.merchant){
+        const oldK = mkey(t.merchant);
+        // an amount-restricted rename only touches those entries, so it isn't remembered as a blanket rule for the name
+        if(!(ruleAmt && ruleAmt.checked)) state.names[oldK] = upd.merchant;
+        settings = true;
+        if(state.rules[oldK]) state.rules[mkey(upd.merchant)] = state.rules[oldK];
+        state.txns.forEach(x=>{ if(x !== upd && mkey(x.merchant) === oldK && sameEnough(x)){ x.merchant = upd.merchant; if(ruleAmt && ruleAmt.checked) x.userCat = true; months.add(x.date.slice(0,7)); } });
+      }
+      if(rule && rule.checked && upd.category !== t.category){
+        const k = mkey(upd.merchant);
+        if(!(ruleAmt && ruleAmt.checked)) state.rules[k] = upd.category;
+        settings = true;
+        state.txns.forEach(x=>{ if(mkey(x.merchant) === k && x.category !== upd.category && sameEnough(x)){ x.category = upd.category; if(ruleAmt && ruleAmt.checked) x.userCat = true; months.add(x.date.slice(0,7)); } });
+      }
+    }
+    if(!isNew){
+      const same = scrim.querySelector("#e-same");
+      if(same && same.checked){
+        sameAmountOthers(t).forEach(x=>{
+          const ok = mkey(x.merchant);
+          if(ok && ok !== mkey(upd.merchant)){ state.names[ok] = upd.merchant; }
+          state.rules[ok] = upd.category; state.rules[mkey(upd.merchant)] = upd.category;
+          x.merchant = upd.merchant; x.category = upd.category; x.userCat = true; months.add(x.date.slice(0,7));
+        });
+        prefixCache = null; settings = true;
+      }
+      const rc = scrim.querySelector("#e-recur");
+      if(rc){ setRecurring(upd, rc.checked); settings = true; }
+    }
+    persist([...months], settings); close(); render(); toast(isNew ? "Entry added." : "Entry saved.");
+  };
+  const del = scrim.querySelector("#e-del");
+  if(del) del.onclick = ()=>{
+    state.txns = state.txns.filter(x=>x.id !== t.id);
+    persist([t.date.slice(0,7)]); close(); render(); toast("Entry deleted.");
+  };
+  scrim.addEventListener("keydown", e=>{ if(e.key === "Escape") close(); });
+}
+
+/* ---------- Export / import ---------- */
+let downloads = null;
+async function save(filename, data){
+  if(window.Android && window.Android.saveFile){ window.Android.saveFile(filename, data); return; }
+  if(!downloads && window.claude && window.claude.use){ try{ downloads = await window.claude.use("downloads"); }catch(e){} }
+  if(downloads){
+    try{ await downloads.save({ filename, data }); return; }
+    catch(e){ if(e && e.code === "declined") return; }
+  }
+  try{ await navigator.clipboard.writeText(data); toast("Download isn't available here, so it was copied to your clipboard."); }
+  catch(e){ toast("Download isn't available in this view."); }
+}
+function toCSV(){
+  const cols = ["date","type","amount","currency","fxRate","inr","share","splitWith","merchant","category","mode","bank","account","ref","note"];
+  const q = v => { const s = String(v==null?"":v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+  return [cols.join(",")].concat(state.txns.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(t=>cols.map(c=>q(c === "inr" ? (inrOf(t) != null ? Math.round(inrOf(t)*100)/100 : "") : c === "currency" ? (t.currency || "INR") : t[c])).join(","))).join("\n");
+}
+
+/* ---------- Samples ---------- */
+const SAMPLE = `Spent Rs.486.00 On HDFC Bank Card 4821 At SWIGGY On 2026-09-24:21:14:05 Not You? Call 18002586161
+
+Sent Rs.1,250.00 From HDFC Bank A/C x9031 To BESCOM On 23/09/26 Ref 426811203344 Not You? Call 18002586161
+
+ICICI Bank Acct XX512 debited for Rs 2,399.00 on 22-Sep-26; AMAZON PAY credited. UPI:426512009911. Call 18002662 for dispute.
+
+Dear UPI user A/C X7730 debited by 340.0 on date 21Sep26 trf to ZEPTO MARKETPLA Refno 426400118823. If not u? call 1800111109. -SBI
+
+INR 3,000.00 debited from A/c no. XX4410 on 20-09-26 at ATM WDL MG ROAD BLR. Avl Bal INR 48,211.50 -Axis Bank
+
+Rs.85,000.00 credited to your A/c XX9031 on 01-09-26 by NEFT from ACME CONSULTING LLP. Avl bal: Rs.1,42,300.00 -HDFC Bank
+
+Your OTP for transaction of Rs.999 at MYNTRA is 482913. Do not share. -HDFC Bank
+
+Sent Rs.220.00 from Kotak Bank AC X6612 to paytmqr281005050101@paytm on 19-09-26.UPI Ref 426300871234. Not you? kotak.com/fraud
+
+Statement for ICICI Bank Credit Card XX0091: Total amount due Rs.18,240.00, minimum amount due Rs.910.00. Payment due by 05-Oct-26.
+
+Your BESCOM bill of Rs.1,340 for A/c 88213 is due on 02-Oct-26. Pay via BBPS to avoid late fee.
+
+Rs 1,299 refund credited to your HDFC Bank Card 4821 from MYNTRA on 18-09-26.`;
+
+/* ---------- Month picker ---------- */
+function openMonthPicker(){
+  const totals = {};
+  state.txns.forEach(t=>{ if(t.type==="debit" && counts(t)){ const k = pk(t.date); totals[k] = (totals[k]||0) + spendAmt(t); } });
+  const now = currentPK(), thisYear = +now.slice(0,4);
+  const firstYear = state.txns.reduce((y,t)=>Math.min(y, +t.date.slice(0,4)), thisYear);
+  const short = n => n >= 100000 ? (n/100000).toFixed(n>=1000000?0:1)+"L" : n >= 1000 ? Math.round(n/1000)+"k" : Math.round(n);
+  let html = "";
+  for(let y = thisYear; y >= firstYear; y--){
+    let yt = 0; for(let m=1;m<=12;m++) yt += totals[y+"-"+String(m).padStart(2,"0")] || 0;
+    html += `<div class="yr"><div class="yr-h"><b>${y}</b><span class="num">${yt ? money(yt)+" spent" : "No entries"}</span></div><div class="mgrid">`;
+    for(let m=1;m<=12;m++){
+      const k = y+"-"+String(m).padStart(2,"0"), v = totals[k];
+      html += `<button data-m="${k}" class="${k===cursor?"cur":""}" ${k>now?"disabled":""}>${mShort(m-1)}<small class="num">${v ? "₹"+short(v) : "–"}</small></button>`;
+    }
+    html += `</div></div>`;
+  }
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose month"><h2>Choose month</h2>${html}</div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    const b = e.target.closest("[data-m]");
+    if(b){ cursor = b.dataset.m; scrim.remove(); render(); return; }
+    if(e.target === scrim) scrim.remove();
+  });
+  const cur = scrim.querySelector(".cur"); if(cur && cur.scrollIntoView) cur.scrollIntoView({block:"center"});
+}
+document.getElementById("monthName").onclick = ()=>{ if(ovMode === "month") openMonthPicker(); };
+document.getElementById("monthName2").onclick = openMonthPicker;
+document.getElementById("ovMode").addEventListener("click", e=>{ const b=e.target.closest("[data-m]"); if(!b)return; ovMode=b.dataset.m; if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4); if(ovMode==="day") dayCursor=todayISO(); render(); });
+
+/* ---------- Events ---------- */
+document.querySelector(".tabs nav").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  view = b.dataset.v; window.scrollTo({top:0,left:0,behavior:"auto"}); document.documentElement.scrollTop=0; document.body.scrollTop=0; render();
+});
+function shift(n){
+  if(view === "overview" && ovMode === "day"){ const d=new Date(dayCursor+"T00:00:00"); d.setDate(d.getDate()+n); const k=iso(d); if(k<=todayISO()){dayCursor=k;render();} return; }
+  if(view === "overview" && ovMode === "year"){ const ys = yearsWithData(); const ny = ovYear + n; if(ny >= ys[0] && ny <= ys[ys.length-1]){ ovYear = ny; render(); } return; }
+  if(view === "overview" && (ovMode === "all" || ovMode === "events")) return;
+  const [y,m] = cursor.split("-").map(Number);
+  const d = new Date(y, m-1+n, 1); const k = monthKey(d);
+  if(k > currentPK()) return;
+  cursor = k; render();
+}
+["prevM","prevM2"].forEach(id=>document.getElementById(id).onclick = ()=>shift(-1));
+["nextM","nextM2"].forEach(id=>document.getElementById(id).onclick = ()=>shift(1));
+
+
+document.getElementById("homeBody").addEventListener("click", e=>{
+  if(e.target.closest("#homeCreateEvent")){ createEventForm(); return; }
+  if(e.target.closest("#homeAddShopping")){ addHomeShopping(); return; }
+  if(e.target.closest("#homeAddCalendar")){ addHomeCalendar(); return; }
+  if(e.target.closest("#homeSeeEvents")){ view="overview"; ovMode="events"; render(); return; }
+  const hp=e.target.closest("[data-home-person]"); if(hp){ homePersonFilter=hp.dataset.homePerson||"all"; render(); return; }
+  const hper=e.target.closest("[data-home-period]"); if(hper){ homePeriodMode=hper.dataset.homePeriod; if(homePeriodMode==="day")homePeriodDay=todayISO(); if(homePeriodMode==="month")homePeriodMonth=currentPK(); if(homePeriodMode==="year")homePeriodYear=new Date().getFullYear(); render(); return; }
+  const hshift=e.target.closest("[data-home-period-shift]"); if(hshift){ const n=+hshift.dataset.homePeriodShift; if(homePeriodMode==="day"){const d=new Date(homePeriodDay+"T00:00:00");d.setDate(d.getDate()+n);const k=iso(d);if(k<=todayISO())homePeriodDay=k;} else if(homePeriodMode==="month"){const d=new Date(homePeriodMonth+"-01T00:00:00"); d.setMonth(d.getMonth()+n); const k=monthKey(d); if(k<=currentPK()){homePeriodMonth=k;}} else if(homePeriodMode==="year"){const y=homePeriodYear+n;if(y<=new Date().getFullYear())homePeriodYear=y;} render(); return; }
+  const he=e.target.closest("[data-home-event]"); if(he){ openEventDetail(he.dataset.homeEvent); return; }
+  const htx=e.target.closest("[data-home-entry]"); if(htx){ const t=state.txns.find(x=>x.id===htx.dataset.homeEntry); if(t) openSheet(t,false); return; }
+  const sd=e.target.closest("[data-shopdone]"); if(sd){ const x=(state.shopping||[]).find(x=>x.id===sd.dataset.shopdone); if(x){x.done=!x.done;persist([],true);render();} return; }
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "home"); return; }
+  const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; render(); return; }
+  const f = e.target.closest("[data-f]"); if(f){ homeFamily = f.dataset.f === "1"; render(); return; }
+  const k = e.target.closest("[data-k]"); if(k){ homeSel = k.dataset.k; render(); return; }
+  const o = e.target.closest("[data-open]"); if(o){ cursor = o.dataset.open; view = "overview"; window.scrollTo(0,0); render(); return; }
+  if(e.target.closest("[data-trends]")){ ovMode = "year"; ovYear = +currentPK().slice(0,4); view = "overview"; window.scrollTo(0,0); render(); return; }
+  const see = e.target.closest("[data-see]"); if(see){ openEntriesSheet(); return; }
+  const c = e.target.closest("[data-cat]"); if(c){ openEntriesSheet(); return; }
+});
+document.getElementById("overviewBody").addEventListener("click", e=>{
+  const ab=e.target.closest("[data-asset]"); if(ab){ openAssetSheet(ab.dataset.asset); return; }
+  if(e.target.id==="addAsset"){ openAssetSheet(null); return; }
+  const p=e.target.closest("[data-paid]"); if(p){ const b=state.bills.find(x=>x.id===p.dataset.paid); if(b){ b.paid=true; b.paidOn=todayISO(); persist([],true); render(); toast("Marked paid."); } return; }
+  const oev = e.target.closest("[data-openevov]"); if(oev){ openEventDetail(oev.dataset.openevov); return; }
+  const go = e.target.closest("[data-go]"); if(go){ view = go.dataset.go; window.scrollTo(0,0); render(); return; }
+  const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
+  const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "overview"); return; }
+  const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; render(); }
+});
+document.getElementById("q").addEventListener("input", renderList);
+document.getElementById("catFilter").addEventListener("change", e=>{ listCat = e.target.value; renderList(); });
+document.getElementById("loanDocumentImport")?.addEventListener("click", startLoanDocumentImport);
+document.getElementById("loanDocumentAdd")?.addEventListener("click", ()=>openAcctSheet(null));
+
+const settingsJump=document.getElementById("settingsJump"); if(settingsJump) settingsJump.addEventListener("change",e=>{const id=e.target.value;if(!id)return;const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});e.target.value="";});
+const accountsBodyEl=document.getElementById("accountsBody");
+
+document.getElementById("list").addEventListener("click", e=>{
+  const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "list"); return; }
+  const b = e.target.closest(".tx"); if(!b) return;
+  const t = state.txns.find(x=>x.id === b.dataset.id); if(t) openSheet(t, false);
+});
+document.getElementById("list").addEventListener("keydown", e=>{
+  if(e.key !== "Enter" && e.key !== " ") return;
+  const b = e.target.closest(".tx"); if(!b || e.target.closest("[data-merchant]")) return;
+  e.preventDefault(); const t = state.txns.find(x=>x.id === b.dataset.id); if(t) openSheet(t, false);
+});
+
+let lastSkipped = [], pendingBills = [], pendingBals = [], pendingSubs = [];
+document.getElementById("accountsBody").addEventListener("toggle", e=>{ const d = e.target.closest && e.target.closest("details.agroup"); if(d) acctOpen[d.dataset.g] = d.open; }, true);
+document.getElementById("accountsBody").addEventListener("click", e=>{
+  if(e.target.closest("#cleanRecurringDupes")){ const n=cleanDuplicateRecurringTransactions(); render(); toast(n?`${n} duplicate recurring transaction${n===1?"":"s"} removed.`:"No duplicate recurring transactions found."); return; }
+  const oe = e.target.closest("[data-openev]"); if(oe){ openEventDetail(oe.dataset.openev); return; }
+  const p = e.target.closest("[data-paid]");
+  if(p){ const b = state.bills.find(x=>x.id === p.dataset.paid); if(b){ b.paid = true; b.paidOn = todayISO(); persist([], true); render(); toast("Marked paid."); } return; }
+  const h = e.target.closest("[data-hide]");
+  if(h){
+    const k = h.dataset.hide;
+    const man = state.subsManual.find(m=>m.key === k);
+    if(man) state.subsManual = state.subsManual.filter(m=>m.key !== k); else state.subsHidden.push(k);
+    persist([], true); render(); toast(man ? "Subscription removed." : "Hidden from recurring payments."); return;
+  }
+  const st = e.target.closest("[data-settle]");
+  if(st){ const t = state.txns.find(x=>x.id === st.dataset.settle); if(t){ t.settled = true; persist([t.date.slice(0,7)]); render(); toast("Marked settled."); } return; }
+  const re = e.target.closest("[data-recedit]"); if(re){ openRecurringSheet(re.dataset.recedit); return; }
+  if(e.target.id === "unhideSubs"){ state.subsHidden = []; persist([], true); render(); return; }
+  const rb = e.target.closest("[data-reimb]");
+  if(rb){ const t = state.txns.find(x=>x.id === rb.dataset.reimb); if(t){ t.reimbDone = true; persist([t.date.slice(0,7)]); render(); toast("Marked as received."); } return; }
+  if(e.target.id === "unhideAccts"){ Object.values(state.accounts).forEach(a=>delete a.hidden); persist([], true); render(); return; }
+  const stg=e.target.closest("[data-section-toggle]"); if(stg){ const k=stg.dataset.sectionToggle; acctSectionHidden[k]=!acctSectionHidden[k]; render(); return; }
+  if(e.target.id === "addAssetAccounts"){ openAssetSheet(null); return; }
+  const ab=e.target.closest("[data-asset]"); if(ab){ openAssetSheet(ab.dataset.asset); return; }
+  if(e.target.id === "addAcct"){ openAcctSheet(null); return; }
+  if(e.target.id === "addEvent"){ openEventPicker("", "", todayISO(), ()=>{ render(); }); return; }
+  if(e.target.id === "addSub"){ openSubSheet(); return; }
+  const ac = e.target.closest("[data-acct]");
+  if(ac){ openAcctSheet(ac.dataset.acct); return; }
+  if(e.target.id === "addBill") openBillSheet();
+});
+// extraBtn: either one [label, fn] pair, or several as [[label, fn], [label, fn], ...]
+function sheet(title, inner, onSave, extraBtn){
+  const extras = !extraBtn ? [] : Array.isArray(extraBtn[0]) ? extraBtn : [extraBtn];
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2>${inner}
+    <div class="row"><button class="btn primary" data-s="save">Save</button><button class="btn" data-s="cancel">Cancel</button>${extras.map((eb,i)=>`<button class="btn danger" data-s="extra${i}" style="${i===0?"margin-left:auto":""}">${esc(eb[0])}</button>`).join("")}</div></div>`;
+  document.body.appendChild(scrim);
+  const close = ()=>scrim.remove();
+  scrim.addEventListener("click", e=>{
+    if(e.target === scrim) return close();
+    const b = e.target.closest("[data-s]"); if(!b) return;
+    if(b.dataset.s === "cancel") return close();
+    const ex = /^extra(\d+)$/.exec(b.dataset.s);
+    if(ex){ extras[+ex[1]][1](); close(); render(); return; }
+    if(onSave(scrim) !== false){ close(); render(); }
+  });
+  return scrim;
+}
+const KIND_OPTS = [["bank","Bank account"],["card","Credit card"],["wallet","Wallet / prepaid"],["fastag","FASTag"],["invest","Investment / PF / pension"],["loan","Loan"]];
+function loanTranchesFor(a){
+  if(!a || a.kind!=="loan") return [];
+  if(Array.isArray(a.loanTranches) && a.loanTranches.length) return a.loanTranches;
+  const amt=Number(a.originalAmount)||Number(a.balance)||0;
+  if(!amt) return [];
+  return [{id:"orig-"+String(a.account||a.label||"loan"),type:"original",lender:a.bank||"",amount:amt,rate:a.loanRate!=null?Number(a.loanRate):null,startDate:a.loanStartDate||null,tenureMonths:a.loanTenureMonths||null,outstanding:a.balance!=null?Math.max(0,Number(a.balance)||0):amt,active:true}];
+}
+function loanTrancheTotal(a){return loanTranchesFor(a).reduce((s,t)=>s+Math.max(0,Number(t.outstanding)||0),0);}
+function loanTrancheOriginal(a){return loanTranchesFor(a).reduce((s,t)=>s+Math.max(0,Number(t.amount)||0),0);}
+function loanWeightedRate(a){const ts=loanTranchesFor(a).filter(t=>Number(t.rate)>0&&Number(t.outstanding)>0);const den=ts.reduce((s,t)=>s+Number(t.outstanding),0);if(!den)return null;return ts.reduce((s,t)=>s+Number(t.outstanding)*Number(t.rate),0)/den;}
+function loanEnsureStored(a){if(!a||a.kind!=="loan")return;if(!Array.isArray(a.loanTranches)||!a.loanTranches.length){const ts=loanTranchesFor(a);if(ts.length)a.loanTranches=ts;}}
+function loanStructureHtml(a){
+  const ts=loanTranchesFor(a); if(!ts.length)return `<p class="help">No loan tranche yet. Save the loan first, then add the original tranche, a top-up, or a balance transfer.</p>`;
+  const rows=ts.map(t=>`<div class="due loan-tranche" style="grid-template-columns:1fr auto"><span class="n">${esc(t.type==="topup"?"Top-up":t.type==="transfer"?"Balance transfer":"Original loan")}${t.lender?` · ${esc(t.lender)}`:""}</span><span class="num" style="font-weight:700">${money(Number(t.outstanding)||0,true)}</span><span class="w" style="grid-column:1/3"><span>Started ${t.startDate?esc(niceDate(t.startDate)):"—"}</span>${t.rate!=null?`<span>${Number(t.rate).toFixed(2)}% p.a.</span>`:""}<span>Original ${money(Number(t.amount)||0,true)}</span>${t.tenureMonths?`<span>${Math.round(Number(t.tenureMonths)/12*10)/10} yr</span>`:""}</span></div>`).join("");
+  const total=loanTrancheTotal(a), original=loanTrancheOriginal(a), wr=loanWeightedRate(a);
+  return `<div class="card" style="margin-top:8px"><div class="card-h"><b>Loan structure</b><span class="chart-note">${ts.length} tranche${ts.length===1?"":"s"}</span></div><div class="msum num"><div><small>Total sanctioned</small><b>${money(original)}</b></div><div><small>Outstanding</small><b>${money(total)}</b></div><div><small>Weighted rate</small><b>${wr!=null?wr.toFixed(2)+"%":"–"}</b></div></div>${rows}<div class="row" style="margin-top:8px"><button class="btn" type="button" id="loanAddTopup">+ Add top-up</button><button class="btn" type="button" id="loanTransfer">Transfer to another bank</button></div><p class="help">Top-ups are stored as separate loan tranches with their own rate and start date. A balance transfer closes the old lender and creates a new loan account, so the liability is not counted twice.</p></div>`;
+}
+function openLoanTopupSheet(key){
+  const a=state.accounts[key];if(!a||a.kind!=="loan")return;
+  sheet("Add loan top-up",`<label class="field"><span>Top-up amount (₹)</span><input id="lt-amt" inputmode="decimal"></label><div class="two"><label class="field"><span>New interest rate (% p.a.)</span><input id="lt-rate" inputmode="decimal"></label><label class="field"><span>Start date</span><input id="lt-date" type="date" value="${todayISO()}"></label></div><div class="two"><label class="field"><span>Tenure (months)</span><input id="lt-tenure" inputmode="numeric" placeholder="e.g. 60"></label><label class="field"><span>Lender / tranche label</span><input id="lt-label" value="${esc(a.bank||a.label||"")}" placeholder="e.g. Axis top-up"></label></div><p class="help">This does not replace the original loan. It creates a separate tranche with its own rate, tenure and outstanding amount.</p>`,sc=>{
+    const amt=parseFloat(sc.querySelector("#lt-amt").value.replace(/[,₹\s]/g,"")),rate=parseFloat(sc.querySelector("#lt-rate").value),tenure=parseInt(sc.querySelector("#lt-tenure").value||"0",10)||null;if(!(amt>0)){toast("Enter the top-up amount.");return false;}
+    const t={id:"topup-"+uidGen(),type:"topup",lender:sc.querySelector("#lt-label").value.trim()||a.bank||"",amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:sc.querySelector("#lt-date").value||todayISO(),tenureMonths:tenure,outstanding:amt,active:true};loanEnsureStored(a);a.loanTranches.push(t);a.balance=loanTrancheTotal(a);a.originalAmount=loanTrancheOriginal(a);a.asOf=todayISO();persist([],true);toast(`Top-up of ${money(amt)} added.`);
+  });
+}
+function openLoanTransferSheet(key){
+  const a=state.accounts[key];if(!a||a.kind!=="loan")return;const outstanding=loanTrancheTotal(a)||Number(a.balance)||0;
+  sheet("Transfer loan to another bank",`<label class="field"><span>New lender / loan name</span><input id="lb-name" placeholder="e.g. HDFC Home Loan"></label><div class="two"><label class="field"><span>Transferred principal (₹)</span><input id="lb-amt" inputmode="decimal" value="${outstanding||""}"></label><label class="field"><span>New interest rate (% p.a.)</span><input id="lb-rate" inputmode="decimal"></label></div><div class="two"><label class="field"><span>Transfer date</span><input id="lb-date" type="date" value="${todayISO()}"></label><label class="field"><span>New tenure (months)</span><input id="lb-tenure" inputmode="numeric" placeholder="e.g. 120"></label></div><div class="two"><label class="field"><span>Optional top-up (₹)</span><input id="lb-topup" inputmode="decimal" value="0"></label><label class="field"><span>Top-up rate (% p.a.)</span><input id="lb-toprate" inputmode="decimal"></label></div><p class="help">The old loan will be marked transferred/closed. The new loan carries the transferred principal and optional top-up as separate tranches. The transfer itself is not income or expense.</p>`,sc=>{
+    const name=sc.querySelector("#lb-name").value.trim(),amt=parseFloat(sc.querySelector("#lb-amt").value.replace(/[,₹\s]/g,"")),rate=parseFloat(sc.querySelector("#lb-rate").value),top=parseFloat(sc.querySelector("#lb-topup").value.replace(/[,₹\s]/g,""))||0,topRate=parseFloat(sc.querySelector("#lb-toprate").value),date=sc.querySelector("#lb-date").value||todayISO(),tenure=parseInt(sc.querySelector("#lb-tenure").value||"0",10)||null;if(!name||!(amt>0)){toast("Enter the new lender and transferred principal.");return false;}
+    const nk="manual"+uidGen(),na={label:name,kind:"loan",bank:name,account:"",balance:amt+top,asOf:date,originalAmount:amt+top,loanCategory:a.loanCategory||"Other",assetId:a.assetId||null,transferredFrom:key,loanTranches:[{id:"transfer-"+uidGen(),type:"transfer",lender:name,amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:amt,active:true}]};
+    if(top>0)na.loanTranches.push({id:"topup-"+uidGen(),type:"topup",lender:name,amount:top,rate:Number.isFinite(topRate)?topRate:(Number.isFinite(rate)?rate:null),startDate:date,tenureMonths:tenure,outstanding:top,active:true});
+    a.transferredTo=nk;a.closed=true;a.hidden=true;a.transferredOn=date;a.balance=0;a.asOf=date;state.accounts[nk]=na;persist([],true);toast(`Loan transferred to ${name}.`);
+  });
+}
+function loanDocGuess(name,text){
+  const t=String(text||""), n=String(name||""); const low=(n+"\n"+t).toLowerCase();
+  let type="statement";
+  if(/amort|repayment schedule|payment schedule|instalment schedule|installment schedule/.test(low)) type="schedule";
+  if(/top.?up|enhancement|additional loan|additional amount/.test(low)) type="topup";
+  if(/balance transfer|takeover|loan transfer|foreclosure.{0,40}(letter|statement)|closure.{0,30}transfer/.test(low)) type="transfer";
+  const num=(re)=>{const m=t.match(re);return m?Number(String(m[1]).replace(/,/g,"")):null;};
+  const amount=num(/(?:amt\.?\s*financed|amount\s+financed|loan\s+amount|loan\s+sanctioned|sanctioned\s+amount|amount\s+sanctioned|principal\s+amount|facility\s+amount)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const outstanding=num(/(?:outstanding(?:\s+principal|\s+balance)?|principal\s+outstanding|loan\s+outstanding|closing\s+principal|balance\s+outstanding|current\s+outstanding)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const emi=num(/(?:emi|installment|instalment)\s*(?:amount)?\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i);
+  const rate=num(/(?:current\s+interest(?:\s+rate)?|interest\s+rate|rate\s+of\s+interest|roi|rate)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%/i);
+  const knownLender=((n+"\n"+t).match(/\b(axis(?: bank)?|hdfc(?: bank)?|icici(?: bank)?|state bank of india|sbi|kotak mahindra(?: bank)?|idfc first bank|yes bank|indusind(?: bank)?|bajaj finance|tata capital|pnb|bank of baroda|canara bank|union bank|federal bank)\b/i)||[])[1]||"";
+  const lenderMatch=t.match(/(?:lender|bank|financial institution|name of (?:the )?bank)\s*[:\-]?\s*([A-Za-z][A-Za-z .&-]{2,60})/i);
+  const normalizeLender=x=>{const z=String(x||'').trim().toLowerCase();if(z==='axis'||z==='axis bank')return 'Axis Bank';if(z==='hdfc'||z==='hdfc bank')return 'HDFC Bank';if(z==='icici'||z==='icici bank')return 'ICICI Bank';if(z==='sbi')return 'State Bank of India';if(z==='kotak mahindra'||z==='kotak mahindra bank')return 'Kotak Mahindra Bank';if(z==='idfc first bank')return 'IDFC FIRST Bank';if(z==='yes bank')return 'YES Bank';if(z==='indusind'||z==='indusind bank')return 'IndusInd Bank';return String(x||'').trim();};
+  const lenderName=normalizeLender(knownLender || (lenderMatch?.[1]||""));
+  const datePick=(re)=>{const m=t.match(re); return m?statementDate(m[1]):null;};
+  // Prefer an actual statement period start/disbursement date over the document-generation date.
+  const periodStart=datePick(/loan\s+statement\s+for\s+the\s+period\s*\(?(?:from\s*[:\-]?\s*)?(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})\s*(?:to|[-])\s*/i);
+  const disbDate=datePick(/(?:loan\s+(?:start|sanction|disbursement)\s+date|date\s+of\s+(?:sanction|disbursement)|loan\s+date|sanction\s+date)\s*[:\-]?\s*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i);
+  const allDates=[...t.matchAll(/\b(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})\b/g)].map(m=>statementDate(m[1])).filter(Boolean).sort();
+  const documentDate=datePick(/(?:date)\s*[:\-]?\s*([A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4})/i) || null;
+  // Axis-style repayment schedules contain a row: INSTL NUM, DUE DATE, OPENING PRINCIPAL, EMI, PRINCIPAL, INTEREST, CLOSING PRINCIPAL, RATE.
+  // Parse those rows so we can use the latest row applicable as of the document date, rather than the first rate in the schedule or a future 2032 balance.
+  const rowRe=/(\d{1,3})\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/g;
+  const scheduleRows=[]; let rm; while((rm=rowRe.exec(t))!==null){scheduleRows.push({num:Number(rm[1]),date:statementDate(rm[2]),opening:Number(rm[3].replace(/,/g,"")),emi:Number(rm[4].replace(/,/g,"")),principal:Number(rm[5].replace(/,/g,"")),interest:Number(rm[6].replace(/,/g,"")),closing:Number(rm[7].replace(/,/g,"")),rate:Number(rm[8])});}
+  const docDate=documentDate||allDates[allDates.length-1]||null;
+  const applicable=scheduleRows.filter(r=>r.date && (!docDate || r.date<=docDate)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const latestRow=applicable[applicable.length-1] || scheduleRows[scheduleRows.length-1] || null;
+  const firstRow=scheduleRows.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0] || null;
+  const scheduleStart=firstRow?.date||null;
+  const scheduleCurrentOut=latestRow?.closing!=null?latestRow.closing:null;
+  const scheduleCurrentRate=latestRow?.rate!=null?latestRow.rate:null;
+  const scheduleCurrentEmi=latestRow?.emi!=null?latestRow.emi:null;
+  const scheduleOriginal=firstRow?.opening!=null?firstRow.opening:null;
+  const currentOutVal=type==='schedule'&&scheduleCurrentOut!=null?scheduleCurrentOut:outstanding;
+  const currentRateVal=type==='schedule'&&scheduleCurrentRate!=null?scheduleCurrentRate:rate;
+  const currentEmiVal=type==='schedule'&&scheduleCurrentEmi!=null?scheduleCurrentEmi:emi;
+  const amountVal=amount||((type==='schedule')?scheduleOriginal:null);
+  const startVal=periodStart||disbDate||scheduleStart||null;
+  const latestDate=latestRow?.date || (allDates.length?allDates[allDates.length-1]:null);
+  let category="Other"; if(/home loan|housing loan|mortgage|property loan/.test(low)) category="Home"; else if(/car loan|vehicle loan|auto loan|corolla|altis/.test(low)) category="Vehicle"; else if(/personal loan/.test(low)) category="Personal"; else if(/gold loan/.test(low)) category="Gold"; else if(/education loan|student loan/.test(low)) category="Education";
+  const statementLines=t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  let statementInterestDue=0, statementInterestWaived=0;
+  statementLines.forEach(line=>{ if(!/interest/i.test(line)) return; const vals=[]; let mm; moneyRe.lastIndex=0; while((mm=moneyRe.exec(line))!==null){const n=Number(String(mm[1]).replace(/,/g,""));if(Number.isFinite(n)&&n>0)vals.push(n);} if(!vals.length)return; const v=Math.max(...vals); if(/waived|waiver/i.test(line)) statementInterestWaived+=v; else if(/due|charged|charge/i.test(line)) statementInterestDue+=v; });
+  const scheduleInterestToDate=latestRow?scheduleRows.filter(r=>r.date&&(!docDate||r.date<=docDate)).reduce((s,r)=>s+r.interest,0):null;
+  const statementInterestPaid=Math.max(0,statementInterestDue-statementInterestWaived);
+  const interestPaidToDate=(type==='schedule'&&Number.isFinite(scheduleInterestToDate))?scheduleInterestToDate:(statementInterestPaid>0?statementInterestPaid:null);
+  const emiHistory=scheduleRows.map(r=>({date:r.date,emi:r.emi})).filter(x=>x.date&&Number.isFinite(x.emi)&&x.emi>0);
+  return {type,amount:amountVal,outstanding:currentOutVal,emi:currentEmiVal,lender:lenderName.trim(),category,startDate:startVal,latestDate,documentDate:docDate,interestPaidToDate,statementInterestPaid:statementInterestPaid||null,rateHistory:scheduleRows.map(r=>({date:r.date,rate:r.rate})).filter(x=>x.date&&Number.isFinite(x.rate)),emiHistory};
+}
+function loanDocTypeLabel(x){return x==="schedule"?"Payment / amortization schedule":x==="statement"?"Loan account statement":x==="topup"?"Top-up / enhancement document":"Balance transfer / takeover";}
+function loanDocumentOptions(selected, assetId=""){
+  return Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden).filter(([k,a])=>!assetId || a.assetId===assetId || (state.assets||[]).some(x=>x.id===assetId&&x.loanAccount===k)).map(([k,a])=>{
+    const asset=(state.assets||[]).find(x=>x.id===assetId || x.loanAccount===k);
+    return `<option value="${esc(k)}"${selected===k?" selected":""}>${esc(a.label||a.bank||"Loan")} · ${money(Number(a.balance)||0,true)}${asset?` · ${esc(asset.name)}`:""}</option>`;
+  }).join("");
+}
+let pendingLoanDocs=[];
+let pendingLoanImportContext={assetId:"",loanKey:""};
+function renderLoanDocuments(){
+  const el=document.getElementById("loanDocumentList"); if(!el)return;
+  const docs=Array.isArray(state.loanDocuments)?state.loanDocuments.slice().sort((a,b)=>(b.importedAt||0)-(a.importedAt||0)):[];
+  if(!docs.length){el.innerHTML=`<p class="help">No loan documents imported yet.</p>`;return;}
+  el.innerHTML=docs.slice(0,20).map(d=>`<div class="due"><span class="n">${esc(d.name||"Loan document")}</span><span class="num">${esc(loanDocTypeLabel(d.type||"statement"))}</span><span class="w" style="grid-column:1/3"><span>${d.assetId&&state.assets?.find(x=>x.id===d.assetId)?`Asset: ${esc(state.assets.find(x=>x.id===d.assetId).name)} · `:""}${d.loanKey&&state.accounts[d.loanKey]?esc(state.accounts[d.loanKey].label||"Linked loan"):"Not linked"}</span>${d.reconciliation?`<span>Ledger: ${d.reconciliation.matched||0} matched, ${d.reconciliation.added||0} added${d.reconciliation.review?`, ${d.reconciliation.review} for review`:""}</span>`:""}${d.amount!=null?`<span>Amount ${money(d.amount,true)}</span>`:""}${d.outstanding!=null?`<span>Outstanding ${money(d.outstanding,true)}</span>`:""}${d.rate!=null?`<span>${Number(d.rate).toFixed(2)}% p.a.</span>`:""}${d.importedAt?`<span>Imported ${esc(new Date(d.importedAt).toLocaleDateString())}</span>`:""}<button type="button" class="mini loan-doc-remove" data-doc-id="${esc(d.id||"")}" style="margin-top:6px">Remove document record</button></span></div>`).join("");
+  el.querySelectorAll('.loan-doc-remove').forEach(b=>b.onclick=()=>{const id=b.dataset.docId;const d=(state.loanDocuments||[]).find(x=>x.id===id);if(!d)return;if(!confirm(`Remove the document record "${d.name||'document'}"? Processed loan, asset and Ledger data will remain unchanged.`))return;state.loanDocuments=state.loanDocuments.filter(x=>x.id!==id);persist([],true);renderLoanDocuments();toast('Document record removed. Imported data remains.');});
+}
+function createLoanFromDocument(sc,doc){
+  const type=sc.querySelector("#ld-type").value, name=sc.querySelector("#ld-name").value.trim(), lender=sc.querySelector("#ld-lender").value.trim(), category=sc.querySelector("#ld-cat").value, amount=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||0, outstanding=parseFloat(sc.querySelector("#ld-outstanding").value.replace(/[,₹\s]/g,"")), rate=parseFloat(sc.querySelector("#ld-rate").value), date=sc.querySelector("#ld-date").value||todayISO(), tenure=parseInt(sc.querySelector("#ld-tenure").value||"0",10)||null;
+  if(!name){toast("Give the loan a name.");return false;}
+  if(type==="transfer") return applyLoanTransferFromDoc(sc,doc);
+  const key="manual"+uidGen(), bal=Number.isFinite(outstanding)?outstanding:(amount||0);
+  const a={label:name,kind:"loan",bank:lender,account:"",balance:bal,asOf:date,originalAmount:amount||bal,loanCategory:category,loanTranches:[{id:"original-"+uidGen(),type:"original",lender:lender||name,amount:amount||bal,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:bal,active:true}]};
+  if(Number.isFinite(parseFloat(sc.querySelector("#ld-emi").value)))a.emi=Number(sc.querySelector("#ld-emi").value);
+  state.accounts[key]=a; doc.loanKey=key; return true;
+}
+function applyLoanTransferFromDoc(sc,doc){
+  const oldKey=sc.querySelector("#ld-loan").value, old=state.accounts[oldKey], name=sc.querySelector("#ld-name").value.trim(), lender=sc.querySelector("#ld-lender").value.trim()||name, amt=parseFloat(sc.querySelector("#ld-amount").value.replace(/[,₹\s]/g,""))||0, top=parseFloat(sc.querySelector("#ld-topup").value.replace(/[,₹\s]/g,""))||0, rate=parseFloat(sc.querySelector("#ld-rate").value), topRate=parseFloat(sc.querySelector("#ld-toprate").value), date=sc.querySelector("#ld-date").value||todayISO(), tenure=parseInt(sc.querySelector("#ld-tenure").value||"0",10)||null;
+  if(!name||!(amt>0)){toast("Enter the new lender and transferred principal.");return false;}
+  const nk="manual"+uidGen(), na={label:name,kind:"loan",bank:lender,account:"",balance:amt+top,asOf:date,originalAmount:amt+top,loanCategory:old?.loanCategory||"Other",assetId:old?.assetId||null,transferredFrom:oldKey,loanTranches:[{id:"transfer-"+uidGen(),type:"transfer",lender,amount:amt,rate:Number.isFinite(rate)?rate:null,startDate:date,tenureMonths:tenure,outstanding:amt,active:true}]};
+  if(top>0)na.loanTranches.push({id:"topup-"+uidGen(),type:"topup",lender,amount:top,rate:Number.isFinite(topRate)?topRate:(Number.isFinite(rate)?rate:null),startDate:date,tenureMonths:tenure,outstanding:top,active:true});
+  if(old){old.transferredTo=nk;old.closed=true;old.hidden=true;old.transferredOn=date;old.balance=0;old.asOf=date;}
+  state.accounts[nk]=na; doc.loanKey=nk; return true;
+}
+function reconcileLoanStatementToLedger(doc, loanKey, assetId){
+  if(!doc || !doc.text || !loanKey) return {matched:0,added:0,review:0,rows:0};
+  const a=state.accounts?.[loanKey]; if(!a) return {matched:0,added:0,review:0,rows:0};
+  const lines=String(doc.text).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const out={matched:0,added:0,review:0,rows:0};
+  const seen=new Set();
+  const dateRe=/(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/;
+  const moneyRe=/(?:₹|Rs\.?|INR)?\s*([\d,]+\.\d{2}|[\d,]{3,}(?:\.\d+)?)/g;
+  const paidRe=/\b(payment|paid|receipt|received|emi|installment|instalment|part[ -]?payment|prepayment|repayment|foreclos|debit|withdrawal)\b/i;
+  const nonCashRe=/\b(due|interest|opening|closing|outstanding|principal|balance|rate|charges?|penal|late fee|gst|tax)\b/i;
+  for(const line of lines){
+    const dm=line.match(dateRe); if(!dm) continue;
+    const date=statementDate(dm[1]); if(!date) continue;
+    if(nonCashRe.test(line) && !paidRe.test(line)) continue;
+    if(!paidRe.test(line)) continue;
+    const vals=[]; let m; moneyRe.lastIndex=0; while((m=moneyRe.exec(line))!==null){ const n=Number(String(m[1]).replace(/,/g,"")); if(Number.isFinite(n)&&n>0) vals.push(n); }
+    if(!vals.length) continue;
+    // For loan statements the cash payment is normally the largest amount on a payment row.
+    const amount=Math.max(...vals); if(!(amount>0)||amount>1e9) continue;
+    const key=date+"|"+amount.toFixed(2)+"|"+statementNorm(line).slice(0,120); if(seen.has(key)) continue; seen.add(key); out.rows++;
+    const txns=state.txns||[];
+    const candidates=txns.filter(t=>t&&t.type==="debit"&&Math.abs(Number(t.amount)-amount)<0.01&&Math.abs(daysBetween(t.date,date))<=2);
+    const exact=candidates.find(t=>statementNorm((t.raw||"")+" "+(t.note||"")).includes(statementNorm(line).slice(0,25)));
+    const best=exact||candidates.find(t=>t.category==="EMI & loans"||t.category==="Loan repayment"||/emi|loan/i.test((t.merchant||"")+" "+(t.raw||"")));
+    if(best){
+      best.assetId=assetId||best.assetId; best.loanAccount=loanKey; best.statementSources=[...(best.statementSources||[]),{date,description:line,sourceFile:doc.name||"loan statement",importedAt:Date.now(),loanKey}];
+      best.source=(best.source&&best.source.includes("sms"))?"sms+statement":"statement"; out.matched++; continue;
+    }
+    if(candidates.length){out.review++; continue;}
+    const t={id:uidGen(),date,amount,type:"debit",merchant:(a.label||a.bank||"Loan payment").slice(0,80),category:"Loan repayment",raw:`[Loan statement: ${doc.name||"statement"}] ${line}`,source:"statement",assetId:assetId||null,loanAccount:loanKey,statementSources:[{date,description:line,sourceFile:doc.name||"loan statement",importedAt:Date.now(),loanKey}],added:Date.now()};
+    state.txns.push(t); out.added++;
+  }
+  if(out.matched||out.added) persist([],false);
+  return out;
+}
+function loanAssetOptions(selected){
+  return `<option value="">No asset</option>`+(state.assets||[]).map(x=>`<option value="${esc(x.id)}"${selected===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}${x.loanAccount&&state.accounts?.[x.loanAccount]?` · ${esc(state.accounts[x.loanAccount].label||"Loan")}`:""}</option>`).join("");
+}
+function openLoanDocumentBatch(docs){
+  const rows=docs.map((d,i)=>{const g=loanDocGuess(d.name,d.text);d.guess=g;return {d,g,i};});
+  const assetId=pendingLoanImportContext.assetId||"";
+  let loanKey=pendingLoanImportContext.loanKey||"";
+  if(!loanKey&&assetId){const aa=(state.assets||[]).find(x=>x.id===assetId);if(aa?.loanAccount)loanKey=aa.loanAccount;}
+  if(!loanKey&&rows[0]?.g?.lender) loanKey=Object.entries(state.accounts||{}).find(([k,a])=>a&&a.kind==='loan'&&!a.hidden&&mkey(a.bank||a.label)===mkey(rows[0].g.lender))?.[0]||"";
+  const a=loanKey?state.accounts[loanKey]:null;
+  if(!a){toast('Select an existing loan from the asset first.');return;}
+  const latest=rows.slice().sort((x,y)=>String(x.g.latestDate||'').localeCompare(String(y.g.latestDate||''))).pop();
+  const firstStart=rows.map(x=>x.g.startDate).filter(Boolean).sort()[0]||a.loanStartDate||assetId&&state.assets?.find(x=>x.id===assetId)?.loanStartDate||'';
+  const currentRate=latest?.g.rate!=null?latest.g.rate:(a.loanRate||'');
+  const currentOut=latest?.g.outstanding!=null?latest.g.outstanding:(a.balance||'');
+  const currentEmi=latest?.g.emi!=null?latest.g.emi:(a.emi||'');
+  const currentOriginal=rows.map(x=>x.g.amount).find(x=>Number(x)>0)||a.originalAmount||'';
+  const lender=(rows.map(x=>x.g.lender).find(x=>x)||a.bank||a.label||'').trim();
+  const docRows=rows.map(({d,g})=>`<div class="due"><span class="n">${esc(d.name||'Loan document')}</span><span class="num">${esc(loanDocTypeLabel(g.type))}</span><span class="w" style="grid-column:1/3"><span>${g.startDate?'Start '+esc(niceDate(g.startDate)):''}${g.latestDate?' · latest date '+esc(niceDate(g.latestDate)):''}</span><span>${g.rate!=null?`Rate ${Number(g.rate).toFixed(2)}%`:''}${g.outstanding!=null?` · Outstanding ${money(g.outstanding,true)}`:''}</span></span></div>`).join('');
+  const inner=`<div class="card"><b>${rows.length} document${rows.length===1?'':'s'} selected</b><p class="help" style="margin:6px 0 0">All selected documents will be processed together. You only confirm the master loan details once.</p>${docRows}</div><label class="field"><span>Asset to update</span><select id="ld-asset">${loanAssetOptions(assetId)}</select></label><label class="field"><span>Existing loan to update</span><select id="ld-loan"><option value="${esc(loanKey)}">${esc(a.label||a.bank||'Loan')} · ${money(Number(a.balance)||0,true)}</option></select></label><div class="two"><label class="field"><span>Loan start date (detected)</span><input id="ld-date" type="date" value="${esc(firstStart||'')}" /></label><label class="field"><span>Lender / bank (detected)</span><input id="ld-lender" value="${esc(lender)}"></label></div><div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="ld-amount" inputmode="decimal" value="${currentOriginal}"></label><label class="field"><span>Current outstanding (latest)</span><input id="ld-outstanding" inputmode="decimal" value="${currentOut}"></label></div><div class="two"><label class="field"><span>Current interest rate (% p.a.)</span><input id="ld-rate" inputmode="decimal" value="${currentRate}"></label><label class="field"><span>Current EMI (₹)</span><input id="ld-emi" inputmode="decimal" value="${currentEmi}"></label></div><p class="help">The latest applicable statement/schedule supplies the current rate, outstanding and EMI. Earlier documents are retained as historical evidence. The import will reconcile statement payments against existing SMS and create only statement-only payments.</p>`;
+  sheet('Import loan documents',inner,sc=>{
+    const aid=sc.querySelector('#ld-asset').value||assetId;const lk=sc.querySelector('#ld-loan').value||loanKey;if(!lk||!state.accounts[lk]){toast('Select an existing loan.');return false;}
+    const ac=state.accounts[lk];loanEnsureStored(ac);const out=parseFloat(sc.querySelector('#ld-outstanding').value.replace(/[,₹\s]/g,''));const orig=parseFloat(sc.querySelector('#ld-amount').value.replace(/[,₹\s]/g,''));const rate=parseFloat(sc.querySelector('#ld-rate').value);const emi=parseFloat(sc.querySelector('#ld-emi').value);const date=sc.querySelector('#ld-date').value||null;const bank=sc.querySelector('#ld-lender').value.trim();
+    if(Number.isFinite(out))ac.balance=out;if(Number.isFinite(orig)&&orig>0)ac.originalAmount=orig;if(Number.isFinite(rate))ac.loanRate=rate;if(Number.isFinite(emi))ac.emi=emi;if(date)ac.loanStartDate=date;if(bank)ac.bank=bank;ac.asOf=latest?.g.latestDate||todayISO();
+    const history=[];rows.forEach(x=>(x.g.rateHistory||[]).forEach(h=>{if(h.date&&Number.isFinite(Number(h.rate)))history.push({date:h.date,rate:Number(h.rate),source:x.d.name||'document'});}));
+    if(history.length){const uniq={};history.forEach(h=>{uniq[h.date+'|'+h.rate]=h;});ac.loanRateHistory=Object.values(uniq).sort((x,y)=>String(x.date).localeCompare(String(y.date)));}
+    const scheduleInterest=rows.map(x=>x.g.interestPaidToDate).filter(v=>Number.isFinite(Number(v))).sort((x,y)=>Number(y)-Number(x))[0];
+    const statementInterest=rows.filter(x=>x.g.type==='statement').reduce((s,x)=>s+(Number(x.g.statementInterestPaid)||0),0);
+    const interestFromDocs=Number.isFinite(Number(scheduleInterest))?Number(scheduleInterest):(statementInterest>0?statementInterest:null);
+    if(Number.isFinite(Number(interestFromDocs)))ac.interestPaidFromDocuments=Number(interestFromDocs);
+    const emiHistory=[];rows.forEach(x=>(x.g.emiHistory||[]).forEach(h=>emiHistory.push({...h,source:x.d.name||'document'})));
+    if(emiHistory.length){const uniq={};emiHistory.forEach(h=>{if(h.date&&Number(h.emi)>0)uniq[h.date+'|'+h.emi]=h;});ac.loanEmiHistory=Object.values(uniq).sort((x,y)=>String(x.date).localeCompare(String(y.date)));}
+    if(aid){const asset=(state.assets||[]).find(x=>x.id===aid);if(!asset){toast('Selected asset was not found.');return false;}asset.loanAccount=lk;asset.originalLoan=Number(ac.originalAmount)||asset.originalLoan||0;asset.loanOutstanding=Number(ac.balance)||0;asset.loanStartDate=ac.loanStartDate||date||asset.loanStartDate||null;asset.loanRate=Number.isFinite(rate)?rate:asset.loanRate;asset.loanLastStatementDate=latest?.g.latestDate||todayISO();if(Number.isFinite(Number(ac.interestPaidFromDocuments)))asset.interestPaid=Number(ac.interestPaidFromDocuments);if(ac.emi!=null)asset.loanEmi=Number(ac.emi);if(ac.loanRateHistory)asset.loanRateHistory=ac.loanRateHistory;if(ac.loanEmiHistory)asset.loanEmiHistory=ac.loanEmiHistory;asset.loanStatementFiles=Array.from(new Set([...(asset.loanStatementFiles||[]),...rows.map(x=>x.d.name||'statement')]));}
+    let matched=0,added=0,review=0;
+    rows.forEach(({d,g})=>{d.type=g.type;d.amount=g.amount;d.outstanding=g.outstanding;d.rate=g.rate;d.loanKey=lk;d.assetId=aid||null;d.interestPaidToDate=g.interestPaidToDate;d.statementInterestPaid=g.statementInterestPaid;d.startDate=g.startDate;d.latestDate=g.latestDate;d.importedAt=Date.now();if(g.type==='statement'){const r=reconcileLoanStatementToLedger(d,lk,aid);d.reconciliation=r;matched+=r.matched;added+=r.added;review+=r.review;}else if(g.type==='topup'&&Number(g.amount)>0){ac.loanTranches=ac.loanTranches||[];ac.loanTranches.push({id:'topup-'+uidGen(),type:'topup',lender:bank||ac.bank||ac.label,amount:Number(g.amount),rate:Number.isFinite(g.rate)?g.rate:null,startDate:g.startDate||date||todayISO(),outstanding:Number(g.outstanding)||Number(g.amount),active:true});}});
+    if(Array.isArray(ac.loanTranches)&&ac.loanTranches.length){if(Number.isFinite(out))ac.loanTranches[0].outstanding=out;ac.balance=loanTrancheTotal(ac);ac.originalAmount=loanTrancheOriginal(ac);}
+    state.loanDocuments=state.loanDocuments||[];rows.forEach(({d})=>state.loanDocuments.push({...d,rawText:undefined}));persist([],true);renderLoanDocuments();toast(`Imported ${rows.length} documents · ${matched} SMS matches · ${added} new Ledger entries${review?` · ${review} for review`:''}`);pendingLoanDocs=[];pendingLoanImportContext={assetId:'',loanKey:''};return true;
+  });
+}
+function startLoanDocumentImport(assetId="",loanKey=""){
+  pendingLoanImportContext={assetId,loanKey};
+  if(window.Android&&window.Android.pickLoanDocuments)window.Android.pickLoanDocuments('loanDocumentFilesResult');else toast('Loan document import is available in the Android build.');
+}
+window.loanDocumentFilesResult=function(payload){
+  let files=[];try{files=JSON.parse(payload||'[]');}catch(e){toast('Could not read the selected loan documents.');return;}
+  const ok=files.filter(f=>f&&f.text),bad=files.filter(f=>f&&f.error);if(!ok.length){toast(bad[0]?.error||'No loan documents selected.');return;}
+  pendingLoanDocs=ok.map(f=>({id:'ldoc-'+uidGen(),name:f.name,text:String(f.text||'').slice(0,120000),error:null}));
+  const st=document.getElementById('loanDocumentStatus');if(st)st.innerHTML=`<b>${ok.length} document${ok.length===1?'':'s'} ready.</b> All documents will be processed together against the selected asset/loan.${bad.length?` ${bad.length} file${bad.length===1?'':'s'} could not be read.`:''}`;
+  openLoanDocumentBatch(pendingLoanDocs);
+};
+function openAcctSheet(key){
+  const a=key?state.accounts[key]:{kind:"bank"},v=a.kind==="card"?a.availLimit:a.balance,loanCat=a.loanCategory||"Other",loanCats=["Home","Vehicle","Gold","Education","Personal","Business","Other"];
+  const assetLoanOpts=(state.assets||[]).filter(x=>x.type==="property"||x.type==="vehicle"||x.type==="gold").map(x=>`<option value="${esc(x.id)}"${a.assetId===x.id?" selected":""}>${esc(x.name)} · ${esc(assetTypeLabel(x.type))}</option>`).join("");
+  const loanPaid=key&&a.kind==="loan"?state.txns.filter(t=>t.type==="debit"&&counts(t)&&(t.category==="EMI & loans"||t.category==="Loan repayment")&&((!a.account||t.account===a.account)||mkey((t.merchant||"")+" "+(t.raw||"")).includes(mkey(a.label||"")))).reduce((s,t)=>s+spendAmt(t),0):0;
+  const loanInfo=a.kind==="loan"?loanStructureHtml(a):"";
+  sheet(key?"Edit account":"Add an account",`<label class="field"><span>Name</span><input id="a-name" value="${esc(a.label||[a.bank,a.account?"··"+a.account:""].join(" ").trim())}" placeholder="e.g. Axis home loan"></label><div class="two"><label class="field"><span>Type</span><select id="a-kind">${KIND_OPTS.map(([k,l])=>`<option value="${k}"${k===(a.kind||"bank")?" selected":""}>${l}</option>`).join("")}</select></label><label class="field"><span>Balance or limit (₹)</span><input id="a-bal" inputmode="decimal" value="${v!=null?v:""}"></label></div><div id="loanFields" style="${a.kind==="loan"?"":"display:none"}"><div class="two"><label class="field"><span>Original loan amount (₹)</span><input id="a-original" inputmode="decimal" value="${a.originalAmount!=null?a.originalAmount:""}"></label><label class="field"><span>Loan category</span><select id="a-loanCat">${loanCats.map(c=>`<option${c===loanCat?" selected":""}>${c}</option>`).join("")}</select></label></div><label class="field"><span>Linked asset</span><select id="a-asset"><option value="">None</option>${assetLoanOpts}</select></label>${key&&a.kind==="loan"?`<div class="card" style="margin-top:8px"><div class="msum num"><div><small>Original amount</small><b>${a.originalAmount!=null?money(a.originalAmount):"–"}</b></div><div><small>Total EMI / loan payments</small><b style="color:var(--brass)">${money(loanPaid)}</b></div><div><small>Outstanding</small><b>${a.balance!=null?money(Math.max(0,Number(a.balance)||0)):"–"}</b></div></div><p class="hint">Payments are calculated from matched EMI/loan repayments already imported.</p></div>${loanInfo}`:""}</div><p class="help">New SMS for this account will keep updating the balance. For loans, use the structure below when the lender adds a top-up or you transfer the loan to another bank.</p>`,sc=>{
+    const name=sc.querySelector("#a-name").value.trim(),kind=sc.querySelector("#a-kind").value,originalEl=sc.querySelector("#a-original"),loanCatEl=sc.querySelector("#a-loanCat"),loanAssetEl=sc.querySelector("#a-asset"),original=originalEl&&originalEl.value.trim()!==""?parseFloat(originalEl.value.replace(/[,₹\s]/g,"")):null,loanCategory=loanCatEl?loanCatEl.value:"Other",raw=sc.querySelector("#a-bal").value.replace(/[,₹\s]/g,""),bal=raw===""?null:parseFloat(raw);if(!name){toast("Give the account a name.");return false;}
+    const k=key||"manual"+uidGen(),cur=state.accounts[k]||{bank:"",account:""},next={...cur,label:name,kind,asOf:todayISO()};delete next.balance;delete next.availLimit;if(bal!=null&&!isNaN(bal)){if(kind==="card")next.availLimit=bal;else next.balance=bal;}
+    if(kind==="loan"){if(original!=null&&!isNaN(original))next.originalAmount=original;else if(!next.originalAmount)delete next.originalAmount;next.loanCategory=loanCategory;if(loanAssetEl&&loanAssetEl.value)next.assetId=loanAssetEl.value;else delete next.assetId;if(key)loanEnsureStored(next);if(Array.isArray(next.loanTranches)&&next.loanTranches.length){const total=loanTrancheTotal(next);if(total>0)next.balance=total;next.originalAmount=loanTrancheOriginal(next);}}else{delete next.originalAmount;delete next.loanCategory;delete next.assetId;delete next.loanTranches;}
+    state.accounts[k]=next;persist([],true);toast("Account saved.");
+  },key?[[a.kind==="card"?(a.closed?"Reopen card":"Close card"):"Hide",()=>{if(a.kind==="card"){state.accounts[key].closed=!a.closed;state.accounts[key].hidden=!!state.accounts[key].closed;persist([],true);toast(state.accounts[key].closed?"Credit card closed.":"Credit card reopened.");}else{state.accounts[key].hidden=true;persist([],true);toast("Account hidden.");}}],["Remove",()=>{if(!confirm("Remove this account? Its balance history isn't kept, but new SMS for it will add it back."))return;delete state.accounts[key];persist([],true);}]]:null);
+  const scr=document.querySelector(".scrim:last-of-type"),kindSel=scr&&scr.querySelector("#a-kind");if(kindSel)kindSel.onchange=()=>{const lf=scr.querySelector("#loanFields");if(lf)lf.style.display=kindSel.value==="loan"?"":"none";};
+  const loanAssetSel=scr&&scr.querySelector("#a-asset"),loanCatSel=scr&&scr.querySelector("#a-loanCat");if(loanAssetSel&&loanCatSel)loanAssetSel.onchange=()=>{const x=(state.assets||[]).find(v=>v.id===loanAssetSel.value);if(x)loanCatSel.value=x.type==="property"?"Home":x.type==="vehicle"?"Vehicle":x.type==="gold"?"Gold":loanCatSel.value;};
+  if(scr&&a.kind==="loan"&&key){const top=scr.querySelector("#loanAddTopup"),tr=scr.querySelector("#loanTransfer");if(top)top.onclick=()=>openLoanTopupSheet(key);if(tr)tr.onclick=()=>openLoanTransferSheet(key);}
+}
+function openSubSheet(){
+  sheet("Add a subscription", `
+    <label class="field"><span>Name, as it appears in your SMS</span><input id="s-name" placeholder="e.g. Netflix"></label>
+    <div class="two"><label class="field"><span>Amount (₹)</span><input id="s-amt" inputmode="decimal"></label>
+    <label class="field"><span>Repeats every</span><select id="s-freq"><option value="month">Month</option><option value="quarter">Quarter</option><option value="year">Year</option></select></label></div>`,
+  sc=>{
+    const name = sc.querySelector("#s-name").value.trim(), amount = parseFloat(sc.querySelector("#s-amt").value.replace(/[,₹\s]/g,""));
+    if(!name || !amount){ toast("Fill in the name and amount."); return false; }
+    const key = mkey(name);
+    state.subsHidden = state.subsHidden.filter(k=>k !== key);
+    state.subsManual.push({ id: uidGen(), key, name, amount, freq: sc.querySelector("#s-freq").value, category: "Entertainment" });
+    persist([], true); toast("Subscription added.");
+  });
+}
+function openBillSheet(){
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Add a bill"><h2>Add a bill</h2>
+    <label class="field"><span>What is it</span><input id="b-name" placeholder="e.g. Home broadband"></label>
+    <div class="two"><label class="field"><span>Amount (₹)</span><input id="b-amt" inputmode="decimal"></label>
+    <label class="field"><span>Due date</span><input id="b-due" type="date" value="${addDays(todayISO(), 7)}"></label></div>
+    <div class="row"><button class="btn primary" id="b-save">Add bill</button><button class="btn" id="b-cancel">Cancel</button></div></div>`;
+  document.body.appendChild(scrim);
+  const close = ()=>scrim.remove();
+  scrim.addEventListener("click", e=>{ if(e.target === scrim) close(); });
+  scrim.querySelector("#b-cancel").onclick = close;
+  scrim.querySelector("#b-save").onclick = ()=>{
+    const name = scrim.querySelector("#b-name").value.trim(), amount = parseFloat(scrim.querySelector("#b-amt").value.replace(/[,₹\s]/g,"")), due = scrim.querySelector("#b-due").value;
+    if(!name || !amount || !due){ toast("Fill in the name, amount and due date."); return; }
+    state.bills.push({ id: uidGen(), key: "manual" + uidGen(), name, kind: "bill", amount, minDue: null, dueDate: due, account: "", bank: "", biller: "", seen: todayISO(), paid: false, manual: true });
+    persist([], true); close(); render(); toast("Bill added.");
+  };
+}
+document.getElementById("parseBtn").onclick = ()=>{
+  const text = document.getElementById("smsIn").value.trim();
+  if(!text){ toast("Paste at least one SMS first."); return; }
+  const msgs = splitMessages(text);
+  const existing = new Set(state.txns.map(dupKey)), soft = softKeys();
+  const seen = new Set();
+  pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; pendingSubs = [];
+  msgs.forEach(m=>{
+    const r = parseOne(m);
+    if(r.skip){ lastSkipped.push({ reason: r.skip, text: m }); return; }
+    if(r.bill){ pendingBills.push(r.bill); return; }
+    if(r.balance){ pendingBals.push(r.balance); return; }
+    if(r.subscription){ pendingSubs.push(r.subscription); return; }
+    const k = dupKey(r.txn);
+    const dup = existing.has(k) || seen.has(k) || soft.has(softKey(r.txn)); seen.add(k);
+    pending.push({ txn: r.txn, dup, use: !dup });
+  });
+  renderPreview(lastSkipped);
+  if(!pending.length && (pendingBills.length || pendingBals.length || pendingSubs.length)){ commitExtras(); toast(`Saved ${pendingBills.length} ${pendingBills.length===1?"bill":"bills"}, ${pendingBals.length} ${pendingBals.length===1?"balance":"balances"} and ${pendingSubs.length} ${pendingSubs.length===1?"subscription":"subscriptions"}.`); }
+  else if(!pending.length) toast("No transactions found in that text.");
+};
+document.getElementById("pasteBtn").onclick = async ()=>{
+  try{ const t = await navigator.clipboard.readText(); if(t){ const ta = document.getElementById("smsIn"); ta.value = (ta.value ? ta.value + "\n\n" : "") + t; } }
+  catch(e){ toast("Clipboard access was blocked. Long-press the box and choose Paste."); }
+};
+document.getElementById("sampleBtn").onclick = ()=>{ document.getElementById("smsIn").value = SAMPLE; document.getElementById("parseBtn").click(); };
+document.getElementById("manualBtn").onclick = ()=>openSheet({ type:"debit", category:"Other", date: todayISO() }, true);
+
+document.getElementById("preview").addEventListener("change", e=>{
+  if(e.target.dataset.i != null){ pending[+e.target.dataset.i].use = e.target.checked; renderPreview(lastSkipped); }
+  if(e.target.dataset.ci != null){ pending[+e.target.dataset.ci].txn.category = e.target.value; }
+});
+document.getElementById("preview").addEventListener("click", e=>{
+  if(e.target.id === "commitBtn"){
+    const add = pending.filter(p=>p.use).map(p=>({ ...p.txn, added: Date.now() }));
+    // learn from category changes made in preview
+    let learned = false;
+    add.forEach(t=>{
+      const auto = categorize(t.merchant, t.raw.toLowerCase(), t.type==="credit", t.mode, "");
+      if(auto !== t.category){ state.rules[mkey(t.merchant)] = t.category; learned = true; }
+    });
+    state.txns.push(...add);
+    let extra = false;
+    add.forEach(t=>{ extra = absorbTxn(t) || extra; });
+    const lk = linkTransfers();
+    if(lk.n) extra = true;
+    extra = commitExtras() || extra;
+    persist([...new Set(add.map(t=>t.date.slice(0,7)).concat(lk.months))], learned || extra);
+    pending = []; lastSkipped = [];
+    document.getElementById("smsIn").value = "";
+    renderPreview([]);
+    if(add.length){ cursor = pk(add.map(t=>t.date).sort().pop()); if(cursor > currentPK()) cursor = currentPK(); }
+    view = "overview"; render();
+    toast(`Added ${add.length} ${add.length===1?"entry":"entries"}.`);
+  }
+  if(e.target.id === "discardBtn"){ pending = []; lastSkipped = []; pendingBills = []; pendingBals = []; pendingSubs = []; renderPreview([]); }
+});
+
+
+(function(){
+  const sel = document.getElementById("monthStart");
+  sel.innerHTML = Array.from({length:28}, (_,i)=>`<option value="${i+1}">${i+1}${i===0?" (calendar month)":""}</option>`).join("");
+  sel.addEventListener("change", ()=>{ state.monthStart = +sel.value; cursor = currentPK(); persist([], true); render(); toast("Month cycle updated."); });
+})();
+document.getElementById("fxConvert").onclick = ()=>{ toast("Getting exchange rates…"); convertPending(true); };
+document.getElementById("removeImported").onclick = ()=>{
+  const s = importedSummary();
+  if(!confirm(`Remove ${inr.format(s.txns.length)} entries, ${inr.format(s.bills.length)} bills, ${inr.format(s.accountKeys.length)} accounts and ${inr.format(s.subs.length)} subscriptions not confirmed by SMS? This can't be undone.`)) return;
+  removeImportedData(); render(); toast("Removed. Only SMS-confirmed data remains.");
+};
+document.getElementById("addCat").onclick = ()=>{
+  const inp = document.getElementById("newCat"), name = inp.value.trim();
+  if(!name){ toast("Type a category name first."); return; }
+  if(CAT_COLOR[name]){ toast("That category already exists."); return; }
+  addCustomCat(name); inp.value = ""; persist([], true); render(); toast("Category added.");
+};
+document.getElementById("budgetOpen").onclick=openBudgetSheet;
+if(document.getElementById("backupSeg")) document.getElementById("backupSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-backup]"); if(!b)return; const f=b.dataset.backup; try{window.Android?.setBackupSchedule(f);}catch(err){}; state.backupSchedule=f; persist([],true); render(); toast(f==="off"?"Automatic backup turned off.":(f==="daily"?"Daily automatic backup enabled.":"Weekly automatic backup enabled.")); });
+document.getElementById("backupNow").onclick=()=>{ try{ const ok=window.Android?.backupNow ? window.Android.backupNow() : false; document.getElementById("backupStatus").textContent=ok?"Latest backup saved on this phone.":"No ledger file to back up yet."; }catch(e){ toast("Backup could not be created."); } };
+document.getElementById("expCsv").onclick = ()=>save("sms-ledger-" + todayISO() + ".csv", toCSV());
+document.getElementById("expJson").onclick = ()=>save("sms-ledger-backup-" + todayISO() + ".json", JSON.stringify({ app:"sms-ledger", version:2, backupType:"processed-data", includesOriginalDocuments:false, exportedAt:new Date().toISOString(), ...state }, null, 1));
+document.getElementById("impFile").addEventListener("change", async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const s=JSON.parse(await f.text());if(!Array.isArray(s.txns))throw new Error();
+    const ids=new Set(state.txns.map(t=>t.id)),keys=new Set(state.txns.map(dupKey));const add=s.txns.filter(t=>t&&t.date&&t.amount&&!ids.has(t.id)&&!keys.has(dupKey(t)));state.txns.push(...add);
+    state.rules={...(s.rules||{}),...state.rules};state.budgets={...(s.budgets||{}),...state.budgets};
+    const bIds=new Set(state.bills.map(b=>b.id));state.bills=state.bills.concat((s.bills||[]).filter(b=>!bIds.has(b.id)));
+    Object.values(s.accounts||{}).forEach(updateAccount);
+    state.subsHidden=[...new Set([...state.subsHidden,...(s.subsHidden||[])])];if(s.monthStart&&(state.monthStart||1)===1)state.monthStart=s.monthStart;
+    state.names={...(s.names||{}),...state.names};
+    const sb=s.ruleBase||s.pack;if(sb){state.ruleBase=state.ruleBase||{rules:{},names:{},labels:{}};['rules','names','labels'].forEach(x=>Object.assign(state.ruleBase[x],sb[x]||{}));Object.entries(sb.rules||{}).forEach(([k,v])=>{if(!state.rules[k])state.rules[k]=v});Object.entries(sb.names||{}).forEach(([k,v])=>{if(!state.names[k])state.names[k]=v});prefixCache=null;}
+    (s.customCats||[]).forEach(c=>{if(!state.customCats.some(x=>x.name===c.name))state.customCats.push(c)});(s.subsManual||[]).forEach(m=>{if(!state.subsManual.some(x=>x.id===m.id))state.subsManual.push(m)});
+    // Restore processed asset/loan/document data without restoring original PDF/XLS bytes.
+    if(Array.isArray(s.assets)){const byId=new Map((state.assets||[]).map(x=>[x.id,x]));s.assets.forEach(x=>{if(x?.id&&!byId.has(x.id))byId.set(x.id,x);else if(x?.id)byId.set(x.id,{...byId.get(x.id),...x});});state.assets=[...byId.values()];}
+    if(s.loanDocuments&&Array.isArray(s.loanDocuments)){const byId=new Map((state.loanDocuments||[]).map(x=>[x.id,x]));s.loanDocuments.forEach(x=>{if(x?.id&&!byId.has(x.id))byId.set(x.id,{...x,rawText:undefined});else if(x?.id)byId.set(x.id,{...byId.get(x.id),...x,rawText:undefined});});state.loanDocuments=[...byId.values()];}
+    if(s.family)state.family={...(state.family||{}),...s.family};if(s.events)state.events={...(state.events||{}),...s.events};if(Array.isArray(s.calendar))state.calendar=s.calendar;if(Array.isArray(s.shopping))state.shopping=s.shopping;
+    applyCustomCats();persist([...new Set(add.map(t=>t.date.slice(0,7)))],true);render();toast(`Restored ${add.length} entries plus assets, loans and processed document data.`);
+  }catch(err){toast("That file isn't an SMS Ledger backup.");}e.target.value="";
+});
+function undoRuleChanges(){
+  const b = state.ruleBase || { rules: {}, names: {} };
+  state.rules = { ...(b.rules||{}) }; state.names = { ...(b.names||{}) }; prefixCache = null;
+}
+document.getElementById("clearRules").onclick = ()=>{ if(!confirm("Undo the name and category changes you made? Rules you imported stay.")) return; undoRuleChanges(); persist([], true); render(); toast("Your rule changes were undone."); };
+document.getElementById("viewRules").onclick = openRulesSheet;
+function openRulesSheet(){
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Merchant rules"><h2>Merchant rules</h2>
+    <p class="help">When a merchant matches, its new entries get this name and category.</p>
+    <input id="r-q" type="search" placeholder="Search merchant" aria-label="Search merchant" style="width:100%;background:var(--raise);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <div id="r-list"></div>
+    <div class="row"><button class="btn" data-close>Done</button></div></div>`;
+  document.body.appendChild(scrim);
+  const lb = (state.ruleBase && state.ruleBase.labels) || {};
+  const all = [...new Set([...Object.keys(state.rules), ...Object.keys(state.names)])].map(k=>({
+    k, label: lb[k] || state.names[k] || k, name: state.names[k] || "", cat: state.rules[k] || "" })).sort((a,b)=>a.label.localeCompare(b.label));
+  const draw = ()=>{
+    const q = mkey(scrim.querySelector("#r-q").value);
+    const hits = all.filter(r=>!q || mkey(r.label + r.name).includes(q));
+    scrim.querySelector("#r-list").innerHTML = hits.slice(0, 80).map(r=>`<div class="due"><span class="n" data-notr>${esc(r.label)}${r.name && r.name !== r.label ? ` <span style="color:var(--muted);font-weight:400">→ ${esc(r.name)}</span>` : ""}</span>
+
+      <span class="w" style="grid-column:1/3"><select data-rk="${esc(r.k)}" aria-label="Category">${["", ...CATS.map(c=>c[0])].map(c=>`<option value="${esc(c)}"${c===r.cat?" selected":""}>${c ? esc(c) : "(name only)"}</option>`).join("")}</select>
+      <button class="mini" data-rdel="${esc(r.k)}">Delete</button></span></div>`).join("") +
+      (hits.length > 80 ? `<p class="help">Showing 80 of ${inr.format(hits.length)}. Search to narrow down.</p>` : hits.length ? "" : `<p class="help">No rules match.</p>`);
+  };
+  draw();
+  scrim.querySelector("#r-q").addEventListener("input", draw);
+  scrim.addEventListener("change", e=>{
+    const k = e.target.dataset.rk; if(k == null) return;
+    if(e.target.value) state.rules[k] = e.target.value; else delete state.rules[k];
+    const r = all.find(x=>x.k === k); if(r) r.cat = e.target.value;
+    prefixCache = null;
+    persist([], true); toast("Rule saved."); draw();
+  });
+  scrim.addEventListener("click", e=>{
+    if(e.target === scrim || e.target.closest("[data-close]")){ scrim.remove(); render(); return; }
+    const d = e.target.closest("[data-rdel]"); if(!d) return;
+    const k = d.dataset.rdel;
+    delete state.rules[k]; delete state.names[k];
+    if(state.ruleBase){ delete state.ruleBase.rules[k]; delete state.ruleBase.names[k]; delete state.ruleBase.labels[k]; }
+    prefixCache = null;
+    const i = all.findIndex(x=>x.k === k); if(i >= 0) all.splice(i, 1);
+    persist([], true); draw();
+  });
+}
+document.getElementById("wipe").onclick = ()=>{
+  if(!confirm("Delete every entry? Budgets stay. Download a backup first if you might need them.")) return;
+  const months = [...new Set(state.txns.map(t=>t.date.slice(0,7)))];
+  state.txns = []; persist(months); render(); toast("All entries deleted.");
+};
+
+/* ---------- Android app bridge ---------- */
+function smsDate(ms){ const d = new Date(+ms); return isNaN(d) ? "" : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+window.ingestSms = function(list, quiet){
+  if(!Array.isArray(list)) return 0;
+  const keys = new Set(state.txns.map(dupKey)), soft = softKeys();
+  const add = [];
+  let extra = false;
+  list.forEach(m=>{
+    const r = parseOne(String(m.body||""), smsDate(m.date), m.address);
+    if(r.recurringStop){ extra = r.changed || extra; return; }
+    if(r.skip) return;
+    if(r.bill){ extra = upsertBill(r.bill) || extra; return; }
+    if(r.balance){ extra = updateAccount(r.balance) || extra; return; }
+    if(r.subscription){ extra = upsertSubscription(r.subscription) || extra; return; }
+    extra = absorbTxn(r.txn) || extra;
+    const k = dupKey(r.txn); if(keys.has(k) || soft.has(softKey(r.txn))) return; keys.add(k);
+    add.push({ ...r.txn, added: +m.date || Date.now(), source: "sms", sim: m.sim != null && m.sim >= 0 ? String(m.sim) : undefined });
+  });
+  if(add.length) state.txns.push(...add);
+  const pc=linkPaymentConfirmations(); if(pc.n) extra=true;
+  const lk=linkTransfers(); if(lk.n) extra=true;
+  const rm=matchRecurringTransactions(); if(rm.changed) extra=true;
+  if(autoMarkPaid()) extra = true;
+  if(!add.length){ if(extra){ persist([], true); render(); } return 0; }
+  persist([...new Set(add.map(t=>t.date.slice(0,7)))], extra);
+  const latest = pk(add.map(t=>t.date).sort().pop());
+  if(latest && latest <= currentPK()) cursor = latest;
+  render();
+  if(!quiet) toast(`Added ${add.length} ${add.length===1?"entry":"entries"} from your SMS.`);
+  return add.length;
+};
+window.appOnline = function(){ if(state.txns.some(t=>isForeign(t) && !t.fxRate)) convertPending(false); };
+window.appStatus = function(granted){
+  document.getElementById("smsBlock").classList.remove("hidden");
+  document.getElementById("smsState").textContent = granted
+    ? "On. New bank SMS are added as they arrive and whenever you open the app. Personal messages are never read into the ledger."
+    : "Off. Allow SMS access so bank messages are added automatically. You can still paste messages by hand.";
+  document.getElementById("smsAllow").classList.toggle("hidden", !!granted);
+  document.getElementById("smsRescan").classList.toggle("hidden", !granted);
+  const h = document.querySelector("#v-add .help");
+  if(granted && h) h.textContent = "Bank SMS are added automatically. Paste a message here only if one was missed, such as an email alert or a forwarded SMS.";
+};
+window.importFinished = function(added, scanned){
+  const el = document.querySelector(".toast"); if(el) el.remove();
+  state.smsDataReady = true; state.smsConsentUiVersion = 2; saveLocal(); try{ if(window.Android && window.Android.setInitialImportDone) window.Android.setInitialImportDone(); }catch(e){}
+  toast(added ? `Added ${inr.format(added)} ${added===1?"entry":"entries"} from ${inr.format(scanned)} bank SMS.` : `Checked ${inr.format(scanned)} bank SMS. Nothing new to add.`);
+  render();
+};
+window.importProgress = function(done, total){
+  let el = document.getElementById("importToast");
+  if(!el){ el = document.createElement("div"); el.id = "importToast"; el.className = "toast"; el.setAttribute("role","status"); document.body.appendChild(el); }
+  el.textContent = `Reading bank SMS… ${inr.format(done)} of ${inr.format(total)}`;
+  if(done >= total) setTimeout(()=>el.remove(), 300);
+};
+function rangeButtons(){
+  return `<div class="range">
+    <button class="btn primary" data-days="0">Read all SMS history<small>Reads the complete history available on this phone. Only bank transaction messages are converted into ledger entries.</small></button>
+  </div>`;
+}
+window.chooseImportRange = function(){
+  if(document.getElementById("langSheet")){ rangeAfterLang = true; return; }
+  if(document.querySelector(".scrim")) return;
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Import SMS"><h2>Read your SMS history</h2>
+    <p class="help">The app will read the complete SMS history available on this phone. Only bank transaction messages are parsed into your ledger; OTPs, offers and unrelated messages are ignored.</p>${rangeButtons()}</div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    const b = e.target.closest("[data-days]");
+    if(b){ scrim.remove(); window.Android.importRange(+b.dataset.days); }
+  });
+};
+window.appBack = function(){
+  const sc = document.querySelector(".scrim"); if(sc){ sc.remove(); return true; }
+  if(view === "merchant"){ view = merchantReturn || "list"; render(); return true; }
+  if(view !== "home"){ view = "home"; render(); return true; }
+  return false;
+};
+document.getElementById("smsAllow").onclick = ()=>{ if(window.Android) window.Android.requestSms(); };
+document.getElementById("smsRescan").addEventListener("click", e=>{
+  const b = e.target.closest("[data-days]");
+  if(!b || !window.Android) return;
+  const days = +b.dataset.days;
+  const go = ()=>{ localStorage.setItem("smsledger.initialImportDone","1"); window.Android.importRange(days); toast(days === 0 ? "Reading every bank SMS on this phone…" : "Reading your SMS…"); };
+  if(document.getElementById("freshScan").checked) openFreshSheet(go); else go();
+});
+function fromSms(t){ return t.source === "sms" || t.source === "finart" ? t.source === "sms" : !t.source && !!t.raw; }
+function displayTxns(){
+  // Before the user grants Android SMS access and confirms the in-app consent, do not expose
+  // previously stored SMS-derived entries in dashboards. Hand-entered entries remain usable.
+  return (state.smsPermissionConfirmed && state.smsDataReady) ? state.txns : state.txns.filter(t=>!fromSms(t));
+}
+// An account is treated as SMS-confirmed once any SMS-read transaction names the same bank and account.
+function smsConfirmedAccounts(){
+  const seen = new Set();
+  state.txns.forEach(t=>{ if(fromSms(t) && t.account) seen.add(mkey(t.bank) + t.account); });
+  return seen;
+}
+function importedSummary(){
+  const confirmed = smsConfirmedAccounts();
+  const txns = state.txns.filter(t=>t.source === "imported" || t.source === "finart");
+  const bills = state.bills.filter(b=>(b.source === "imported" || b.source === "finart") && !b.manual);
+  const accountKeys = Object.keys(state.accounts).filter(k=>!k.startsWith("manual") && !state.accounts[k].typeLabel && !confirmed.has(k));
+  const subs = state.subsManual.filter(m=>m.source === "imported" || m.source === "finart");
+  const base = state.ruleBase || { rules: {}, names: {} };
+  const ruleKeys = Object.keys(base.rules||{}).filter(k=>state.rules[k] === base.rules[k]);
+  const nameKeys = Object.keys(base.names||{}).filter(k=>state.names[k] === base.names[k]);
+  return { txns, bills, accountKeys, subs, ruleKeys, nameKeys };
+}
+function removeImportedData(){
+  const s = importedSummary();
+  const months = new Set(s.txns.map(t=>t.date.slice(0,7)));
+  const txnIds = new Set(s.txns.map(t=>t.id));
+  state.txns = state.txns.filter(t=>!txnIds.has(t.id));
+  const billIds = new Set(s.bills.map(b=>b.id));
+  state.bills = state.bills.filter(b=>!billIds.has(b.id));
+  s.accountKeys.forEach(k=>delete state.accounts[k]);
+  const subIds = new Set(s.subs.map(m=>m.id));
+  state.subsManual = state.subsManual.filter(m=>!subIds.has(m.id));
+  s.ruleKeys.forEach(k=>{ delete state.rules[k]; if(state.ruleBase) delete state.ruleBase.rules[k]; });
+  s.nameKeys.forEach(k=>{ delete state.names[k]; if(state.ruleBase) delete state.ruleBase.names[k]; });
+  prefixCache = null;
+  persist([...months], true);
+}
+function refreshImportedBlock(){
+  const el = document.getElementById("importedNote"), btn = document.getElementById("removeImported");
+  if(!el) return;
+  const s = importedSummary();
+  const n = s.txns.length + s.bills.length + s.accountKeys.length + s.subs.length + s.ruleKeys.length + s.nameKeys.length;
+  if(!n){ el.textContent = "Everything in the app now comes from your phone's SMS."; btn.style.display = "none"; return; }
+  el.textContent = `Found ${inr.format(s.txns.length)} entries, ${inr.format(s.bills.length)} bills, ${inr.format(s.accountKeys.length)} accounts, ${inr.format(s.subs.length)} subscriptions and ${inr.format(s.ruleKeys.length + s.nameKeys.length)} merchant rules that no SMS on this phone confirms. Removing them keeps only what's read from your own SMS.`;
+  btn.style.display = "";
+}
+function openFreshSheet(then){
+  const nSms = state.txns.filter(fromSms).length, nOther = state.txns.length - nSms;
+  const b = state.ruleBase || { rules: {}, names: {} };
+  const nRules = Object.keys(state.rules).filter(k=>state.rules[k] !== (b.rules||{})[k]).length + Object.keys(state.names).filter(k=>state.names[k] !== (b.names||{})[k]).length;
+  sheet("Start fresh?", `
+    <p class="help">This clears what came from SMS and what the app learned, then reads your SMS again with the default names and categories.</p>
+    <label class="check"><input type="checkbox" id="f-sms" checked>Remove ${inr.format(nSms)} entries read from SMS (they're read again)</label>
+    <label class="check"><input type="checkbox" id="f-rules" checked>Undo ${inr.format(nRules)} changes you made to merchant names and categories</label>
+    <label class="check"><input type="checkbox" id="f-bills" checked>Clear bills, balances and recurring payments found in SMS</label>
+    <label class="check"><input type="checkbox" id="f-all">Also remove ${inr.format(nOther)} entries not read from SMS (added by hand, or from an earlier import)</label>
+    <p class="help">Budgets, your own categories, merchant rules, language and family data are kept. Download a backup first if you might want this back.</p>`,
+  sc=>{
+    const opt = id => sc.querySelector(id).checked;
+    const months = new Set(state.txns.map(t=>t.date.slice(0,7)));
+    if(opt("#f-all")) state.txns = [];
+    else if(opt("#f-sms")) state.txns = state.txns.filter(t=>!fromSms(t));
+    if(opt("#f-rules")){ undoRuleChanges(); state.txns.forEach(t=>{ delete t.userCat; }); }
+    if(opt("#f-bills")){
+      state.bills = state.bills.filter(b=>b.manual || (b.source === "finart" && !opt("#f-all")));
+      Object.keys(state.accounts).forEach(k=>{ const a = state.accounts[k]; if(!k.startsWith("manual") && !(a.typeLabel && !opt("#f-all"))) delete state.accounts[k]; });
+      state.subsHidden = [];
+    }
+    persist([...months], true);
+    toast("Cleared. Reading your SMS again…");
+    then();
+  }, null);
+  const save = document.querySelector(".scrim [data-s=save]"); if(save) save.textContent = "Clear and rescan";
+}
+
+/* ---------- Cloud account (Google Sign-In, for sharing) ---------- */
+let cloudUser = null;
+function refreshCloudBlock(){
+  const note = document.getElementById("cloudNote"), row = document.getElementById("cloudUserRow"),
+        inBtn = document.getElementById("cloudSignIn"), outBtn = document.getElementById("cloudSignOut");
+  if(!(window.Android && window.Android.signIn)){
+    note.textContent = "Signing in works in the Android app, where family sharing will live.";
+    inBtn.classList.add("hidden"); outBtn.classList.add("hidden"); row.classList.add("hidden");
+    return;
+  }
+  if(!cloudUser && window.Android.getCurrentUser){
+    try{ const u = JSON.parse(window.Android.getCurrentUser()); if(u) cloudUser = u; }catch(e){}
+  }
+  if(cloudUser){
+    note.textContent = "Signed in. Family Cloud is available from Home → Family.";
+    document.getElementById("cloudName").textContent = cloudUser.name || cloudUser.email || "Signed in";
+    document.getElementById("cloudEmail").textContent = cloudUser.email || "";
+    document.getElementById("cloudAvatar").textContent = (cloudUser.name || cloudUser.email || "?").slice(0,1).toUpperCase();
+    row.classList.remove("hidden"); inBtn.classList.add("hidden"); outBtn.classList.remove("hidden");
+  } else {
+    note.textContent = "Sign in with Google to turn on sharing later — events, trips and lists you choose to share with family. Your own entries stay on this phone either way.";
+    row.classList.add("hidden"); inBtn.classList.remove("hidden"); outBtn.classList.add("hidden");
+  }
+}
+function loadSigningFingerprint(){
+  const out=document.getElementById("signingFingerprint");
+  if(!out) return;
+  if(!(window.Android && window.Android.getSigningFingerprints)){ out.textContent="Unavailable outside the Android app."; return; }
+  try{
+    const r=JSON.parse(window.Android.getSigningFingerprints());
+    out.textContent = r.ok ? (r.sha1 || "SHA-1 unavailable") : ("Unable to read signing certificate: "+(r.error||"Unknown error"));
+  }catch(e){ out.textContent="Unable to read signing certificate."; }
+}
+setTimeout(loadSigningFingerprint, 300);
+
+let cloudSignInTimer = null;
+window.cloudSignInResult = function(json){
+  clearTimeout(cloudSignInTimer);
+  let r; try{ r = JSON.parse(json); }catch(e){ r = { ok:false, error:"Couldn't read the result." }; }
+  document.getElementById("cloudSignIn").textContent = "Sign in with Google";
+  document.getElementById("cloudSignIn").disabled = false;
+  if(r.ok){
+    cloudUser = r;
+    const targetId = window.pendingFamilyGoogleMember;
+    if(targetId){
+      state.family = state.family || {members:{}}; state.family.members = state.family.members || {};
+      const member = state.family.members[targetId];
+      if(member){ member.googleUid = r.uid || ""; member.googleEmail = r.email || ""; member.googleName = r.name || ""; member.googleLinkedAt = new Date().toISOString(); persist([], true); }
+      window.pendingFamilyGoogleMember = null;
+      refreshCloudBlock(); render(); toast("Google account linked to the family member.");
+      return;
+    }
+    refreshCloudBlock(); if(state.family&&state.family.cloudId&&window.Android&&window.Android.listenFamily&&familyCloudListeningId!==state.family.cloudId){ familyCloudListeningId=state.family.cloudId; window.Android.listenFamily(state.family.cloudId); } toast("Signed in."); return;
+  }
+  cloudUser = null; refreshCloudBlock();
+  if(r.signedOut){ toast("Signed out."); return; }
+  if(r.cancelled) return; // they backed out of the picker; no need to announce that
+  toast("Couldn't sign in: " + (r.error || "unknown error") + ". Screenshot this and send it over.");
+};
+document.getElementById("cloudSignIn").onclick = ()=>{
+  if(!(window.Android && window.Android.signIn)) return;
+  document.getElementById("cloudSignIn").textContent = "Signing in…";
+  document.getElementById("cloudSignIn").disabled = true;
+  clearTimeout(cloudSignInTimer);
+  // Safety net: if the native side never calls back at all (shouldn't happen, but a stuck
+  // "Signing in…" button with no way out is worse than a late, honest timeout message).
+  cloudSignInTimer = setTimeout(()=>{
+    document.getElementById("cloudSignIn").textContent = "Sign in with Google";
+    document.getElementById("cloudSignIn").disabled = false;
+    toast("Sign-in is taking too long or didn't respond. Try again, and screenshot this if it keeps happening.");
+  }, 20000);
+  try{ window.Android.signIn(); }catch(e){ clearTimeout(cloudSignInTimer); toast("Couldn't start sign-in: " + (e && e.message ? e.message : "unknown error")); document.getElementById("cloudSignIn").disabled = false; document.getElementById("cloudSignIn").textContent = "Sign in with Google"; }
+};
+document.getElementById("cloudSignOut").onclick = ()=>{
+  if(!(window.Android && window.Android.signOutCloud)) return;
+  try{ window.Android.signOutCloud(); }catch(e){ toast("Couldn't sign out."); }
+};
+
+/* ---------- Theme ---------- */
+function resolveTheme(){
+  if(state.theme === "light" || state.theme === "dark") return state.theme;
+  if(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+function applyTheme(){ document.documentElement.dataset.theme = resolveTheme(); }
+if(window.matchMedia){
+  try{ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ if(!state.theme || state.theme === "system") applyTheme(); }); }catch(e){}
+}
+document.getElementById("themeSeg").addEventListener("click", e=>{
+  const b = e.target.closest("[data-theme-pick]"); if(!b) return;
+  state.theme = b.dataset.themePick; persist([], false); applyTheme();
+  if(window.Android && window.Android.setTheme) try{ window.Android.setTheme(state.theme); }catch(err){}
+  render(); toast("Theme updated.");
+});
+
+/* ---------- Screen help ---------- */
+const HELP = {
+  home: { title: "Ledger", en: "Your money this month: what you've saved, income vs expenses, and your top categories and payers.",
+    kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ: ಉಳಿತಾಯ, ಆದಾಯ ಮತ್ತು ಖರ್ಚು, ಮತ್ತು ನಿಮ್ಮ ಪ್ರಮುಖ ವರ್ಗಗಳು ಮತ್ತು ಪಾವತಿಸುವವರು." },
+  overview: { title: "Summary", en: "Switch between Month, Year, All years or Events to see how your income and spending change.",
+    kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳ ನಡುವೆ ಬದಲಿಸಿ ಆದಾಯ-ಖರ್ಚು ಹೇಗೆ ಬದಲಾಗುತ್ತದೆ ಎಂದು ನೋಡಿ." },
+  list: { title: "Entries", en: "Every entry from your SMS or added by hand. Search, filter by category, or tap a name for its full history.",
+    kn: "ನಿಮ್ಮ SMS ಅಥವಾ ಕೈಯಾರೆ ಸೇರಿಸಿದ ಎಲ್ಲಾ ನಮೂದುಗಳು. ಹುಡುಕಿ, ವರ್ಗದ ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಿ, ಅಥವಾ ಹೆಸರನ್ನು ಒತ್ತಿ ಪೂರ್ಣ ಇತಿಹಾಸ ನೋಡಿ." },
+  accounts: { title: "Accounts", en: "Bills due, account balances, subscriptions, and money owed to or by you.",
+    kn: "ಪಾವತಿಸಬೇಕಾದ ಬಿಲ್‌ಗಳು, ಖಾತೆ ಬಾಕಿ, ಚಂದಾದಾರಿಕೆಗಳು, ಮತ್ತು ನೀವು ಕೊಡಬೇಕಾದ/ಪಡೆಯಬೇಕಾದ ಹಣ." },
+  add: { title: "Add", en: "Bank SMS on your phone are usually added automatically. Paste one here by hand if it was missed.",
+    kn: "ಫೋನ್‌ನ ಬ್ಯಾಂಕ್ SMS ಸಾಮಾನ್ಯವಾಗಿ ತಾನಾಗಿಯೇ ಸೇರುತ್ತವೆ. ಯಾವುದಾದರೂ ತಪ್ಪಿದ್ದರೆ ಇಲ್ಲಿ ಕೈಯಾರೆ ಅಂಟಿಸಿ." },
+  settings: { title: "Settings", en: "Language, budgets, categories, family sync, and how the app reads and stores your data.",
+    kn: "ಭಾಷೆ, ಬಜೆಟ್, ವರ್ಗಗಳು, ಕುಟುಂಬ ಸಿಂಕ್, ಮತ್ತು ಆ್ಯಪ್ ನಿಮ್ಮ ಮಾಹಿತಿಯನ್ನು ಹೇಗೆ ಓದುತ್ತದೆ/ಸಂಗ್ರಹಿಸುತ್ತದೆ." },
+  merchant: { title: "", en: "How much you've paid or received from this person or merchant, by year.",
+    kn: "ಈ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯಾಪಾರಿಯಿಂದ ನೀವು ಎಷ್ಟು ಪಾವತಿಸಿದ್ದೀರಿ/ಪಡೆದಿದ್ದೀರಿ, ವರ್ಷವಾರು." }
+};
+function openScreenHelp(){
+  const h = HELP[view] || HELP.home;
+  const title = view === "merchant" ? (merchantFocus || "") : h.title;
+  const text = LANG === "kn" ? h.kn : h.en;
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2>
+    <p class="help">${esc(text)}</p>
+    <div class="row"><button class="btn primary" data-close>Got it</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{ if(e.target === scrim || e.target.closest("[data-close]")) scrim.remove(); });
+}
+document.getElementById("helpBtn").onclick = openScreenHelp;
+
+/* ---------- First-run tour ---------- */
+const TOUR = [
+  { view: "home", title: "Ledger", en: "Your money this month, at a glance: savings, income vs expenses, and top categories.",
+    kn: "ಈ ತಿಂಗಳ ನಿಮ್ಮ ಹಣ ಒಂದೇ ನೋಟದಲ್ಲಿ: ಉಳಿತಾಯ, ಆದಾಯ-ಖರ್ಚು ಮತ್ತು ಪ್ರಮುಖ ವರ್ಗಗಳು." },
+  { view: "overview", title: "Summary", en: "Month, Year, All years or Events — see your income and spending trends.",
+    kn: "ತಿಂಗಳು, ವರ್ಷ, ಎಲ್ಲಾ ವರ್ಷಗಳು ಅಥವಾ ಸಂದರ್ಭಗಳು — ನಿಮ್ಮ ಆದಾಯ-ಖರ್ಚಿನ ಪ್ರವೃತ್ತಿ ನೋಡಿ." },
+  { view: "list", title: "Entries", en: "Every entry, searchable. Tap a name to see everything from that person or merchant.",
+    kn: "ಎಲ್ಲಾ ನಮೂದುಗಳು, ಹುಡುಕಬಹುದು. ಒಬ್ಬ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯಾಪಾರಿಯ ಎಲ್ಲವನ್ನೂ ನೋಡಲು ಹೆಸರನ್ನು ಒತ್ತಿ." },
+  { view: "accounts", title: "Accounts", en: "Bills, balances, subscriptions, and money owed to or by you, in one place.",
+    kn: "ಬಿಲ್‌ಗಳು, ಬಾಕಿ, ಚಂದಾದಾರಿಕೆಗಳು, ಮತ್ತು ಕೊಡಬೇಕಾದ/ಪಡೆಯಬೇಕಾದ ಹಣ, ಒಂದೇ ಕಡೆ." },
+  { view: "add", title: "Add", en: "Bank SMS are added automatically. Use this only to add something by hand.",
+    kn: "ಬ್ಯಾಂಕ್ SMS ತಾನಾಗಿಯೇ ಸೇರುತ್ತವೆ. ಕೈಯಾರೆ ಸೇರಿಸಲು ಮಾತ್ರ ಇದನ್ನು ಬಳಸಿ." },
+  { view: "settings", title: "Settings", en: "Language, budgets, categories, and family sync all live here. Tap ? anytime for help.",
+    kn: "ಭಾಷೆ, ಬಜೆಟ್, ವರ್ಗಗಳು ಮತ್ತು ಕುಟುಂಬ ಸಿಂಕ್ ಇಲ್ಲಿವೆ. ಸಹಾಯಕ್ಕೆ ಯಾವಾಗ ಬೇಕಾದರೂ ? ಒತ್ತಿ." }
+];
+let tourIdx = 0;
+function showTourStep(){
+  const step = TOUR[tourIdx], last = tourIdx === TOUR.length - 1;
+  view = step.view; render();
+  const scrim = document.createElement("div"); scrim.className = "scrim"; scrim.id = "tourSheet";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(step.title)}"><h2>${esc(step.title)}</h2>
+    <p class="help">${esc(LANG === "kn" ? step.kn : step.en)}</p>
+    <div class="tourdots">${TOUR.map((_,i)=>`<span class="${i===tourIdx?"on":""}"></span>`).join("")}</div>
+    <div class="row"><button class="btn primary" data-tour="next">${last ? "Got it" : "Next"}</button><button class="btn link" data-tour="skip">Skip</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    const b = e.target.closest("[data-tour]"); if(!b) return;
+    scrim.remove();
+    if(b.dataset.tour === "next" && !last){ tourIdx++; showTourStep(); return; }
+    finishTour();
+  });
+}
+function finishTour(){
+  state.tourDone = true; persist([], false);
+  view = "home"; render();
+  runOnboardingChecks();
+}
+// First-run only: a quick, skippable sign-in prompt between the tour and asking for SMS access.
+// Skipping is a real, supported choice — nothing here blocks reading SMS or using the app locally.
+function showFirstRunSignIn(){
+  if(state.googleOnboardingDone || !(window.Android && window.Android.signIn)){ runOnboardingChecks(); return; }
+  const normalHandler = window.cloudSignInResult;
+  const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="firstGoogleSheet";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose Google account"><h2>Choose your Google account</h2><p class="help">Sign in to enable family sharing. You can skip this and use the ledger without a Google account. You can sign in later from Settings.</p><div class="row" style="display:grid;gap:10px"><button class="btn primary" id="fr-signin">Choose Google account</button><button class="btn" id="fr-skip">Skip for now</button></div><p class="hint" id="fr-google-error" style="display:none"></p></div>`;
+  document.body.appendChild(scrim);
+  const finish=()=>{
+    state.googleOnboardingDone=true;
+    persist([],true);
+    scrim.remove(); refreshCloudBlock(); runOnboardingChecks();
+  };
+  scrim.querySelector("#fr-skip").onclick=()=>{ state.googleSkipped=true; finish(); };
+  const btn=scrim.querySelector("#fr-signin");
+  btn.onclick=()=>{
+    btn.textContent="Opening Google…"; btn.disabled=true;
+    window.cloudSignInResult=function(json){
+      let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid response from Google sign-in"}};
+      if(r.ok){ cloudUser=r; state.googleSkipped=false; state.googleOnboardingDone=true; persist([],true); if(window.Android && window.Android.setOnboardingComplete) window.Android.setOnboardingComplete(); window.cloudSignInResult=normalHandler; scrim.remove(); refreshCloudBlock(); runOnboardingChecks(); }
+      else { btn.textContent="Choose Google account"; btn.disabled=false; const err=scrim.querySelector("#fr-google-error"); err.textContent=r.cancelled ? "Google sign-in was cancelled. Try again or skip for now." : ("Google sign-in failed: "+(r.error||"Please try again.")); err.style.display="block"; }
+    };
+    try{ window.Android.signIn(); }catch(e){ btn.textContent="Choose Google account"; btn.disabled=false; const err=scrim.querySelector("#fr-google-error"); err.textContent="Google sign-in could not start: "+(e.message||e); err.style.display="block"; }
+  };
+}
+
+/* ---------- Language choice ---------- */
+let rangeAfterLang = false;
+function setLanguage(lang){
+  state.lang = lang === "kn" ? "kn" : "en";
+  if(window.Android && window.Android.setLanguage) try{ window.Android.setLanguage(state.lang); }catch(e){}
+  if(NATIVE && nativeTimer) writeNative();
+  saveLocal(); if(NATIVE) writeNative();
+  persist([], true);
+}
+function openLanguagePicker(){
+  if(document.getElementById("langSheet")) return;
+  const scrim = document.createElement("div"); scrim.className = "scrim"; scrim.id = "langSheet"; scrim.setAttribute("data-notr","");
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose your language">
+    <h2>Choose your language<br><span style="font-family:var(--sans)">ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆರಿಸಿ</span></h2>
+    <p class="help">You can change this any time in Settings. · ಇದನ್ನು ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಯಾವಾಗ ಬೇಕಾದರೂ ಬದಲಿಸಬಹುದು.</p>
+    <div class="range">
+      <button class="btn" data-lang="en" style="font-size:1.1rem">English</button>
+      <button class="btn" data-lang="kn" style="font-size:1.1rem">ಕನ್ನಡ</button>
+    </div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click", e=>{
+    const b = e.target.closest("[data-lang]"); if(!b) return;
+    setLanguage(b.dataset.lang);
+    scrim.remove();
+    applyLanguage(state.lang); render();
+    if(window.Android && window.Android.languageChosen) window.Android.languageChosen();
+    runOnboardingChecks();
+  });
+}
+window.needsLanguage = function(){ return !state.lang; };
+// Walks whatever first-run steps haven't been seen yet, in order, regardless of whether this
+// is a brand-new install (reached via the language picker) or an existing install opening a
+// version that added a new step (reached directly at boot) — nothing here depends on language
+// having just been chosen in *this* session.
+function showSmsConsent(){
+  if(document.getElementById("smsConsentSheet")) return;
+  const already = !!(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess());
+  const phoneReady = !!(window.Android && window.Android.hasPhoneStateAccess && window.Android.hasPhoneStateAccess());
+  const nativeAccessReady = already && phoneReady;
+  const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="smsConsentSheet";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="SMS access"><h2>Allow SMS reading</h2>
+    <p class="help">SMS Ledger will read bank transaction messages to build your ledger. Existing SMS will not be read until you allow SMS access below.</p>
+    ${nativeAccessReady ? `<p class="hint">Android access is already granted. We still need your in-app confirmation before reading anything.</p>` : `<p class="hint">Android will request SMS access and the phone-state access needed to identify the active SIM slots. After you allow them, the app will automatically start the initial SMS import.</p>`}
+    <div class="row"><button class="btn primary" id="smsConsentContinue">${nativeAccessReady ? "Continue and read SMS" : "Allow required access"}</button><button class="btn" id="smsConsentLater">Not now</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.querySelector("#smsConsentLater").onclick=()=>{ scrim.remove(); toast("SMS reading is paused. You can allow it later in Settings."); };
+  scrim.querySelector("#smsConsentContinue").onclick=()=>{
+    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess() && (!window.Android.hasPhoneStateAccess || window.Android.hasPhoneStateAccess())){
+      state.smsPermissionConfirmed=true; state.smsDataReady=false; state.smsConsentUiVersion=2; state.onboardingComplete=true; persist([],true);
+      if(window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
+      scrim.remove();
+      if(window.Android && window.Android.importRange) window.Android.importRange(90);
+    } else if(window.Android && window.Android.requestSms){
+      window.Android.requestSms();
+    }
+  };
+}
+function runOnboardingChecks(){
+  if(window.Android && window.Android.signIn && !state.googleOnboardingDone){ showFirstRunSignIn(); return; }
+  const smsReady = !!(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess());
+  const phoneReady = !!(window.Android && (!window.Android.hasPhoneStateAccess || window.Android.hasPhoneStateAccess()));
+  if(!smsReady || !phoneReady){ showSmsConsent(); return; }
+  checkSimOnboarding(()=>{
+    if(window.Android && window.Android.hasSmsAccess && window.Android.hasSmsAccess()){
+      if(state.smsPermissionConfirmed) return;
+      showSmsConsent();
+      return;
+    }
+    showSmsConsent();
+  });
+}
+window.smsPermissionGranted = function(){
+  // After Android grants permission, finish SIM tagging (if needed) and immediately import
+  // the complete historical bank-SMS window.
+  checkSimOnboarding(()=>{
+    state.smsPermissionConfirmed=true; state.smsDataReady=false; state.smsConsentUiVersion=2; state.onboardingComplete=true; persist([],true);
+    if(window.Android && window.Android.setSmsConsentConfirmed) window.Android.setSmsConsentConfirmed();
+    if(window.Android && window.Android.importRange) window.Android.importRange(0);
+  });
+};
+// If this phone has more than one SIM reading bank SMS, ask once, up front, which is whose —
+// rather than leaving it to be found later in Settings. Settings still has the same choices,
+// to change it afterward (a SIM swap, a new family member, etc).
+function checkSimOnboarding(next){
+  if(state.simOnboardingVersion === 2 || !(window.Android && window.Android.getSimList)){ next(); return; }
+  let sims; try{ sims = JSON.parse(window.Android.getSimList() || "[]"); }catch(e){ sims = []; }
+  if(sims.length < 2){ next(); return; }
+  state.simOnboardingShown = true; state.simOnboardingVersion = 2; persist([], false);
+  state.simOwners = state.simOwners || {};
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Whose SIM is whose"><h2>This phone has ${sims.length} SIMs</h2>
+    <p class="help">More than one active SIM was detected. Enter a person name for at least one SIM. Names for the remaining SIMs are optional; if left blank, the app will use an internal SIM label until you rename it in Settings.</p>
+    <div id="fr-simList"></div>
+    <div class="row"><button class="btn primary" id="fr-simDone">Continue</button></div></div>`;
+  document.body.appendChild(scrim);
+  const draw = ()=>{
+    scrim.querySelector("#fr-simList").innerHTML = sims.map((sim,i)=>{
+      const o = state.simOwners[sim.id] || {};
+      return `<div class="simrow"><input type="text" data-frsimname="${sim.id}" value="${esc((o.name||"").startsWith("__SIM_") ? "" : (o.name || ""))}" placeholder="Enter person name (e.g. Vageesh)">
+        <label><input type="radio" name="frSimMe" data-frsimme="${sim.id}" ${o.isMe || (!Object.values(state.simOwners).some(x=>x.isMe) && i===0) ? "checked" : ""}>Mine</label></div>`;
+    }).join("");
+  };
+  draw();
+  scrim.addEventListener("input", e=>{
+    const nm = e.target.closest("[data-frsimname]"); if(!nm) return;
+    state.simOwners[nm.dataset.frsimname] = { ...(state.simOwners[nm.dataset.frsimname]||{}), name: nm.value.trim() };
+  });
+  scrim.addEventListener("click", e=>{
+    const me = e.target.closest("[data-frsimme]");
+    if(me){
+      Object.keys(state.simOwners).forEach(k=>{ if(state.simOwners[k]) state.simOwners[k].isMe = false; });
+      state.simOwners[me.dataset.frsimme] = { ...(state.simOwners[me.dataset.frsimme]||{}), isMe: true };
+      return;
+    }
+    if(e.target.id === "fr-simDone"){
+      const named = sims.filter(sim => ((state.simOwners[sim.id] || {}).name || "").trim());
+      if(!named.length){ toast("Enter a name for at least one SIM."); return; }
+      const missing = sims.filter(sim => !((state.simOwners[sim.id] || {}).name || "").trim());
+      if(missing.length){
+        const ok = confirm(`${missing.length} SIM${missing.length===1?"":"s"} has no name. The app will temporarily use an internal name for its transactions; you can rename it later in Settings. Continue?`);
+        if(!ok) return;
+      }
+      sims.forEach((sim,i)=>{
+        if(!state.simOwners[sim.id]) state.simOwners[sim.id] = {};
+        if(!String(state.simOwners[sim.id].name||"").trim()) state.simOwners[sim.id].name = `__SIM_${i+1}__`; state.simOwners[sim.id].hidden = true;
+        if(!state.simOwners[sim.id].color) state.simOwners[sim.id].color = PALETTE[i % PALETTE.length];
+      });
+      if(!Object.values(state.simOwners).some(o=>o.isMe) && sims[0]) state.simOwners[sims[0].id].isMe = true;
+      persist([], true); scrim.remove(); render(); next();
+    }
+  });
+}
+window.checkSimOnboarding = function(next){ checkSimOnboarding(typeof next === "function" ? next : function(){}); };
+window.runOnboardingChecks = runOnboardingChecks;
+document.getElementById("langSeg").addEventListener("click", e=>{
+  const b = e.target.closest("[data-lang]"); if(!b || b.dataset.lang === LANG) return;
+  setLanguage(b.dataset.lang);
+  toast(b.dataset.lang === "kn" ? "ಭಾಷೆ ಬದಲಾಗುತ್ತಿದೆ…" : "Switching language…");
+  setTimeout(()=>location.reload(), 350);
+});
+
+/* ---------- Boot ---------- */
+loadLocal();
+applyTheme();
+migrateRules();
+applyCustomCats();
+applyLanguage(state.lang || "en");
+if(state.lang && window.Android && window.Android.setLanguage) try{ window.Android.setLanguage(state.lang); }catch(e){}
+cursor = currentPK();
+render();
+if(!state.lang) openLanguagePicker();
+else runOnboardingChecks();
+if(smsDataUnlocked() && !state.cardV2){
+  const months = new Set();
+  state.txns.forEach(t=>{
+    if(t.userCat || t.source === "finart" || !t.raw || t.category === "Card payments") return;
+    if(isCardBillMove(t.raw.toLowerCase(), t.merchant, t.type === "credit")){ t.autoCat = t.category; t.category = "Card payments"; months.add(t.date.slice(0,7)); }
+  });
+  state.cardV2 = true; persist([...months], false);
+}
+if(smsDataUnlocked()){
+  const pc=linkPaymentConfirmations(); const lk=linkTransfers(); const rm=matchRecurringTransactions();
+  if(pc.n||lk.n||rm.changed) persist([...(pc.months||[]),...(lk.months||[]),...(rm.months||[])], false);
+  state.linkedV1=true; state.txnIntelligenceV2=true;
+  if(pc.n||lk.n||rm.changed) render();
+}
+connectDb();
+})();
+
