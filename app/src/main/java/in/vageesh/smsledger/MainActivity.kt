@@ -28,7 +28,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.lifecycle.lifecycleScope
@@ -55,7 +55,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import java.security.MessageDigest
 import kotlin.concurrent.thread
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private lateinit var web: WebView
     private lateinit var rootFrame: FrameLayout
@@ -447,7 +447,7 @@ class MainActivity : ComponentActivity() {
         prompt.authenticate(info)
     }
 
-    private fun setAppLockEnabled(enabled: Boolean) {
+    private fun applyAppLockEnabled(enabled: Boolean) {
         if (!enabled) { prefs.edit().putBoolean("appLockEnabled", false).apply(); appUnlocked = true; return }
         if (!canUseDeviceAuth()) { toastJs("Set a fingerprint, face or device PIN on your phone first."); return }
         prefs.edit().putBoolean("appLockEnabled", true).apply(); appUnlocked = false; showAppLockOverlay()
@@ -758,7 +758,7 @@ class MainActivity : ComponentActivity() {
         fun isAppLockEnabled(): Boolean = prefs.getBoolean("appLockEnabled", true)
 
         @JavascriptInterface
-        fun setAppLockEnabled(enabled: Boolean) = runOnUiThread { setAppLockEnabled(enabled) }
+        fun setAppLockEnabled(enabled: Boolean) = runOnUiThread { applyAppLockEnabled(enabled) }
 
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
