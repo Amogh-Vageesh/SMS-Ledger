@@ -813,7 +813,7 @@ body{font-size:var(--fs-body);line-height:1.45}
     <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Ledger</button>
     <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>My Ledger</button>
     <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Assets</button>
-    <button data-v="insurance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.1-7 10-4-1.9-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Insurance</button>
+    <button data-v="insurance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.1-7 10-4-1.9-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Protection</button>
     <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
     <button data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
   </nav>
@@ -2167,7 +2167,7 @@ function createEventForm(existingId){
 // "Share" here only sets a local flag for now — it's the data model ready for when cloud sync
 // is built, not live sharing yet. Said plainly in the UI so nobody assumes it's already working.
 const FAMILY_SHARE_DEFAULTS={ledger:true,banks:true,cards:true,investments:true,assets:true,loans:true,insurance:true,cash:true,retirement:true,budgets:true};
-const FAMILY_SHARE_LABELS={ledger:"Ledger / Transactions",banks:"Bank Accounts",cards:"Credit Cards",investments:"Investments",assets:"Assets",loans:"Loans & Liabilities",insurance:"Insurance",cash:"Cash / Wallets",retirement:"Retirement / EPF / NPS",budgets:"Budgets & Goals"};
+const FAMILY_SHARE_LABELS={ledger:"Ledger / Transactions",banks:"Bank Accounts",cards:"Credit Cards",investments:"Investments",assets:"Assets",loans:"Loans & Liabilities",insurance:"Protection",cash:"Cash / Wallets",retirement:"Retirement / EPF / NPS",budgets:"Budgets & Goals"};
 function familyShareConfig(uid){ const fam=state.family=state.family||{members:{}}; fam.sectionSharing=fam.sectionSharing||{}; const cur=fam.sectionSharing[uid]||{}; const out={...FAMILY_SHARE_DEFAULTS,...cur}; fam.sectionSharing[uid]=out; return out; }
 function filteredCompleteStateForMember(uid){
   const c=familyShareConfig(uid), src=state;
@@ -3184,6 +3184,27 @@ function insuranceStatus(p){
   return end && end<todayISO() ? "Expired" : (p?.status==="Expired" ? "Expired" : "Active");
 }
 function insuranceCoverageTotal(list,type){return list.filter(p=>!type||p.type===type).reduce((n,p)=>n+(Number(p.coverage)||0),0);}
+function warrantyStatus(w){
+  const end=String(w?.expiryDate||w?.endDate||"");
+  return end && end<todayISO() ? "Expired" : "Active";
+}
+function renderWarranties(list,remote=false){
+  const active=list.filter(w=>warrantyStatus(w)==="Active"), expired=list.filter(w=>warrantyStatus(w)==="Expired");
+  const filter=state.warrantyFilter||"Active", shown=filter==="Expired"?expired:active;
+  let h=`<div class="card"><div class="card-h"><h2>Warranties</h2><span class="chart-note">${shown.length} shown</span></div>`;
+  h+=`<div class="insurance-filter"><button class="${filter==="Active"?"active":""}" data-warranty-filter="Active">Active (${active.length})</button><button class="${filter==="Expired"?"active":""}" data-warranty-filter="Expired">Expired (${expired.length})</button></div>`;
+  h+=`<section class="insurance-pane">${shown.length?shown.map(w=>`<div class="insurance-row" data-warranty-id="${esc(w.id||"")}"><span class="insurance-icon">▣</span><span class="insurance-main"><b>${esc(w.name||w.product||"Warranty")}</b><small>${esc(w.provider||"")} ${w.warrantyNumber?"· "+esc(w.warrantyNumber):""}</small><small>Coverage ${money(Number(w.coverage)||0,true)} · Expiry ${esc(w.expiryDate||"Not specified")}</small></span><span class="num">${esc(w.expiryDate||"")}</span></div>`).join(""):`<div class="pane-empty">No ${filter.toLowerCase()} warranties.</div>`}</section>`;
+  if(!remote) h+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="addWarranty">+ Add warranty</button></div>`;
+  return h+`</div>`;
+}
+function openWarrantySheet(existingId){
+  const p={...(state.warranties||[]).find(x=>x.id===existingId)||{}};
+  sheet(existingId?"Edit warranty":"Add warranty",`<div class="two"><label class="field"><span>Warranty / product</span><input id="war-name" value="${esc(p.name||"")}"></label><label class="field"><span>Provider</span><input id="war-provider" value="${esc(p.provider||"")}"></label></div><div class="two"><label class="field"><span>Warranty number</span><input id="war-no" value="${esc(p.warrantyNumber||"")}"></label><label class="field"><span>Coverage / value (₹)</span><input id="war-cover" inputmode="decimal" value="${p.coverage||""}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="war-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="war-end" type="date" value="${p.expiryDate||""}"></label></div><label class="field"><span>Notes</span><input id="war-note" value="${esc(p.note||"")}"></label>`,sc=>{
+    const name=sc.querySelector('#war-name').value.trim(); if(!name){toast('Enter the warranty or product name.');return false;}
+    const obj={...p,id:p.id||'war-'+uidGen(),name,provider:sc.querySelector('#war-provider').value.trim(),warrantyNumber:sc.querySelector('#war-no').value.trim(),coverage:Number(sc.querySelector('#war-cover').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#war-start').value||todayISO(),expiryDate:sc.querySelector('#war-end').value||'',note:sc.querySelector('#war-note').value.trim()};
+    state.warranties=state.warranties||[];const i=state.warranties.findIndex(x=>x.id===obj.id);if(i>=0)state.warranties[i]=obj;else state.warranties.push(obj);persist([],true);toast(existingId?'Warranty updated.':'Warranty added.');
+  },existingId?[["Delete",()=>{state.warranties=state.warranties.filter(x=>x.id!==existingId);persist([],true);toast('Warranty deleted.');}]]:null);
+}
 function renderInsurance(){
   const el=document.getElementById("insuranceBody"); if(!el)return;
   const remote=selectedRemoteCompleteState();
@@ -3202,6 +3223,8 @@ function renderInsurance(){
   html+=`<div class="insurance-filter"><button class="${filter==="Active"?"active":""}" data-ins-filter="Active">Active (${active.length})</button><button class="${filter==="Expired"?"active":""}" data-ins-filter="Expired">Expired (${expired.length})</button></div>`;
   html+=`<section class="insurance-pane">${shown.length?shown.map(p=>`<div class="insurance-row" data-ins-id="${esc(p.id||"")}"><span class="insurance-icon">${p.type==="Health"?"♥":p.type==="Term/Life"?"◇":p.type==="Vehicle"?"🚗":p.type==="Travel & One-Time"?"✈":"▣"}</span><span class="insurance-main"><b>${esc(p.insurer||"Insurance policy")}</b><small>${esc(p.coveredMembers||"")} · ${esc(p.policyNumber||"No policy number")}</small><small>Sum assured ${money(Number(p.coverage)||0,true)} · Accidental ${money(Number(p.accidentalCoverage)||0,true)}</small></span><span class="num">${money(Number(p.coverage)||0,true)}</span></div>`).join(""):`<div class="pane-empty">No ${filter.toLowerCase()} insurance policies.</div>`}</section>`;
   if(!remote) html+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="addInsurance">+ Add insurance</button><button class="btn" id="uploadInsurancePolicy">Import policy document(s)</button></div><p class="help">Import one or many policy PDFs/text reports. The app will extract policy rows into a review list before saving. Manual entry remains available.</p>`;
+  let warranties=[]; if(remote) warranties=Array.isArray(remote.warranties)?remote.warranties.slice():[]; else warranties=(state.warranties||[]).slice();
+  html+=renderWarranties(warranties,remote);
   el.innerHTML=html;bindFinanceHub();
 }
 function openInsuranceSheet(existingId, extracted={}){
@@ -4231,6 +4254,9 @@ document.getElementById("insuranceBody").addEventListener("click",e=>{
   const f=e.target.closest("[data-ins-filter]");if(f){state.insuranceFilter=f.dataset.insFilter;saveLocal();renderInsurance();return;}
   if(e.target.closest("#addInsurance")){openInsuranceSheet(null);return;}
   if(e.target.closest("#uploadInsurancePolicy")){if(window.Android&&window.Android.pickInsurancePolicy)window.Android.pickInsurancePolicy("insurancePolicyFilesResult");else toast("Policy document upload is available in the Android build.");return;}
+  if(e.target.closest("#addWarranty")){openWarrantySheet(null);return;}
+  const wf=e.target.closest("[data-warranty-filter]");if(wf){state.warrantyFilter=wf.dataset.warrantyFilter;saveLocal();renderInsurance();return;}
+  const wr=e.target.closest("[data-warranty-id]");if(wr&&!selectedRemoteCompleteState())openWarrantySheet(wr.dataset.warrantyId);
   const row=e.target.closest("[data-ins-id]");if(row&&!selectedRemoteCompleteState())openInsuranceSheet(row.dataset.insId);
 });
 document.getElementById("homeBody").addEventListener("click", e=>{
