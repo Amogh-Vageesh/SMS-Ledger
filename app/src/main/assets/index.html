@@ -580,6 +580,10 @@ body{font-size:var(--fs-body);line-height:1.45}
 .liability-detail-row .liability-numbers b{display:block!important;margin-top:3px!important;font-size:13px!important;color:var(--text)!important;white-space:nowrap!important;}
 @media(max-width:390px){.liability-detail-row .liability-name,.liability-detail-row .liability-amount{font-size:14px!important}.liability-detail-row .liability-left small,.liability-detail-row .liability-numbers{font-size:11px!important}.liability-detail-row .liability-numbers b{font-size:12px!important}}
 .liability-total-card{width:100%!important;box-sizing:border-box!important;}
+
+.protection-actions-compact{gap:8px;flex-wrap:wrap;align-items:center}.protection-actions-compact .mini{min-height:38px;padding:8px 12px}.protection-actions-compact .mini.primary{background:var(--gold);color:#17130b;border-color:var(--gold)}
+.finance-hub.card{margin-bottom:12px}.card-hub-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.card-hub-head h2{margin:0}.card-hub-head p{margin:4px 0 0;color:var(--muted)}
+.ledger-two-col-row,.subscription-category-row,.subscription-item-row,.prot-category-head,.prot-item{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);padding:14px 2px;color:var(--text);cursor:pointer}.ledger-two-col-row span:first-child,.subscription-item-name,.prot-item .insurance-main{min-width:0}.ledger-two-col-row span:first-child b,.subscription-item-name b,.prot-item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ledger-two-col-row small,.subscription-item-name small,.prot-item small{display:block;color:var(--muted);margin-top:4px}.ledger-two-col-row>span:last-child,.subscription-item-value,.prot-item>.num{min-width:92px;text-align:right}.prot-item{grid-template-columns:minmax(0,1fr) auto 24px}.prot-item>.num{text-align:right}.prot-category-items.hidden,.subscription-category-items.hidden{display:none}
 </style>
 </head>
 <body>
@@ -2134,6 +2138,20 @@ function chooseShareAudience(item, done){
     }
   });
 }
+function openEventDetail(id){
+  const ev=eventById(id); if(!ev){toast("Event not found.");return;}
+  const linked=eventTransactions(id).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  const spend=linked.filter(t=>t.type==="debit"&&counts(t)).reduce((s,t)=>s+spendAmt(t),0);
+  const income=linked.filter(t=>t.type==="credit"&&counts(t)).reduce((s,t)=>s+inAmt(t),0);
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Event details"><div class="card-h"><h2>${esc(ev.name||"Event")}</h2><button type="button" class="mini" id="eventEdit">Edit</button></div><p class="help">${ev.date?esc(niceDate(ev.date)):"No date"}${ev.note?` · ${esc(ev.note)}`:""}</p><div class="msum num" style="margin:10px 0"><div><small>Spent</small><b>${money(spend,true)}</b></div><div><small>Received</small><b>${money(income,true)}</b></div><div><small>Transactions</small><b>${linked.length}</b></div></div><div class="card" style="margin-top:8px"><div class="card-h"><b>Linked transactions</b><span class="chart-note">${linked.length}</span></div><div class="event-linked-list">${linked.length?linked.map(t=>`<button type="button" class="trow" data-event-tx="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||t.note||"Transaction")}</span><b>${t.type==="credit"?"+":"−"}${money(t.type==="credit"?inAmt(t):spendAmt(t),true)}</b></div><div class="l2"><span>${esc(t.category||"Other")}</span><span>${t.date?esc(niceDate(t.date)):""}</span></div></button>`).join(""):"<p class='help'>No transactions linked to this event.</p>"}</div></div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-s="cancel">Close</button></div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click",e=>{
+    if(e.target===scrim||e.target.closest('[data-s="cancel"]')){scrim.remove();return;}
+    if(e.target.closest("#eventEdit")){scrim.remove();if(!ev.remote)createEventForm(id);else toast("Remote events can be viewed but edited by their owner.");return;}
+    const txb=e.target.closest("[data-event-tx]"); if(txb){const t=state.txns.find(x=>x.id===txb.dataset.eventTx);if(t){scrim.remove();openSheet(t,false);}}
+  });
+}
 function createEventForm(existingId){
   const ev=existingId ? state.events[existingId] : null; if(existingId&&!ev)return;
   const scrim=document.createElement('div'); scrim.className='scrim';
@@ -3366,18 +3384,18 @@ function openWarrantySheet(existingId){
 }
 function protectionTxnCount(kind,id){return (state.txns||[]).filter(t=>t.protectionType===kind&&t.protectionId===id).length;}
 function renderProtectionCategoryRows(kind,list,groupMap){
-  const icon=kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧';
   const cats=Object.entries(groupMap);
   const countLabel=n=>kind==='Insurance'?`polic${n===1?'y':'ies'}`:kind==='Warranty'?`warrant${n===1?'y':'ies'}`:`plan${n===1?'':'s'}`;
   return cats.map(([label,items])=>`<div class="prot-category">
-    <button type="button" class="insurance-row prot-category-head" data-prot-category="${esc(label)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${countLabel(items.length)}</small></span><span class="chev">⌄</span></button>
-    <div class="prot-category-items">
+    <button type="button" class="prot-category-head" data-prot-category="${esc(label)}"><span class="prot-category-title"><b>${esc(label)}</b><small>${items.length} ${countLabel(items.length)}</small></span><span class="prot-category-chevron">⌄</span></button>
+    <div class="prot-category-items hidden">
       ${items.map(x=>{
         const txc=protectionTxnCount(kind,x.id);
         const sub=kind==='Insurance'?`${esc(x.insurer||'')}${x.policyNumber?' · '+esc(x.policyNumber):''}`:kind==='Warranty'?`${esc(x.provider||'')}${x.warrantyNumber?' · '+esc(x.warrantyNumber):''}`:`${esc(x.provider||'')}${x.contractNumber?' · '+esc(x.contractNumber):''}`;
+        const covered=kind==='Insurance'?coveredMemberDisplay(x):'';
         const val=kind==='Insurance'?money(Number(x.coverage)||0,true):kind==='Warranty'?money(Number(x.coverage)||0,true):money(Number(x.cost)||0,true);
         const label2=kind==='Insurance'?'Cover':kind==='Warranty'?'Value':'Plan cost';
-        return `<button type="button" class="insurance-row prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub||'Details not specified'}</small>${txc?`<small>${txc} linked transaction${txc===1?'':'s'}</small>`:''}</span><span class="num"><small style="display:block;color:var(--muted);font-size:.68rem">${label2}</small>${val}</span><span class="chev">›</span></button>`;
+        return `<button type="button" class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="prot-item-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub||'Details not specified'}</small>${kind==='Insurance'?`<small class="prot-covered">Covered: ${covered?esc(covered):'Not specified'}</small>`:''}${txc?`<small class="prot-linked">${txc} linked transaction${txc===1?'':'s'}</small>`:''}</span><span class="prot-item-value"><small>${label2}</small><strong>${val}</strong><span class="prot-item-frequency">${kind==='Insurance'?(x.frequency||''):kind==='Warranty'?(x.expiryDate?'Expiry '+esc(x.expiryDate):''):(x.nextServiceDate?'Next service '+esc(x.nextServiceDate):'')}</span></span><span class="prot-item-chevron">›</span></button>`;
       }).join('')}
     </div>
   </div>`).join('');
@@ -3397,7 +3415,7 @@ function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();const ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
  const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const name=kind==='Insurance'?(x.insurer||'Insurance policy'):kind==='Warranty'?(x.name||x.product||'Warranty'):(x.name||'Maintenance plan');const meta=kind==='Insurance'?`${x.insurer||''}${x.policyNumber?' · '+x.policyNumber:''}`:kind==='Warranty'?`${x.provider||''}${x.warrantyNumber?' · '+x.warrantyNumber:''}`:`${x.provider||''}${x.contractNumber?' · '+x.contractNumber:''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');return `<div class="card protection-section"><div class="card-h"><h2>${title}</h2><span class="chart-note">${items.length}</span></div>${rows||'<p class="help">Nothing added yet.</p>'}</div>`;};
- let html=`${renderFinanceHubTop()}<div class="card protection-top"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShare">Share</button></div>${!remote?`<div class="row protection-actions"><button class="btn primary" id="addInsurance">+ Add insurance</button><button class="btn" id="addWarranty">+ Add warranty</button><button class="btn" id="uploadInsurancePolicy">Import</button></div><div class="row protection-actions"><button class="btn" id="addMaintenance">+ Add maintenance</button></div>`:''}</div>`;
+ let html=`${renderFinanceHubTop()}<div class="card protection-top"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShare">Share</button></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button></div><div class="row protection-actions protection-actions-compact"><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}</div>`;
  html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();el.querySelector('#protectionShare')?.addEventListener('click',()=>openSectionSharePicker('protection','Protection'));
  el.querySelector('#addMaintenance')?.addEventListener('click',()=>openMaintenanceSheet());el.querySelectorAll('[data-prot-category]').forEach(r=>r.addEventListener('click',()=>{const body=r.parentElement.querySelector('.prot-category-items');if(body){body.classList.toggle('hidden');const c=r.querySelector('.chev');if(c)c.textContent=body.classList.contains('hidden')?'⌄':'⌃';}}));el.querySelectorAll('[data-prot-kind]').forEach(r=>r.addEventListener('click',()=>{const kind=r.dataset.protKind,id=r.dataset.protId;if(kind==='Insurance')openInsuranceSheet(id);else if(kind==='Warranty')openWarrantySheet(id);else openMaintenanceSheet(id);}));
 }
@@ -3602,13 +3620,12 @@ function billsDueThisMonthHtml(){
 
 function renderFinanceHub(target){
   const people=financeFamilyMembers();
-  const chips=[{id:"all",name:"All Family"},{id:"me",name:people[0].name}].concat(people.slice(1).map(p=>({id:p.id,name:p.name})));
-  const unique=[]; const seen=new Set();
-  chips.forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);unique.push(c);}});
+  const chips=[{id:"all",name:"All Family"},{id:"me",name:people[0]?.name||"Your data"}].concat(people.slice(1).map(p=>({id:p.id,name:p.name})));
+  const unique=[]; const seen=new Set(); chips.forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);unique.push(c);}});
   const selected=financeFamilyScope;
   const selectedName=unique.find(x=>x.id===selected)?.name || "All Family";
-  target.innerHTML=`<div class="finance-hub">
-    <div class="row"><div><div class="fh-title">Family Hub</div><div class="fh-sub">Showing financial data for ${esc(selectedName)}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="chart-note">${people.length>1?"Shared data":"Your data"}</span><button type="button" class="mini" data-finance-share>Share</button></div></div>
+  target.innerHTML=`<div class="finance-hub card">
+    <div class="card-hub-head"><div><h2>Family Hub</h2><p>Showing financial data for ${esc(selectedName)}</p></div><div style="display:flex;align-items:center;gap:8px"><span class="chart-note">${people.length>1?"Shared data":"Your data"}</span><button type="button" class="mini" data-finance-share>Share</button></div></div>
     <div class="fh-chips">${unique.map(c=>`<button class="fh-chip ${c.id===selected?"active":""}" data-finance-scope="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div>
     <div class="fh-note">Only the person's chosen/display name is shown. Relationship labels are not used.</div>
   </div>`;
@@ -3699,7 +3716,10 @@ function ledgerTransferRows(tx){
 }
 function ledgerTxnRows(tx,limit=30){ return tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,limit).map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Transaction")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${t.type==="credit"?"+":"−"}${money(t.type==="credit"?inAmt(t):spendAmt(t),true)}</b><small>${esc(t.bank||t.account||"")}</small></span></button>`).join("")||`<p class="help">No transactions for ${esc(ledgerPeriodLabel())}.</p>`; }
 function renderMyLedgerPage(){
-  const body=document.getElementById("ovBody"), tx=ledgerPeriodTxns();
+  const body=document.getElementById("ovBody");
+  if(!body) return;
+  try{
+  const tx=ledgerPeriodTxns();
   const income=tx.filter(t=>t.type==="credit"&&t.category!=="Refunds").reduce((s,t)=>s+inAmt(t),0);
   const refunds=tx.filter(t=>t.type==="credit"&&t.category==="Refunds").reduce((s,t)=>s+inAmt(t),0);
   const expenseTx=tx.filter(t=>t.type==="debit"&&!['Transfers','Self transfer'].includes(t.category));
@@ -3723,6 +3743,11 @@ function renderMyLedgerPage(){
   body.innerHTML=html;
   body.querySelector('#ledgerShareTop')?.addEventListener('click',()=>openSectionSharePicker('ledger','My Ledger'));
   bindSectionShareControls(body);
+  }catch(err){
+    console.error("My Ledger render failed",err);
+    body.innerHTML=`<div class="card home-balance-card"><div class="card-h"><h2>My Ledger</h2><button type="button" class="mini" id="ledgerShareTop">Share</button></div><p class="help">Your Ledger sections could not be rendered completely. Your transactions are safe. Please reopen My Ledger.</p></div><div class="card"><div class="card-h"><h2>Recent Transactions</h2></div>${ledgerTxnRows((state.txns||[]).filter(t=>t&&counts(t)).slice(-50))}</div>`;
+    body.querySelector('#ledgerShareTop')?.addEventListener('click',()=>openSectionSharePicker('ledger','My Ledger'));
+  }
 }
 function renderOverview(){
   const fh=document.getElementById("overviewFamilyHub"); if(fh){fh.innerHTML=renderFinanceHubTop(); bindFinanceHub();}
@@ -5587,6 +5612,30 @@ connectDb();
 .ledger-two-col-row>span:last-child{min-width:92px;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;}
 .ledger-two-col-row>span:last-child b{font-size:14px;line-height:1.2;white-space:nowrap;}
 @media(max-width:390px){.ledger-pane>summary{padding:12px}.ledger-two-col-row{grid-template-columns:minmax(0,1fr) minmax(82px,max-content);gap:8px;padding:10px 12px 10px 16px}.ledger-two-col-row>span:last-child{min-width:82px}.ledger-two-col-row>span:first-child b,.ledger-two-col-row>span:last-child b{font-size:13px}}
+</style>
+
+<style id="v127-protection-clean-ui">
+.prot-category{width:100%;box-sizing:border-box;border-bottom:1px solid var(--rule);overflow:hidden;background:var(--panel);}
+.prot-category:last-child{border-bottom:0;}
+.prot-category-head{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) 24px!important;gap:8px;align-items:center;padding:14px 14px!important;border:0!important;border-bottom:1px solid var(--rule)!important;background:transparent!important;color:var(--text)!important;text-align:left!important;box-sizing:border-box;cursor:pointer;}
+.prot-category-title{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.prot-category-title b{font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prot-category-title small{font-size:12px;color:var(--muted);line-height:1.25;}
+.prot-category-chevron{font-size:20px;color:var(--muted);text-align:right;}
+.prot-category-items{width:100%;box-sizing:border-box;background:var(--raise);}
+.prot-item{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(105px,max-content) 18px!important;gap:10px!important;align-items:center;padding:12px 14px 12px 22px!important;border:0!important;border-bottom:1px solid var(--rule)!important;background:transparent!important;color:var(--text)!important;text-align:left!important;box-sizing:border-box;cursor:pointer;}
+.prot-item:last-child{border-bottom:0!important;}
+.prot-item-main{min-width:0;overflow:hidden;}
+.prot-item-main b{display:block;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prot-item-main small{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prot-item-main .prot-covered{color:var(--text);}
+.prot-item-main .prot-linked{color:var(--brass);}
+.prot-item-value{min-width:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;overflow:hidden;}
+.prot-item-value small{font-size:10px;color:var(--muted);line-height:1.1;}
+.prot-item-value strong{font-size:14px;line-height:1.25;white-space:nowrap;}
+.prot-item-frequency{font-size:10px;color:var(--muted);line-height:1.2;white-space:nowrap;}
+.prot-item-chevron{font-size:20px;color:var(--muted);text-align:right;}
+@media(max-width:390px){.prot-category-head{grid-template-columns:minmax(0,1fr) 20px!important;padding:12px!important}.prot-item{grid-template-columns:minmax(0,1fr) minmax(88px,max-content) 16px!important;gap:7px!important;padding:11px 10px 11px 16px!important}.prot-item-main b{font-size:14px}.prot-item-main small{font-size:11px}.prot-item-value{min-width:88px}.prot-item-value strong{font-size:13px}}
 </style>
 </body>
 </html>
