@@ -3337,17 +3337,28 @@ function openWarrantySheet(existingId){
 }
 function protectionTxnCount(kind,id){return (state.txns||[]).filter(t=>t.protectionType===kind&&t.protectionId===id).length;}
 function renderProtectionCategoryRows(kind,list,groupMap){
-  const icon=kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧';
+  const icon=kind==='Insurance'?'🛡️':kind==='Warranty'?'⚙️':'🔧';
   const cats=Object.entries(groupMap);
+  const countLabel=n=>kind==='Insurance'?`polic${n===1?'y':'ies'}`:kind==='Warranty'?`warrant${n===1?'y':'ies'}`:`plan${n===1?'':'s'}`;
   return cats.map(([label,items])=>`<div class="prot-category">
-    <button type="button" class="insurance-row prot-category-head" data-prot-category="${esc(label)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${kind==='Insurance'?'polic'+(items.length===1?'y':'ies'):kind==='Warranty'?'warrant'+(items.length===1?'y':'ies'):'plan'+(items.length===1?'':'s')}</small></span><span class="chev">⌄</span></button>
+    <button type="button" class="prot-category-head" data-prot-category="${esc(label)}">
+      <span class="prot-icon">${icon}</span>
+      <span class="prot-category-title"><b>${esc(label)}</b><small>${items.length} ${countLabel(items.length)}</small></span>
+      <span class="prot-category-chevron">⌄</span>
+    </button>
     <div class="prot-category-items">
       ${items.map(x=>{
         const txc=protectionTxnCount(kind,x.id);
-        const sub=kind==='Insurance'?`${esc(x.insurer||'')} ${x.policyNumber?'· '+esc(x.policyNumber):''}`:kind==='Warranty'?`${esc(x.provider||'')} ${x.warrantyNumber?'· '+esc(x.warrantyNumber):''}`:`${esc(x.provider||'')} ${x.contractNumber?'· '+esc(x.contractNumber):''}`;
+        const sub=kind==='Insurance'?`${esc(x.insurer||'')}${x.policyNumber?' · '+esc(x.policyNumber):''}`:kind==='Warranty'?`${esc(x.provider||'')}${x.warrantyNumber?' · '+esc(x.warrantyNumber):''}`:`${esc(x.provider||'')}${x.contractNumber?' · '+esc(x.contractNumber):''}`;
         const val=kind==='Insurance'?money(Number(x.coverage)||0,true):kind==='Warranty'?money(Number(x.coverage)||0,true):money(Number(x.cost)||0,true);
-        return `<button type="button" class="insurance-row prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub}</small><small>${val}${txc?` · ${txc} linked transaction${txc===1?'':'s'}`:''}</small></span><span class="chev">›</span></button>`;
-      }).join("")}
+        const label2=kind==='Insurance'?'Cover':kind==='Warranty'?'Value':'Plan cost';
+        return `<button type="button" class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}">
+          <span class="prot-item-icon">${icon}</span>
+          <span class="prot-item-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub||'Details not specified'}</small>${txc?`<small class="prot-linked">${txc} linked transaction${txc===1?'':'s'}</small>`:''}</span>
+          <span class="prot-item-value"><small>${label2}</small><strong>${val}</strong></span>
+          <span class="prot-item-chevron">›</span>
+        </button>`;
+      }).join('')}
     </div>
   </div>`).join('');
 }
@@ -5626,3 +5637,4 @@ button.insurance-row{
   .asset-card-row .asset-value-wrap{min-width:82px!important;}
 }
 </style>
+\n<style>\n/* v1.120 Protection + My Ledger + Assets mobile layout polish */\n.prot-category{width:100%;box-sizing:border-box;border-bottom:1px solid var(--rule);overflow:hidden;}\n.prot-category:last-child{border-bottom:0;}\n.prot-category-head{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) 28px;gap:10px;align-items:center;padding:12px 14px;border:0;border-bottom:1px solid var(--rule);background:var(--panel);color:var(--text);text-align:left;box-sizing:border-box;cursor:pointer;}\n.prot-icon,.prot-item-icon{width:36px;height:36px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-size:18px;flex:0 0 auto;}\n.prot-category-title{min-width:0;display:flex;flex-direction:column;gap:2px;}\n.prot-category-title b{font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-category-title small{font-size:12px;color:var(--muted);line-height:1.25;}\n.prot-category-chevron{font-size:20px;color:var(--muted);text-align:center;}\n.prot-category-items{width:100%;box-sizing:border-box;background:var(--raise);}\n.prot-item{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) minmax(82px,max-content) 18px;gap:9px;align-items:center;padding:11px 14px 11px 22px;border:0;border-bottom:1px solid var(--rule);background:var(--raise);color:var(--text);text-align:left;box-sizing:border-box;cursor:pointer;}\n.prot-item:last-child{border-bottom:0;}\n.prot-item:active,.prot-category-head:active{background:var(--soft);}\n.prot-item-icon{width:30px;height:30px;border-radius:9px;font-size:15px;background:var(--panel);}\n.prot-item-main{min-width:0;overflow:hidden;}\n.prot-item-main b{display:block;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-item-main small{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-item-main .prot-linked{color:var(--brass);}\n.prot-item-value{min-width:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;overflow:hidden;}\n.prot-item-value small{font-size:10px;color:var(--muted);line-height:1.1;}\n.prot-item-value strong{font-size:14px;line-height:1.25;white-space:nowrap;}\n.prot-item-chevron{font-size:21px;color:var(--muted);text-align:right;}\n.insurance-pane{overflow:hidden!important;}\n.summary-cats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;width:100%!important;overflow:visible!important;align-items:stretch!important;}\n.summary-cats .cat{min-width:0!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:9px 10px!important;border:1px solid var(--rule)!important;border-radius:10px!important;background:var(--panel)!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:4px 7px!important;}\n.summary-cats .cat>span:first-child{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}\n.summary-cats .cat .amt{white-space:nowrap!important;text-align:right!important;font-size:13px!important;}\n.asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(82px,max-content) 18px!important;gap:7px!important;}\n.asset-card-row .asset-row-main b{font-size:14px!important;}\n.asset-card-row .asset-value-wrap{min-width:82px!important;}\n@media(max-width:390px){\n  .prot-category-head{grid-template-columns:34px minmax(0,1fr) 24px;gap:8px;padding:11px 12px;}\n  .prot-icon{width:32px;height:32px;font-size:16px;}\n  .prot-item{grid-template-columns:30px minmax(0,1fr) minmax(76px,max-content) 16px;gap:7px;padding:10px 10px 10px 18px;}\n  .prot-item-icon{width:28px;height:28px;font-size:14px;}\n  .prot-item-main b{font-size:14px;}\n  .prot-item-main small{font-size:11px;}\n  .prot-item-value{min-width:76px!important;}\n  .prot-item-value strong{font-size:13px;}\n}\n</style>\n
