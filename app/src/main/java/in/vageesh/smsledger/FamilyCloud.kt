@@ -56,6 +56,7 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
         replaceArray(root.collection("calendar"), payload.optJSONArray("calendar"), uid, now)
         replaceArray(root.collection("shopping"), payload.optJSONArray("shopping"), uid, now)
         replaceArray(root.collection("transactions"), payload.optJSONArray("transactions"), uid, now)
+        replaceArray(root.collection("assetRequests"), payload.optJSONArray("assetRequests"), uid, now)
         val shares = payload.optJSONArray("completeShares")
         if (shares != null) replaceCompleteShares(root.collection("completeData"), shares, uid, now)
         else replaceCompleteData(root.collection("completeData"), payload.optString("completeData", ""), payload.optString("completeShareWith", "all"), payload.optJSONArray("completeAudienceUids"), uid, now)
@@ -175,7 +176,7 @@ class FamilyCloud(private val context: Context, private val onData: (String) -> 
                 listeners += reg
             }
         }
-        listOf("events","calendar","shopping","transactions","completeData","members").forEach(::watch)
+        listOf("events","calendar","shopping","transactions","assetRequests","completeData","members").forEach(::watch)
     }
 
     suspend fun familyInfo(familyId: String): JSONObject {

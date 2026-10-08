@@ -609,7 +609,7 @@ body{font-size:var(--fs-body);line-height:1.45}
 <section id="v-overview" class="hidden">
   <div id="overviewFamilyHub"></div>
   <div class="seg wide" id="ovMode" role="group" aria-label="View" style="margin-top:4px">
-    <button data-m="day">Day</button><button data-m="month">Month</button><button data-m="year">Year</button><button data-m="all">All years</button><button data-m="events">Events</button>
+    <button data-m="month">Month</button><button data-m="quarter">Quarter</button><button data-m="year">Yearly</button><button data-m="all">All years</button><button data-m="events">Events</button>
   </div>
   <div class="month">
     <button class="iconbtn" id="prevM" aria-label="Previous month"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -831,7 +831,7 @@ const CATS = [
   ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
   ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
   ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
-  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Protection","#d6a12f"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Subscriptions","#8e86c9"],["Protection","#d6a12f"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
 ];
 const BASE_CAT_COUNT = CATS.length;
 const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
@@ -1157,7 +1157,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [], insurance: [], warranties: [], maintenancePlans: [], financeFamilyScope: "all" }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [], insurance: [], warranties: [], maintenancePlans: [], subscriptionPlans: [], assetRequests: [], financeFamilyScope: "all" }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
@@ -1264,7 +1264,7 @@ async function flushDb(){
     setStatus("Couldn't sync just now. Your entries are safe on this device.");
   }
 }
-function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [], insurance: state.insurance || [], warranties: state.warranties || [], maintenancePlans: state.maintenancePlans || [] }; }
+function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [], insurance: state.insurance || [], warranties: state.warranties || [], maintenancePlans: state.maintenancePlans || [], subscriptionPlans: state.subscriptionPlans || [], assetRequests: state.assetRequests || [] }; }
 async function connectDb(){
   try{
     if(!window.claude || !window.claude.use) return;
@@ -2260,7 +2260,7 @@ function publishFamilyCloud(force){
   const txns=(fam.shareTransactions!==false)?state.txns.filter(t=>!t.private).map(t=>({...t,ownerUid:cloudUser.uid,shared:true,shareWith:t.shareWith||'all',audienceUids:audience(t)})) : [];
   const completeEnabled=fam.completeDataSharing===true;
   const completeShares=completeEnabled ? memberIds.map(uid=>({uid,raw:JSON.stringify(filteredCompleteStateForMember(uid))})) : [];
-  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,completeShares};
+  const payload={events:Object.values(state.events||{}).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),calendar:(state.calendar||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),shopping:(state.shopping||[]).filter(e=>e.shared).map(e=>({...e,ownerUid:e.ownerUid||cloudUser.uid,audienceUids:audience(e)})),transactions:txns,assetRequests:(state.assetRequests||[]).filter(r=>!r.remoteIncoming).map(r=>({...r,ownerUid:cloudUser.uid,shareWith:"some",audienceUids:r.targetUid?[r.targetUid]:[]})),completeShares};
   try{ window.Android.publishFamily(fam.cloudId,JSON.stringify(payload)); }catch(e){}
 }
 window.familyCloudResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r={ok:false,error:"Invalid family response"}}; if(!r.ok){toast(r.error||"Family operation failed.");return;} state.family=state.family||{members:{}}; state.family.cloudId=r.familyId; state.family.cloudCode=r.inviteCode; state.family.cloudName=r.name||"My Family"; state.family.members=state.family.members||{}; persist([],true); if(window.Android&&window.Android.listenFamily) window.Android.listenFamily(r.familyId); render(); toast("Family cloud is connected."); };
@@ -2268,11 +2268,16 @@ window.familyInfoResult=function(json){ let r; try{r=JSON.parse(json)}catch(e){r
 window.familyCloudPublishResult=function(json){let r;try{r=JSON.parse(json)}catch(e){r={ok:false}}; if(!r.ok) toast(r.error||"Family cloud sync failed.");};
 window.familyCloudArrived=function(json){
   let d; try{d=JSON.parse(json)}catch(e){return;} const fam=state.family=state.family||{members:{}}; fam.members=fam.members||{};
-  const kinds=["members","transactions","events","calendar","shopping","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
+  const kinds=["members","transactions","events","calendar","shopping","assetRequests","completeData"]; const grouped={}; kinds.forEach(k=>grouped[k]={});
   (d.members||[]).forEach(x=>{const id=x.uid||uidGen(); grouped.members[id]=x;});
-  ["transactions","events","calendar","shopping"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
-  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
-  saveLocal(); render();
+  ["transactions","events","calendar","shopping","assetRequests"].forEach(k=>(d[k]||[]).forEach(x=>{const owner=x.ownerUid||"unknown"; (grouped[k][owner]||(grouped[k][owner]=[])).push(x);}));
+  Object.keys(grouped.members).forEach(uid=>{ const m=grouped.members[uid]; if(uid===cloudUser?.uid) return; const cur=fam.members[uid]||{}; cur.name=m.name||cur.name||m.email||"Family member"; cur.googleUid=uid; cur.googleEmail=m.email||cur.googleEmail||""; cur.txns=grouped.transactions[uid]||[]; cur.events=grouped.events[uid]||[]; cur.calendar=grouped.calendar[uid]||[]; cur.shopping=grouped.shopping[uid]||[]; cur.assetRequests=grouped.assetRequests[uid]||[]; const chunks=(grouped.completeData[uid]||[]).slice().sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0)); if(chunks.length){ try{ const raw=chunks.map(x=>String(x.dataChunk||'')).join(''); cur.completeState=JSON.parse(raw); cur.completeDataShared=true; }catch(_){ cur.completeState=null; cur.completeDataShared=false; } } else { cur.completeState=null; cur.completeDataShared=false; } cur.syncedAt=new Date().toISOString(); fam.members[uid]=cur; });
+  saveLocal(); render(); setTimeout(()=>{
+    (d.assetRequests||[]).forEach(r=>{
+      if(r.targetUid===cloudUser?.uid && r.ownerUid!==cloudUser?.uid){ showAssetRequest({...r,remoteIncoming:true}); }
+      if(r.requesterUid===cloudUser?.uid && r.status==="confirmed" && r.ownerUid!==cloudUser?.uid){ toast(`Asset validated by ${r.requesterName||"the other member"}. Use the existing shared asset instead of creating a duplicate.`); }
+    });
+  },50);
 };
 window.familyCloudError=function(msg){ if(msg) toast(msg); };
 
@@ -2540,25 +2545,80 @@ function setRecurring(t, on){
     if(!state.subsHidden.includes(k)) state.subsHidden.push(k);
   }
 }
+function subscriptionCategories(){
+  return ["Entertainment","Utility Bills","Insurance Premiums","Sports","Housing & Maintenance","Education","Telecom","Software & Apps","Memberships","Other"];
+}
+function subscriptionFreqLabel(f){ return f === "quarter" ? "Quarterly" : f === "year" ? "Yearly" : "Monthly"; }
+function subscriptionRowsFor(key){
+  return (state.txns||[]).filter(t=>t&&t.type==="debit"&&(
+    t.subscriptionKey===key || mkey(t.merchant)===key
+  )).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function subscriptionSpendFor(key, periodStart, periodEnd){
+  const rows=subscriptionRowsFor(key).filter(t=>(!periodStart||t.date>=periodStart)&&(!periodEnd||t.date<=periodEnd));
+  return {amount:rows.reduce((a,t)=>a+spendAmt(t),0), count:rows.length, rows};
+}
+function subscriptionIdentity(x){ return x && (x.key || x.id); }
 function openRecurringSheet(key){
-  const x = allSubs().find(s=>s.key === key); if(!x) return;
-  const entries = state.txns.filter(t=>t.type === "debit" && mkey(t.merchant) === key);
-  sheet("Edit recurring payment", `
-    <label class="field"><span>Name</span><input id="rc-name" value="${esc(x.name)}"></label>
-    <div class="two"><label class="field"><span>Category</span><select id="rc-cat">${CATS.map(([c])=>`<option${c===x.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
-    <label class="field"><span>Repeats every</span><select id="rc-freq">${[["month","Month"],["quarter","Quarter"],["year","Year"]].map(([v,l])=>`<option value="${v}"${v===x.freq?" selected":""}>${l}</option>`).join("")}</select></label></div>
-    <p class="help">Changes apply to all ${entries.length} ${entries.length===1?"entry":"entries"} from this merchant, and to new ones.</p>`,
+  const x = allSubs().find(s=>s.key === key || s.id === key); if(!x) return;
+  const entries = subscriptionRowsFor(x.key);
+  const cats=subscriptionCategories();
+  sheet(x.manual ? "Edit subscription" : "Edit recurring payment", `
+    <label class="field"><span>Name / Service</span><input id="rc-name" value="${esc(x.name||"")}"></label>
+    <div class="two"><label class="field"><span>Category</span><select id="rc-cat">${cats.map(c=>`<option${c===(x.category||"Other")?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Frequency</span><select id="rc-freq">${[["month","Monthly"],["quarter","Quarterly"],["year","Yearly"]].map(([v,l])=>`<option value="${v}"${v===(x.freq||"month")?" selected":""}>${l}</option>`).join("")}</select></label></div>
+    <div class="two"><label class="field"><span>Amount type</span><select id="rc-amtType"><option value="fixed"${x.amountMode!=="variable"?" selected":""}>Fixed</option><option value="variable"${x.amountMode==="variable"?" selected":""}>Variable</option></select></label>
+    <label class="field"><span>${x.amountMode==="variable"?"Typical / average amount":"Amount"} (₹)</span><input id="rc-amt" inputmode="decimal" value="${x.amount!=null?x.amount:""}"></label></div>
+    <div class="two"><label class="field"><span>Unit (optional)</span><input id="rc-unit" value="${esc(x.unit||"")}" placeholder="kWh, GB, litre, unit"></label>
+    <label class="field"><span>Unit rate (₹)</span><input id="rc-rate" inputmode="decimal" value="${x.unitRate!=null?x.unitRate:""}" placeholder="e.g. 8.50"></label></div>
+    <div class="two"><label class="field"><span>Minimum / base (₹)</span><input id="rc-min" inputmode="decimal" value="${x.minAmount!=null?x.minAmount:""}"></label>
+    <label class="field"><span>Maximum (₹)</span><input id="rc-max" inputmode="decimal" value="${x.maxAmount!=null?x.maxAmount:""}"></label></div>
+    <p class="help">${x.amountMode==="variable"?"Variable bills are reported using the actual linked Ledger payments. Unit/rate fields are optional and help explain why the amount changes each period.":"Fixed recurring payments use the saved amount as the expected charge."}</p>
+    <div class="two"><label class="field"><span>Linked asset (optional)</span><select id="rc-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===(x.assetId||"")?" selected":""}>${esc(a.name)}</option>`).join("")}</select></label><label class="field"><span>Next payment</span><input id="rc-next" type="date" value="${esc(x.next||"")}"></label></div>
+    <div class="card" style="margin-top:8px"><div class="card-h"><h2>Linked transactions</h2><button class="mini" type="button" id="rc-link">+ Link</button></div><p class="hint" style="margin:0">${entries.length} linked payment${entries.length===1?"":"s"}. Tap Link to associate existing Ledger entries.</p></div>`,
   sc=>{
-    const name = sc.querySelector("#rc-name").value.trim() || x.name, cat = sc.querySelector("#rc-cat").value, freq = sc.querySelector("#rc-freq").value;
-    const months = new Set(), nk = mkey(name);
-    entries.forEach(t=>{ t.merchant = name; t.category = cat; t.userCat = true; months.add(t.date.slice(0,7)); });
-    if(nk !== key) state.names[key] = name;
-    state.rules[key] = cat; state.rules[nk] = cat; prefixCache = null;
-    const man = state.subsManual.find(m=>m.key === key);
-    if(man){ Object.assign(man, { key: nk, name, category: cat, freq }); }
-    else if(freq !== x.freq || nk !== key){ state.subsHidden.push(key); state.subsManual.push({ id: uidGen(), key: nk, name, amount: x.amount, freq, category: cat }); }
-    persist([...months], true); toast("Recurring payment updated.");
+    const name=sc.querySelector("#rc-name").value.trim()||x.name;
+    const cat=sc.querySelector("#rc-cat").value, freq=sc.querySelector("#rc-freq").value, amountMode=sc.querySelector("#rc-amtType").value;
+    const num=id=>{const v=sc.querySelector(id)?.value?.replace(/[,₹\s]/g,""); return v===""?null:Number(v)};
+    const amount=num("#rc-amt"), rate=num("#rc-rate"), min=num("#rc-min"), max=num("#rc-max"), unit=sc.querySelector("#rc-unit").value.trim();
+    const assetId=sc.querySelector("#rc-asset")?.value||"", next=sc.querySelector("#rc-next")?.value||"";
+    const months=new Set(entries.map(t=>t.date.slice(0,7))), nk=mkey(name);
+    entries.forEach(t=>{ t.subscriptionKey=nk; t.category=cat; t.userCat=true; if(assetId) t.assetId=assetId; months.add(t.date.slice(0,7)); });
+    state.subsHidden=state.subsHidden.filter(k=>k!==key);
+    let man=state.subsManual.find(m=>m.key===key);
+    if(!man){ man={id:uidGen(),key:nk,name,amount:amount||x.amount||0,freq,category:cat}; state.subsManual.push(man); }
+    Object.assign(man,{key:nk,name,amount:amount||0,freq,category:cat,amountMode,unit,unitRate:rate,minAmount:min,maxAmount:max,assetId,next});
+    if(nk!==key){state.names[key]=name;state.rules[key]=cat;state.rules[nk]=cat;prefixCache=null;}
+    persist([...months],true); toast("Recurring payment updated.");
   });
+  const scr=document.querySelector(".scrim:last-of-type");
+  if(scr){
+    scr.dataset.subKey=x.key;
+    scr.querySelector("#rc-link")?.addEventListener("click",()=>{scr.remove();openSubscriptionLinkSheet(x.key);});
+  }
+}
+function openSubscriptionLinkSheet(key){
+  const x=allSubs().find(s=>s.key===key); if(!x)return;
+  const linked=new Set(subscriptionRowsFor(key).map(t=>t.id));
+  const rows=(state.txns||[]).filter(t=>t&&t.type==="debit"&&!linked.has(t.id)&&counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,120);
+  sheet("Link Ledger transactions", `<label class="field"><span>Apply asset to selected transactions (optional)</span><select id="sub-link-asset"><option value="">Keep existing / none</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===(x.assetId||"")?" selected":""}>${esc(a.name)}</option>`).join("")}</select></label><p class="help">Select payments belonging to <b>${esc(x.name)}</b>. Linked payments remain single Ledger entries.</p><div id="sub-link-list">${rows.length?rows.map(t=>`<label class="switchrow" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="sub-link-check" data-txid="${esc(t.id)}"><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`, sc=>{
+    const ids=[...sc.querySelectorAll(".sub-link-check:checked")].map(c=>c.dataset.txid), months=new Set(), assetId=sc.querySelector("#sub-link-asset")?.value||"";
+    ids.forEach(id=>{const t=state.txns.find(z=>z.id===id);if(t){t.subscriptionKey=key;if(assetId)t.assetId=assetId;months.add(t.date.slice(0,7));}});
+    if(ids.length){persist([...months],true);toast(`${ids.length} transaction${ids.length===1?"":"s"} linked.`);} else toast("No transactions selected.");
+  });
+}
+function renderSubscriptionCard(periodMode, cursorMonth, year){
+  const subs=allSubs(); if(!subs.length) return `<div class="card"><div class="card-h"><h2>Subscriptions & recurring</h2><button class="mini" id="addSubLedger">+ Add</button></div><p class="help">Track subscriptions, recurring payments and variable bills here.</p></div>`;
+  let start=null,end=null,label="";
+  if(periodMode==="month"){ const d=new Date(cursorMonth+"-01T00:00:00"); start=iso(d); d.setMonth(d.getMonth()+1); d.setDate(0); end=iso(d); label=monthLabel(cursorMonth); }
+  else if(periodMode==="quarter"){ const [y,q]=quarterParts(cursorMonth); const d=new Date(y,(q-1)*3,1); start=iso(d); d.setMonth(d.getMonth()+3); d.setDate(0); end=iso(d); label=`Q${q} ${y}`; }
+  else if(periodMode==="year"){ start=`${year}-01-01`; end=`${year}-12-31`; label=String(year); }
+  else { label="All years"; }
+  const cats={}; let total=0;
+  subs.forEach(x=>{const sp=subscriptionSpendFor(x.key,start,end); if(sp.count){const c=x.category||"Other";cats[c]=(cats[c]||0)+sp.amount;total+=sp.amount;}});
+  const rows=subs.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).slice(0,10).map(x=>{const sp=subscriptionSpendFor(x.key,start,end);const variable=x.amountMode==="variable";const amount=sp.count?sp.amount:(Number(x.perMonth)||0);return `<button class="trow" data-sub-open="${esc(x.key)}"><div class="l1 num"><span>${esc(x.name)}</span><b>${money(amount,true)}${variable?" · Variable":""}</b></div><div class="l2"><span class="chip">${esc(x.category||"Other")}</span><span>${esc(subscriptionFreqLabel(x.freq))}${x.next?` · Next ${esc(niceDate(x.next))}`:""}</span></div></button>`;}).join("");
+  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="cat"><span><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span>${esc(c)}</span><span class="amt num">${money(v)}</span></div>`).join("");
+  return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="pane-icon">↻</span></summary><div style="margin-top:10px"><div class="summary-cats" style="margin-bottom:8px">${catRows||'<p class="help">No linked payments in this period.</p>'}</div>${rows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -2583,15 +2643,29 @@ function detectSubs(){
     if(!freq) return;
     const recent = byMonth.slice(-3).map(t=>t.amount);
     const med = recent.slice().sort((a,b)=>a-b)[Math.floor(recent.length/2)];
-    const steady = recent.every(a=>Math.abs(a - med) <= med * 0.2);
-    if(!steady) return;
+    const steady = recent.every(a=>Math.abs(a - med) <= Math.max(1, med * 0.2));
+    const variable = !steady;
+    // Variable recurring bills (electricity, water, gas, usage-based sports/home services, etc.)
+    // are still valid recurring commitments. Require a recognisable recurring signal when the amount varies.
+    if(variable && !known && byMonth.length < 3) return;
     if(!known && byMonth.length < 3) return;
     const last = byMonth[byMonth.length-1];
     const step = freq === "month" ? 30 : freq === "quarter" ? 91 : 365;
     if(daysBetween(last.date, today) > step * 1.6) return;       // looks stopped
     let next = last.date; while(next <= today) next = addDays(next, step);
     const perMonth = freq === "month" ? last.amount : freq === "quarter" ? last.amount / 3 : last.amount / 12;
-    out.push({ key: k, name: last.merchant, amount: last.amount, freq, last: last.date, next, perMonth, category: last.category });
+    const detectedCat = (()=>{
+      const mc=String(last.merchant||"").toLowerCase();
+      if(/insurance|lic\b|health|life policy|premium/.test(mc)) return "Insurance Premiums";
+      if(/gym|fitness|sports|club|cult/.test(mc)) return "Sports";
+      if(/rent|maintenance|apartment|flat|society|association/.test(mc)) return "Housing & Maintenance";
+      if(last.category === "Entertainment") return "Entertainment";
+      if(last.category === "Education") return "Education";
+      if(last.category === "Bills & utilities" || /electric|water|gas|utility|power|broadband|internet|mobile|telecom/.test(mc)) return "Utility Bills";
+      if(last.category === "Telecom") return "Telecom";
+      return "Other";
+    })();
+    out.push({ key: k, name: last.merchant, amount: last.amount, freq, last: last.date, next, perMonth, category: detectedCat, amountMode: variable ? "variable" : "fixed", minAmount: Math.min(...recent), maxAmount: Math.max(...recent) });
   });
   return out.sort((a,b)=>a.next.localeCompare(b.next));
 }
@@ -2716,14 +2790,6 @@ function renderAccounts(){
         html+=`<section class="asset-pane bills-pane"><div class="asset-pane-head"><div><h2>Future bills</h2><p>${futureBills.length} bill${futureBills.length===1?'':'s'} · ${safeMoney(futureBills.reduce((s,b)=>s+(Number(b.amount)||0),0))}</p></div><span class="pane-icon">◷</span></div>${rows}</section>`;
       }
     }catch(e){ diag.push("future bills"); }
-
-    try{
-      const subs=arr(allSubs());
-      if(subs.length){
-        const rows=subs.slice(0,12).map(x=>`<div class="account-row static"><span class="n">${esc(x?.name||'Subscription')}</span><span class="num account-value">${safeMoney(x?.amount)}</span><span class="account-meta"><span>${esc(x?.freq||'Recurring')}</span><span>Next ${esc(x?.next?niceDate(x.next):'—')}</span></span></div>`).join('');
-        html+=`<details class="asset-pane collapsible-pane subscriptions-pane" data-asset-pane="subs" ${assetPaneOpen.subs?"open":""}><summary data-pane-toggle="subs"><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${safeMoney(subs.reduce((a,x)=>a+(Number(x?.perMonth)||0),0))}/month</p></div><span class="pane-icon">↻</span></summary><div class="subscription-list">${rows}</div></details>`;
-      }
-    }catch(e){ diag.push("subscriptions"); }
 
     const hid=all.length-visible.length;
     if(hid) html+=`<div class="row" style="justify-content:center"><button class="btn link" id="unhideAccts">Show ${hid} hidden accounts</button></div>`;
@@ -3016,7 +3082,13 @@ function totalLiabilities(){
 }
 function totalAssetsValue(){ return totalHeldBalance()+physicalAssetTotal(); }
 function netWorth(){ return totalAssetsValue()-totalLiabilities(); }
-function assetLinkedExpenses(a){ return a ? (state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&t.assetId===a.id).sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0)) : []; }
+function assetLinkedExpenses(a){
+  if(!a)return [];
+  const local=(state.txns||[]).filter(t=>t&&t.type==="debit"&&counts(t)&&t.assetId===a.id).map(t=>({...t,_ownerUid:cloudUser?.uid||"local"}));
+  const remote=[]; familyMembers().forEach(m=>{(m.txns||[]).forEach(t=>{if(t&&t.type==="debit"&&t.assetId===a.id&&counts(t))remote.push({...t,_ownerUid:m.id});});});
+  const seen=new Set(), all=[...local,...remote].filter(t=>{const k=String(t._ownerUid)+"|"+String(t.id);if(seen.has(k))return false;seen.add(k);return true;});
+  return all.sort((x,y)=>String(y.date).localeCompare(String(x.date))||(y.added||0)-(x.added||0));
+}
 function assetIndirectExpenseTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category!=="EMI & loans"&&t.category!=="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
 function assetLoanPaymentTotal(a){ return assetLinkedExpenses(a).filter(t=>t.category==="EMI & loans"||t.category==="Loan repayment").reduce((s,t)=>s+spendAmt(t),0); }
 function assetTxnLabel(t){ return `${niceDate(t.date)} · ${t.merchant||"Payment"} · ${money(spendAmt(t),true)}`; }
@@ -3112,6 +3184,52 @@ function loanHistorySummary(a){
   const rates=Array.isArray(a?.loanRateHistory)?a.loanRateHistory.filter(x=>x&&Number(x.rate)>0).sort((x,y)=>String(x.date).localeCompare(String(y.date))):[];
   return {emi,rates};
 }
+function assetIdentityText(a){
+  return mkey([a?.name,a?.registrationNumber,a?.vin,a?.serialNumber,a?.modelNumber,a?.address,a?.purchaseDate].filter(Boolean).join(" "));
+}
+function findPotentialDuplicateAsset(draft, excludeId){
+  const all=state.assets||[];
+  const n=mkey(draft.name||"");
+  const reg=mkey(draft.registrationNumber||"");
+  const vin=mkey(draft.vin||"");
+  const serial=mkey(draft.serialNumber||"");
+  return all.find(a=>a.id!==excludeId && (
+    (reg && mkey(a.registrationNumber||"")===reg) ||
+    (vin && mkey(a.vin||"")===vin) ||
+    (serial && mkey(a.serialNumber||"")===serial) ||
+    (n && mkey(a.name||"")===n && a.type===draft.type)
+  ))||null;
+}
+function findRemotePotentialDuplicate(draft){
+  for(const m of familyMembers()){
+    const assets=Array.isArray(m.completeState?.assets)?m.completeState.assets:[];
+    const hit=assets.find(a=>{
+      const n=mkey(draft.name||""), reg=mkey(draft.registrationNumber||""), vin=mkey(draft.vin||""), serial=mkey(draft.serialNumber||"");
+      return (reg&&mkey(a.registrationNumber||"")===reg)||(vin&&mkey(a.vin||"")===vin)||(serial&&mkey(a.serialNumber||"")===serial)||(n&&mkey(a.name||"")===n&&a.type===draft.type);
+    });
+    if(hit)return {member:m,asset:hit};
+  }
+  return null;
+}
+function createAssetValidationRequest(targetUid, existingAsset, proposedName){
+  state.assetRequests=state.assetRequests||[];
+  const req={id:"ar-"+uidGen(),type:"duplicateAsset",status:"pending",targetUid,requesterUid:cloudUser?.uid||"",requesterName:cloudUser?.name||state.family?.me||"Member",existingAssetId:existingAsset.id,existingAssetName:existingAsset.name,proposedName,createdAt:Date.now()};
+  state.assetRequests.push(req); persist([],true); publishFamilyCloud(true); toast("Validation request sent. Wait for the existing asset owner to confirm before creating a duplicate.");
+}
+function showAssetRequest(req){
+  const ownerAsset=(state.assets||[]).find(a=>a.id===req.existingAssetId);
+  const scr=document.createElement("div");scr.className="scrim";
+  scr.innerHTML=`<div class="sheet"><h2>Asset validation request</h2><p class="help"><b>${esc(req.requesterName||"A family member")}</b> wants to add <b>${esc(req.proposedName||"an asset")}</b>, but it may match your existing asset.</p><div class="card"><b>${esc(req.existingAssetName||ownerAsset?.name||"Existing asset")}</b><p class="help">Confirm that this is the same shared/co-owned asset.</p></div><div class="row"><button class="btn primary" id="ar-confirm">Confirm existing asset</button><button class="btn" id="ar-reject">Not the same asset</button></div></div>`;
+  document.body.appendChild(scr);
+  const respond=(status)=>{const response={...req,id:"ar-"+uidGen(),status,responseFor:req.id,ownerUid:cloudUser?.uid||"",requesterUid:req.requesterUid,targetUid:req.requesterUid,requesterName:req.requesterName,existingAssetId:req.existingAssetId,existingAssetName:req.existingAssetName,proposedName:req.proposedName,respondedAt:Date.now()};state.assetRequests=state.assetRequests||[];state.assetRequests.push(response);persist([],true);publishFamilyCloud(true);scr.remove();toast(status==="confirmed"?"Confirmation sent.":"Marked as a different asset.");};
+  scr.querySelector("#ar-confirm").onclick=()=>respond("confirmed"); scr.querySelector("#ar-reject").onclick=()=>respond("rejected");
+}
+function processAssetRequests(){
+  const mine=(state.assetRequests||[]).filter(r=>r.status==="pending"&&r.targetUid===cloudUser?.uid);
+  if(mine.length) showAssetRequest(mine[0]);
+  const confirmed=(state.assetRequests||[]).find(r=>r.status==="confirmed"&&r.requesterUid===cloudUser?.uid&&r.responseTargetUid===cloudUser?.uid);
+  return confirmed;
+}
 function openAssetSheet(id){
   const a=id ? (state.assets||[]).find(x=>x.id===id) : {type:"property",purchaseDate:todayISO()};
   if(!a) return;
@@ -3133,6 +3251,8 @@ function openAssetSheet(id){
     <div class="two"><label class="field"><span>Income received (₹)</span><input id="as-income" inputmode="decimal" value="${a.incomeReceived||""}" placeholder="Rent, dividends, etc."></label>
     <label class="field"><span>Estimated sale costs (₹)</span><input id="as-sale" inputmode="decimal" value="${a.saleCosts||""}"></label></div>
     <div class="two"><label class="field"><span>Initial amount paid (₹)</span><input id="as-down" type="number" step="0.01" min="0" inputmode="decimal" value="${a.initialPaid!=null?a.initialPaid:""}" placeholder="e.g. 2000000"><small class="help">Your own/down-payment amount paid at purchase. The app can calculate the financed amount from this.</small></label></div>
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>Ownership (informational only)</b><span class="chart-note">Not used in calculations</span></div><p class="help">Record owners/co-owners and their share or amount. These values never split asset value, expenses, loans or net worth automatically.</p><div id="as-owners">${(a.coOwners||[{name:state.family?.me||cloudUser?.name||"Me",share:"",amount:""}]).map((o,i)=>`<div class="two as-owner-row" style="align-items:end"><label class="field"><span>Owner / co-owner</span><input data-owner-name value="${esc(o.name||"")}"></label><label class="field"><span>Share % / amount</span><input data-owner-share value="${esc(o.share!=null&&o.share!==""?o.share:o.amount||"")}" placeholder="e.g. 50% or 6000000"></label><button type="button" class="mini" data-owner-remove="${i}">×</button></div>`).join("")}</div><button type="button" class="btn" id="as-add-owner">+ Add co-owner</button></div>
+    <div class="two"><label class="field"><span>Vehicle/property identifier (optional)</span><input id="as-reg" value="${esc(a.registrationNumber||"")}" placeholder="Registration / identifier"></label><label class="field"><span>VIN / serial (optional)</span><input id="as-vin" value="${esc(a.vin||a.serialNumber||"")}" placeholder="VIN / serial number"></label></div>
     <div class="card asset-loan-summary" style="margin-top:8px"><div class="card-h"><b>Linked loans / financing</b><span class="chart-note">${assetLoanAccounts(a).length} linked</span></div><p class="help">All loans linked to this asset are included in its liability and interest calculations.</p><div class="asset-loan-list">${assetLoanAccounts(a).map(x=>`<button type="button" class="trow asset-loan-entry" data-open-loan="${esc(x.key)}"><div class="l1 num"><span>${esc(x.label||x.lenderName||x.bank||"Loan")}</span><b>${money(Number(x.balance)||0,true)}</b></div><div class="l2"><span>${esc(x.loanCategory||"Loan")}</span><span>${esc(x.lenderType||"Source")}</span></div></button>`).join("")||'<p class="help">No linked loan yet. Add one from the Assets tab.</p>'}</div><button type="button" class="btn primary" id="as-addLoan">+ Add loan / lender for this asset</button></div>
     ${id ? `<div class="card" style="margin-top:8px"><div class="card-h"><b>Loan documents</b><span class="chart-note">Managed in loan account</span></div><p class="help">Open the linked loan account to import statements and schedules. This keeps all loan history in one place.</p></div>` : ""}
     <div class="two"><label class="field"><span>Quantity (optional)</span><input id="as-qty" inputmode="decimal" value="${a.quantity||""}" placeholder="e.g. 100"></label>
@@ -3148,11 +3268,14 @@ function openAssetSheet(id){
     const num=id=>{const v=sc.querySelector(id)?.value.replace(/[,₹\s]/g,""); const n=v===""?0:parseFloat(v); return Number.isFinite(n)?n:0;};
     const name=sc.querySelector("#as-name").value.trim(); if(!name){toast("Give the asset a name.");return false;}
     const linkedLoanAccount=a.loanAccount||"";
+    const coOwners=[...sc.querySelectorAll(".as-owner-row")].map(r=>({name:r.querySelector("[data-owner-name]")?.value.trim()||"",share:r.querySelector("[data-owner-share]")?.value.trim()||""})).filter(o=>o.name);
     const purchasePrice=num("#as-purchase");
     const initialPaid=num("#as-down");
     let originalLoan=assetLoanAggregate(a).original||0;
     if(!originalLoan && purchasePrice>0 && initialPaid>0 && initialPaid<=purchasePrice) originalLoan=Math.max(0,purchasePrice-initialPaid);
-    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice,currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),initialPaid,originalLoan,loanAccount:linkedLoanAccount,loanStartDate:a.loanStartDate||null,loanOutstanding:assetLoanAggregate(a).outstanding,loanRate:a.loanRate||null,loanEmi:a.loanEmi||null,loanTenureYears:a.loanTenureYears||null,calculatedEmi:Number(a.calculatedEmi)||0,calculatedInterest:Number(a.calculatedInterest)||0,calculatedTotal:Number(a.calculatedTotal)||0,quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim(),closed:sc.querySelector("#as-status").value==="closed",closedDate:sc.querySelector("#as-closed-date").value||null,soldPrice:num("#as-sold-price"),saleExpenses:num("#as-sale-expense")};
+    const draft={name,type:sc.querySelector("#as-type").value,registrationNumber:sc.querySelector("#as-reg")?.value.trim()||"",vin:sc.querySelector("#as-vin")?.value.trim()||""};
+    if(!id){const localDup=findPotentialDuplicateAsset(draft,"");if(localDup){toast(`Possible duplicate: ${localDup.name}. Open the existing asset instead of creating another.`);return false;}const remoteDup=findRemotePotentialDuplicate(draft);if(remoteDup){createAssetValidationRequest(remoteDup.member.id,remoteDup.asset,name);return false;}}
+    const next={...(id?a:{id:uidGen()}),name,type:sc.querySelector("#as-type").value,purchaseDate:sc.querySelector("#as-date").value||todayISO(),purchasePrice,currentValue:num("#as-current"),acquisitionCosts:num("#as-acq"),interestPaid:num("#as-interest"),ownershipCosts:num("#as-costs"),incomeReceived:num("#as-income"),saleCosts:num("#as-sale"),initialPaid,originalLoan,loanAccount:linkedLoanAccount,loanStartDate:a.loanStartDate||null,loanOutstanding:assetLoanAggregate(a).outstanding,loanRate:a.loanRate||null,loanEmi:a.loanEmi||null,loanTenureYears:a.loanTenureYears||null,calculatedEmi:Number(a.calculatedEmi)||0,calculatedInterest:Number(a.calculatedInterest)||0,calculatedTotal:Number(a.calculatedTotal)||0,quantity:num("#as-qty"),purity:num("#as-purity"),marketLow:num("#as-low"),marketHigh:num("#as-high"),valuationConfidence:sc.querySelector("#as-confidence").value,marketOutlook:sc.querySelector("#as-outlook").value,marketSource:sc.querySelector("#as-source").value.trim(),closed:sc.querySelector("#as-status").value==="closed",closedDate:sc.querySelector("#as-closed-date").value||null,soldPrice:num("#as-sold-price"),saleExpenses:num("#as-sale-expense"),coOwners,registrationNumber:draft.registrationNumber,vin:draft.vin};
     // Keep the asset's manually entered original loan amount authoritative. If a loan account is linked,
     // also initialise/update that account's original amount so asset calculations and the account agree.
     if(linkedLoanAccount){
@@ -3163,7 +3286,10 @@ function openAssetSheet(id){
     state.assets=state.assets||[]; const i=state.assets.findIndex(x=>x.id===next.id); if(i>=0) state.assets[i]=next; else state.assets.push(next); persist([],true); toast("Asset saved."); if(next.type==="gold" && next.quantity>0){ refreshGoldAsset(next.id); }
   },id?[["Remove",()=>{state.assets=(state.assets||[]).filter(x=>x.id!==id);persist([],true);toast("Asset removed.");}]]:null);
   const scr=document.querySelector(".scrim:last-of-type"), rb=scr&&scr.querySelector("#as-refreshGold");
-  if(scr){ scr.dataset.assetId=id||""; }
+  if(scr){ scr.dataset.assetId=id||""; 
+    scr.querySelector("#as-add-owner")?.addEventListener("click",()=>{const wrap=scr.querySelector("#as-owners"); if(!wrap)return; const i=wrap.querySelectorAll(".as-owner-row").length; wrap.insertAdjacentHTML("beforeend",`<div class="two as-owner-row" style="align-items:end"><label class="field"><span>Owner / co-owner</span><input data-owner-name></label><label class="field"><span>Share % / amount</span><input data-owner-share placeholder="e.g. 50% or 6000000"></label><button type="button" class="mini" data-owner-remove="${i}">×</button></div>`);});
+    scr.addEventListener("click",e=>{const rm=e.target.closest("[data-owner-remove]"); if(rm){rm.closest(".as-owner-row")?.remove();}});
+  }
   const linkBtn=scr&&scr.querySelector("#as-linkTxns"); if(linkBtn) linkBtn.onclick=()=>openAssetTxnPicker(id);
   const addLoanBtn=scr&&scr.querySelector("#as-addLoan"); if(addLoanBtn) addLoanBtn.onclick=()=>{ if(!id){toast("Save the asset first, then add a loan.");return;} scr.remove(); openAcctSheet(null,id); };
   scr&&scr.querySelectorAll("[data-open-loan]").forEach(b=>b.onclick=()=>{ const k=b.dataset.openLoan; scr.remove(); openAcctSheet(k); });
@@ -3202,15 +3328,28 @@ function renderWarranties(list,remote=false){
 }
 function openWarrantySheet(existingId){
   const p={...(state.warranties||[]).find(x=>x.id===existingId)||{}};
-  sheet(existingId?"Edit warranty":"Add warranty",`<div class="two"><label class="field"><span>Warranty / product</span><input id="war-name" value="${esc(p.name||"")}"></label><label class="field"><span>Provider</span><input id="war-provider" value="${esc(p.provider||"")}"></label></div><div class="two"><label class="field"><span>Warranty number</span><input id="war-no" value="${esc(p.warrantyNumber||"")}"></label><label class="field"><span>Coverage / value (₹)</span><input id="war-cover" inputmode="decimal" value="${p.coverage||""}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="war-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="war-end" type="date" value="${p.expiryDate||""}"></label></div><label class="field"><span>Notes</span><input id="war-note" value="${esc(p.note||"")}"></label>`,sc=>{
+  sheet(existingId?"Edit warranty":"Add warranty",`<div class="two"><label class="field"><span>Warranty / product</span><input id="war-name" value="${esc(p.name||"")}"></label><label class="field"><span>Provider</span><input id="war-provider" value="${esc(p.provider||"")}"></label></div><div class="two"><label class="field"><span>Warranty number</span><input id="war-no" value="${esc(p.warrantyNumber||"")}"></label><label class="field"><span>Coverage / value (₹)</span><input id="war-cover" inputmode="decimal" value="${p.coverage||""}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="war-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="war-end" type="date" value="${p.expiryDate||""}"></label></div><div class="card" style="margin-top:8px"><div class="card-h"><b>Linked transactions</b><button type="button" class="mini" id="war-link-txns">+ Link</button></div><p class="help">${protectionLinkedTransactions("Warranty",p.id).length} linked transaction${protectionLinkedTransactions("Warranty",p.id).length===1?"":"s"}.</p></div><label class="field"><span>Notes</span><input id="war-note" value="${esc(p.note||"")}"></label>`,sc=>{
     const name=sc.querySelector('#war-name').value.trim(); if(!name){toast('Enter the warranty or product name.');return false;}
     const obj={...p,id:p.id||'war-'+uidGen(),name,provider:sc.querySelector('#war-provider').value.trim(),warrantyNumber:sc.querySelector('#war-no').value.trim(),category:p.category||'Other Warranty',coverage:Number(sc.querySelector('#war-cover').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#war-start').value||todayISO(),expiryDate:sc.querySelector('#war-end').value||'',note:sc.querySelector('#war-note').value.trim()};
     state.warranties=state.warranties||[];const i=state.warranties.findIndex(x=>x.id===obj.id);if(i>=0)state.warranties[i]=obj;else state.warranties.push(obj);persist([],true);toast(existingId?'Warranty updated.':'Warranty added.');
   },existingId?[["Delete",()=>{state.warranties=state.warranties.filter(x=>x.id!==existingId);persist([],true);toast('Warranty deleted.');}]]:null);
+  const warScr=document.querySelector(".scrim:last-of-type"); warScr?.querySelector("#war-link-txns")?.addEventListener("click",()=>{warScr.remove();openProtectionTxnLinkSheet("Warranty",p.id);});
 }
 function protectionTxnCount(kind,id){return (state.txns||[]).filter(t=>t.protectionType===kind&&t.protectionId===id).length;}
 function renderProtectionCategoryRows(kind,list,groupMap){
-  const cats=Object.entries(groupMap); return cats.map(([label,items])=>`<div class="insurance-row"><span class="insurance-icon">${kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧'}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${kind==='Insurance'?'polic'+(items.length===1?'y':'ies'):kind==='Warranty'?'warrant'+(items.length===1?'y':'ies'):'plan'+(items.length===1?'':'s')} · ${items.reduce((n,x)=>n+protectionTxnCount(kind,x.id),0)} linked transactions</small></span><span class="num">${kind==='Insurance'?money(items.reduce((n,x)=>n+(Number(x.coverage)||0),0),true):''}</span></div>`).join('');
+  const icon=kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧';
+  const cats=Object.entries(groupMap);
+  return cats.map(([label,items])=>`<div class="prot-category">
+    <button type="button" class="insurance-row prot-category-head" data-prot-category="${esc(label)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${kind==='Insurance'?'polic'+(items.length===1?'y':'ies'):kind==='Warranty'?'warrant'+(items.length===1?'y':'ies'):'plan'+(items.length===1?'':'s')}</small></span><span class="chev">⌄</span></button>
+    <div class="prot-category-items">
+      ${items.map(x=>{
+        const txc=protectionTxnCount(kind,x.id);
+        const sub=kind==='Insurance'?`${esc(x.insurer||'')} ${x.policyNumber?'· '+esc(x.policyNumber):''}`:kind==='Warranty'?`${esc(x.provider||'')} ${x.warrantyNumber?'· '+esc(x.warrantyNumber):''}`:`${esc(x.provider||'')} ${x.contractNumber?'· '+esc(x.contractNumber):''}`;
+        const val=kind==='Insurance'?money(Number(x.coverage)||0,true):kind==='Warranty'?money(Number(x.coverage)||0,true):money(Number(x.cost)||0,true);
+        return `<button type="button" class="insurance-row prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub}</small><small>${val}${txc?` · ${txc} linked transaction${txc===1?'':'s'}`:''}</small></span><span class="chev">›</span></button>`;
+      }).join("")}
+    </div>
+  </div>`).join('');
 }
 function renderMaintenance(list,remote=false){
  const groups={}; list.forEach(x=>{const k=x.category||'Other Maintenance';(groups[k]||(groups[k]=[])).push(x);});
@@ -3220,7 +3359,8 @@ function renderMaintenance(list,remote=false){
 }
 function openMaintenanceSheet(existingId){
  const p={...(state.maintenancePlans||[]).find(x=>x.id===existingId)||{}};
- sheet(existingId?'Edit maintenance plan':'Add maintenance plan',`<div class="two"><label class="field"><span>Category</span><select id="mp-cat">${PROTECTION_TYPES.Maintenance.map(x=>`<option${x===(p.category||'Vehicle Maintenance')?' selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Plan / package name</span><input id="mp-name" value="${esc(p.name||'')}"></label></div><div class="two"><label class="field"><span>Provider</span><input id="mp-provider" value="${esc(p.provider||'')}"></label><label class="field"><span>Contract number</span><input id="mp-no" value="${esc(p.contractNumber||'')}"></label></div><div class="two"><label class="field"><span>Linked asset</span><select id="mp-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===p.assetId?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="field"><span>Package cost (₹)</span><input id="mp-cost" inputmode="decimal" value="${p.cost||''}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="mp-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="mp-end" type="date" value="${p.expiryDate||''}"></label></div><div class="two"><label class="field"><span>Services included</span><input id="mp-services" inputmode="numeric" value="${p.servicesIncluded||''}"></label><label class="field"><span>Next service</span><input id="mp-next" type="date" value="${p.nextServiceDate||''}"></label></div><label class="field"><span>Notes / services included</span><input id="mp-note" value="${esc(p.note||'')}"></label>`,sc=>{const name=sc.querySelector('#mp-name').value.trim();if(!name){toast('Enter the maintenance plan name.');return false;}const obj={...p,id:p.id||'mp-'+uidGen(),category:sc.querySelector('#mp-cat').value,name,provider:sc.querySelector('#mp-provider').value.trim(),contractNumber:sc.querySelector('#mp-no').value.trim(),assetId:sc.querySelector('#mp-asset').value||'',cost:Number(sc.querySelector('#mp-cost').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#mp-start').value||todayISO(),expiryDate:sc.querySelector('#mp-end').value||'',servicesIncluded:Number(sc.querySelector('#mp-services').value)||0,nextServiceDate:sc.querySelector('#mp-next').value||'',note:sc.querySelector('#mp-note').value.trim()};state.maintenancePlans=state.maintenancePlans||[];const i=state.maintenancePlans.findIndex(x=>x.id===obj.id);if(i>=0)state.maintenancePlans[i]=obj;else state.maintenancePlans.push(obj);persist([],true);toast(existingId?'Maintenance plan updated.':'Maintenance plan added.');},existingId?[['Delete',()=>{state.maintenancePlans=state.maintenancePlans.filter(x=>x.id!==existingId);persist([],true);toast('Maintenance plan deleted.');}]]:null);
+ sheet(existingId?'Edit maintenance plan':'Add maintenance plan',`<div class="two"><label class="field"><span>Category</span><select id="mp-cat">${PROTECTION_TYPES.Maintenance.map(x=>`<option${x===(p.category||'Vehicle Maintenance')?' selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Plan / package name</span><input id="mp-name" value="${esc(p.name||'')}"></label></div><div class="two"><label class="field"><span>Provider</span><input id="mp-provider" value="${esc(p.provider||'')}"></label><label class="field"><span>Contract number</span><input id="mp-no" value="${esc(p.contractNumber||'')}"></label></div><div class="two"><label class="field"><span>Linked asset</span><select id="mp-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===p.assetId?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="field"><span>Package cost (₹)</span><input id="mp-cost" inputmode="decimal" value="${p.cost||''}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="mp-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="mp-end" type="date" value="${p.expiryDate||''}"></label></div><div class="two"><label class="field"><span>Services included</span><input id="mp-services" inputmode="numeric" value="${p.servicesIncluded||''}"></label><label class="field"><span>Next service</span><input id="mp-next" type="date" value="${p.nextServiceDate||''}"></label></div><div class="card" style="margin-top:8px"><div class="card-h"><b>Linked transactions</b><button type="button" class="mini" id="mp-link-txns">+ Link</button></div><p class="help">${protectionLinkedTransactions("Maintenance",p.id).length} linked transaction${protectionLinkedTransactions("Maintenance",p.id).length===1?"":"s"}.</p></div><label class="field"><span>Notes / services included</span><input id="mp-note" value="${esc(p.note||'')}"></label>`,sc=>{const name=sc.querySelector('#mp-name').value.trim();if(!name){toast('Enter the maintenance plan name.');return false;}const obj={...p,id:p.id||'mp-'+uidGen(),category:sc.querySelector('#mp-cat').value,name,provider:sc.querySelector('#mp-provider').value.trim(),contractNumber:sc.querySelector('#mp-no').value.trim(),assetId:sc.querySelector('#mp-asset').value||'',cost:Number(sc.querySelector('#mp-cost').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#mp-start').value||todayISO(),expiryDate:sc.querySelector('#mp-end').value||'',servicesIncluded:Number(sc.querySelector('#mp-services').value)||0,nextServiceDate:sc.querySelector('#mp-next').value||'',note:sc.querySelector('#mp-note').value.trim()};state.maintenancePlans=state.maintenancePlans||[];const i=state.maintenancePlans.findIndex(x=>x.id===obj.id);if(i>=0)state.maintenancePlans[i]=obj;else state.maintenancePlans.push(obj);persist([],true);toast(existingId?'Maintenance plan updated.':'Maintenance plan added.');},existingId?[['Delete',()=>{state.maintenancePlans=state.maintenancePlans.filter(x=>x.id!==existingId);persist([],true);toast('Maintenance plan deleted.');}]]:null);
+ const mpScr=document.querySelector(".scrim:last-of-type"); mpScr?.querySelector("#mp-link-txns")?.addEventListener("click",()=>{mpScr.remove();openProtectionTxnLinkSheet("Maintenance",p.id);});
 }
 function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();let ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
@@ -3234,7 +3374,22 @@ function renderInsurance(){
  el.innerHTML=html;bindFinanceHub();
  el.querySelector('#addMaintenance')?.addEventListener('click',()=>openMaintenanceSheet());
  el.querySelectorAll('[data-prot-collapse]').forEach(b=>b.addEventListener('click',()=>{const id='prot-'+(b.dataset.protCollapse==='insurance'?'insurance':b.dataset.protCollapse==='warranty'?'warranty':'maintenance');const x=el.querySelector('#'+id);if(x){x.classList.toggle('hidden');b.textContent=x.classList.contains('hidden')?'⌄':'⌃';}}));
- el.querySelectorAll('.insurance-row').forEach(r=>r.addEventListener('click',()=>{const kind=r.querySelector('.insurance-icon')?.textContent||'';}));
+ el.querySelectorAll('[data-prot-category]').forEach(r=>r.addEventListener('click',()=>{const body=r.parentElement.querySelector('.prot-category-items'); if(body){body.classList.toggle('hidden'); r.querySelector('.chev').textContent=body.classList.contains('hidden')?'⌄':'⌃';}}));
+ el.querySelectorAll('[data-prot-kind]').forEach(r=>r.addEventListener('click',()=>{const kind=r.dataset.protKind,id=r.dataset.protId; if(kind==='Insurance')openInsuranceSheet(id); else if(kind==='Warranty')openWarrantySheet(id); else openMaintenanceSheet(id);}));
+}
+function protectionLinkedTransactions(kind,id){
+  return (state.txns||[]).filter(t=>t&&t.type==="debit"&&t.protectionType===kind&&t.protectionId===id).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function openProtectionTxnLinkSheet(kind,id){
+  const pList=kind==="Insurance"?(state.insurance||[]):kind==="Warranty"?(state.warranties||[]):(state.maintenancePlans||[]);
+  const p=pList.find(x=>x.id===id); if(!p)return;
+  const linked=new Set(protectionLinkedTransactions(kind,id).map(t=>t.id));
+  const rows=(state.txns||[]).filter(t=>t&&t.type==="debit"&&!linked.has(t.id)&&counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,200);
+  sheet(`Link ${kind.toLowerCase()} transactions`, `<p class="help">Select existing Ledger transactions for <b>${esc(p.name||p.insurer||p.provider||"Protection item")}</b>. They remain single Ledger entries.</p><div id="prot-link-list">${rows.length?rows.map(t=>`<label class="switchrow" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="prot-link-check" data-txid="${esc(t.id)}"><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`,sc=>{
+    const ids=[...sc.querySelectorAll(".prot-link-check:checked")].map(c=>c.dataset.txid),months=new Set();
+    ids.forEach(tid=>{const t=state.txns.find(z=>z.id===tid);if(t){t.category="Protection";t.userCat=true;t.protectionType=kind;t.protectionId=id;months.add(t.date.slice(0,7));}});
+    if(ids.length){persist([...months],true);toast(`${ids.length} transaction${ids.length===1?"":"s"} linked.`);} else toast("No transactions selected.");
+  });
 }
 function openInsuranceSheet(existingId, extracted={}){
   const p={...(state.insurance||[]).find(x=>x.id===existingId)||{}, ...extracted};
@@ -3244,12 +3399,13 @@ function openInsuranceSheet(existingId, extracted={}){
     <div class="two"><label class="field"><span>Accidental coverage (₹)</span><input id="ins-accident" inputmode="decimal" value="${p.accidentalCoverage||""}"></label><label class="field"><span>Covered members</span><input id="ins-members" value="${esc(p.coveredMembers||"")}" placeholder="Use shared display names"></label></div>
     <div class="two"><label class="field"><span>Premium (₹)</span><input id="ins-premium" inputmode="decimal" value="${p.premium||""}"></label><label class="field"><span>Frequency</span><select id="ins-freq">${["One-time","Monthly","Quarterly","Half-yearly","Yearly"].map(x=>`<option ${x===(p.frequency||"Yearly")?"selected":""}>${x}</option>`).join("")}</select></label></div>
     <div class="two"><label class="field"><span>Start date</span><input id="ins-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry / renewal</span><input id="ins-end" type="date" value="${p.expiryDate||""}"></label></div>
-    <label class="field"><span>Nominee / notes</span><input id="ins-note" value="${esc(p.note||"")}"></label><p class="help">${extracted._sourceDocument?`Details extracted from <b>${esc(extracted._sourceDocument)}</b>. Please review before saving.`:"You can enter the policy manually or upload a policy document first."}</p>
+    <div class="card" style="margin-top:8px"><div class="card-h"><b>Linked transactions</b><button type="button" class="mini" id="ins-link-txns">+ Link</button></div><p class="help">${protectionLinkedTransactions("Insurance",p.id).length} linked transaction${protectionLinkedTransactions("Insurance",p.id).length===1?"":"s"}. These remain in Ledger.</p></div><label class="field"><span>Nominee / notes</span><input id="ins-note" value="${esc(p.note||"")}"></label><p class="help">${extracted._sourceDocument?`Details extracted from <b>${esc(extracted._sourceDocument)}</b>. Please review before saving.`:"You can enter the policy manually or upload a policy document first."}</p>
     <p class="help">Travel & One-Time policies move to Expired after the end date while history is retained.</p>`,sc=>{
       const type=sc.querySelector("#ins-type").value,insurer=sc.querySelector("#ins-insurer").value.trim();if(!insurer){toast("Enter the insurer.");return false;}
       const obj={...p,id:p.id||"ins-"+uidGen(),type,insurer,policyNumber:sc.querySelector("#ins-policy").value.trim(),coverage:Number(sc.querySelector("#ins-cover").value.replace(/[,₹\s]/g,""))||0,accidentalCoverage:Number(sc.querySelector("#ins-accident").value.replace(/[,₹\s]/g,""))||0,coveredMembers:sc.querySelector("#ins-members").value.trim(),premium:Number(sc.querySelector("#ins-premium").value.replace(/[,₹\s]/g,""))||0,frequency:sc.querySelector("#ins-freq").value,startDate:sc.querySelector("#ins-start").value||todayISO(),expiryDate:sc.querySelector("#ins-end").value||"",note:sc.querySelector("#ins-note").value.trim()};
       state.insurance=state.insurance||[];const i=state.insurance.findIndex(x=>x.id===obj.id);if(i>=0)state.insurance[i]=obj;else state.insurance.push(obj);persist([],true);toast(existingId?"Insurance updated.":"Insurance added.");
     },existingId?[["Delete",()=>{state.insurance=state.insurance.filter(x=>x.id!==existingId);persist([],true);toast("Insurance deleted.");}]]:null);
+  const insScr=document.querySelector(".scrim:last-of-type"); insScr?.querySelector("#ins-link-txns")?.addEventListener("click",()=>{insScr.remove();openProtectionTxnLinkSheet("Insurance",p.id);});
 }
 function renderAssetsAndNetWorth(){
   const assets=state.assets||[], physical=physicalAssetTotal(), financial=totalHeldBalance(), liabilities=totalLiabilities(), nw=netWorth();
@@ -3473,12 +3629,18 @@ function renderRemoteFamilyAssets(scopeState,title){
   return h;
 }
 function renderFinanceHubTop(){const holder=document.createElement("div");renderFinanceHub(holder);return holder.innerHTML;}
+function quarterParts(m){ const [y,mo]=m.split("-").map(Number); return [y,Math.floor((mo-1)/3)+1]; }
+function quarterKeyForDate(date){ const [y,q]=quarterParts(date.slice(0,7)); return `${y}-Q${q}`; }
+function quarterLabelForMonth(m){ const [y,q]=quarterParts(m); return `Q${q} ${y}`; }
+function quarterMonths(m){ const [y,q]=quarterParts(m); return Array.from({length:3},(_,i)=>`${y}-${String((q-1)*3+i+1).padStart(2,"0")}`); }
+function currentQuarterMonth(){ const [y,q]=quarterParts(currentPK()); return `${y}-${String((q-1)*3+1).padStart(2,"0")}`; }
+
 function renderOverview(){
   const fh=document.getElementById("overviewFamilyHub"); if(fh){fh.innerHTML=renderFinanceHubTop(); bindFinanceHub();}
   document.querySelectorAll("#ovMode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m === ovMode)));
   document.getElementById("monthName").classList.toggle("nopick", ovMode !== "month");
   if(ovMode === "events") return renderEventsSummary();
-  if(ovMode === "day") return renderDaySummary();
+  if(ovMode === "quarter") return renderQuarterSummary();
   if(ovMode !== "month") return renderPeriodSummary();
   document.querySelector(".spent-label").textContent = "Expenses this month";
   document.getElementById("prevM").disabled = false;
@@ -3559,6 +3721,7 @@ function renderOverview(){
     html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>
       `<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]}"></span><span>${esc(k)}</span><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${o.n} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
   }
+  html += renderSubscriptionCard("month",cursor);
   body.innerHTML = html;
 }
 
@@ -3634,6 +3797,24 @@ function renderEventsSummary(){
       }).join("")
     : `<div class="empty"><p>${tr("No events yet.")}<br>${tr("Tag an entry to one from Entries, or add one from Accounts.")}</p></div>`;
 }
+function renderQuarterSummary(){
+  const [cy,cq]=quarterParts(cursor||currentPK());
+  const qStart=`${cy}-${String((cq-1)*3+1).padStart(2,"0")}-01`;
+  const nextQMonth=cq===4?`${cy+1}-01`:`${cy}-${String(cq*3+1).padStart(2,"0")}`;
+  const qEndDate=new Date(nextQMonth+"-01T00:00:00"); qEndDate.setDate(0); const qEnd=iso(qEndDate);
+  document.getElementById("monthName").textContent=`Q${cq} ${cy}`;
+  const curQ=currentQuarterMonth(); document.getElementById("prevM").disabled=(cy===quarterParts(currentPK())[0]&&cq===1) || (cy<quarterParts(currentPK())[0]&&false);
+  document.getElementById("nextM").disabled=(cy===quarterParts(currentPK())[0]&&cq===quarterParts(currentPK())[1]);
+  document.querySelector(".spent-label").textContent=`Expenses in Q${cq} ${cy}`;
+  const tx=displayTxns().filter(t=>t.date>=qStart&&t.date<=qEnd); const out=tx.filter(t=>t.type==="debit"&&counts(t)); const inc=tx.filter(t=>t.type==="credit"&&counts(t)&&t.category!=="Refunds");
+  const refund=tx.filter(t=>t.type==="credit"&&counts(t)&&t.category==="Refunds").reduce((a,t)=>a+inAmt(t),0); const spent=Math.max(0,out.reduce((a,t)=>a+spendAmt(t),0)-refund); const got=inc.reduce((a,t)=>a+inAmt(t),0);
+  document.getElementById("spent").innerHTML='<span class="rupee">₹</span>'+inr.format(Math.round(spent)); document.getElementById("income").textContent=money(got); const net=got-spent; document.getElementById("net").textContent=(net<0?"−":"+")+money(Math.abs(net)); document.getElementById("count").textContent=tx.length; document.getElementById("band").innerHTML="";
+  const byCat={}; out.forEach(t=>byCat[t.category]=(byCat[t.category]||0)+spendAmt(t)); const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const top=cats.slice(0,5);
+  let html=`<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held</span></div><span class="pane-icon">₹</span></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint">Includes actual balances/value held; transfers and card limits do not inflate it.</p></div>${expenseDonut(byCat,spent)}`;
+  html+=`<h2 class="section-h">Top 5 categories</h2><ul class="cats">${top.map(([c,v])=>`<li class="cat"><button data-cat="${esc(c)}"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span><span>${esc(c)}</span><span class="amt num">${money(v)}</span></button></li>`).join("")}</ul>`;
+  html+=renderSubscriptionCard("quarter",`${cy}-${String((cq-1)*3+1).padStart(2,"0")}`);
+  document.getElementById("overviewBody").innerHTML=html;
+}
 function renderPeriodSummary(){
   // Year or All years view
   const years = yearsWithData();
@@ -3679,6 +3860,7 @@ function renderPeriodSummary(){
   }
   const top = Object.entries(byM).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
   if(top.length) html += `<h2 class="section-h">Top places</h2><ul class="cats">` + top.map(([k,o])=>`<li class="cat"><span class="dot" style="background:${CAT_COLOR[o.c]||"#777"}"></span><button class="mname" data-merchant="${esc(k)}">${esc(k)}</button><span class="amt num">${money(o.v)}</span><div class="meta num"><span>${inr.format(o.n)} ${o.n===1?"payment":"payments"}</span></div></li>`).join("") + `</ul>`;
+  html += renderSubscriptionCard(yr ? "year" : "all", yr ? `${yr}-01` : currentPK(), yr);
   document.getElementById("overviewBody").innerHTML = html;
 }
 
@@ -3753,7 +3935,7 @@ function renderList(){
       arr.map(t=>`<div class="tx" data-id="${t.id}" tabindex="0" role="button">
         <span class="m"><button class="mname" data-merchant="${esc(t.merchant)}">${esc(t.merchant)}</button></span>
         <span class="a num${t.type==="credit"?" cr":""}">${t.type==="credit"?"+":""}${money(t.amount,true,t.currency)}${isForeign(t) ? `<small style="display:block;font-weight:400;color:var(--muted);text-align:right">${t.fxRate ? money(inrOf(t),false) : "rate pending"}</small>` : ""}</span>
-        <span class="d"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span>${t.mode?`<span>${esc(t.mode)}</span>`:""}${t.bank||t.account?`<span>${esc(t.bank)}${t.account?" ··"+esc(t.account):""}</span>`:""}${t.share!=null?`<span>Split · your share ${money(t.share,true,t.currency)}</span>`:""}${t.reimb?`<span>${t.reimbDone?"Reimbursed":"Reimbursable"}</span>`:""}${t.note?`<span>${esc(t.note)}</span>`:""}</span>
+        <span class="d"><span class="chip"><span class="dot" style="background:${CAT_COLOR[t.category]||"#777"}"></span>${esc(t.category)}</span>${t.mode?`<span>${esc(t.mode)}</span>`:""}${t.bank||t.account?`<span>${esc(t.bank)}${t.account?" ··"+esc(t.account):""}</span>`:""}${t.share!=null?`<span>Split · your share ${money(t.share,true,t.currency)}</span>`:""}${t.reimb?`<span>${t.reimbDone?"Reimbursed":"Reimbursable"}</span>`:""}${t.note?`<span>${esc(t.note)}</span>`:""}${t.assetId?`<span>Asset · ${esc((state.assets||[]).find(a=>a.id===t.assetId)?.name||"Linked asset")}</span>`:""}${t.subscriptionKey?`<span>Recurring · ${esc((allSubs().find(x=>x.key===t.subscriptionKey)?.name)||t.subscriptionKey)}</span>`:""}</span>
       </div>`).join("");
   }).join("");
 }
@@ -4224,7 +4406,7 @@ function openMonthPicker(){
 }
 document.getElementById("monthName").onclick = ()=>{ if(ovMode === "month") openMonthPicker(); };
 document.getElementById("monthName2").onclick = openMonthPicker;
-document.getElementById("ovMode").addEventListener("click", e=>{ const b=e.target.closest("[data-m]"); if(!b)return; ovMode=b.dataset.m; if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4); if(ovMode==="day") dayCursor=todayISO(); render(); });
+document.getElementById("ovMode").addEventListener("click", e=>{ const b=e.target.closest("[data-m]"); if(!b)return; ovMode=b.dataset.m; if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4); if(ovMode==="quarter") cursor=`${quarterParts(cursor||currentPK())[0]}-${String((quarterParts(cursor||currentPK())[1]-1)*3+1).padStart(2,"0")}`; render(); });
 
 /* ---------- Events ---------- */
 document.querySelector(".tabs nav").addEventListener("click", e=>{
@@ -4232,7 +4414,7 @@ document.querySelector(".tabs nav").addEventListener("click", e=>{
   view = b.dataset.v; window.scrollTo({top:0,left:0,behavior:"auto"}); document.documentElement.scrollTop=0; document.body.scrollTop=0; render();
 });
 function shift(n){
-  if(view === "overview" && ovMode === "day"){ const d=new Date(dayCursor+"T00:00:00"); d.setDate(d.getDate()+n); const k=iso(d); if(k<=todayISO()){dayCursor=k;render();} return; }
+  if(view === "overview" && ovMode === "quarter"){ const d=new Date((cursor||currentPK())+"-01T00:00:00"); d.setMonth(d.getMonth()+3*n); const k=monthKey(d); if(k<=currentPK()){ cursor=k; render(); } return; }
   if(view === "overview" && ovMode === "year"){ const ys = yearsWithData(); const ny = ovYear + n; if(ny >= ys[0] && ny <= ys[ys.length-1]){ ovYear = ny; render(); } return; }
   if(view === "overview" && (ovMode === "all" || ovMode === "events")) return;
   const [y,m] = cursor.split("-").map(Number);
@@ -4330,6 +4512,8 @@ document.getElementById("overviewBody").addEventListener("click", e=>{
   const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
   const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "overview"); return; }
+  const sub=e.target.closest("[data-sub-open]"); if(sub){ openRecurringSheet(sub.dataset.subOpen); return; }
+  if(e.target.closest("#addSubLedger")){ openSubSheet(); return; }
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; render(); }
 });
 document.getElementById("q").addEventListener("input", renderList);
@@ -4676,17 +4860,24 @@ function openAcctSheet(key, preAssetId="", preKind=""){
   if(scr&&a.kind==="loan"&&key){const top=scr.querySelector("#loanAddTopup"),tr=scr.querySelector("#loanTransfer");if(top)top.onclick=()=>openLoanTopupSheet(key);if(tr)tr.onclick=()=>openLoanTransferSheet(key);}
 }
 function openSubSheet(){
-  sheet("Add a subscription", `
-    <label class="field"><span>Name, as it appears in your SMS</span><input id="s-name" placeholder="e.g. Netflix"></label>
-    <div class="two"><label class="field"><span>Amount (₹)</span><input id="s-amt" inputmode="decimal"></label>
-    <label class="field"><span>Repeats every</span><select id="s-freq"><option value="month">Month</option><option value="quarter">Quarter</option><option value="year">Year</option></select></label></div>`,
+  sheet("Add subscription / recurring payment", `
+    <label class="field"><span>Name / Service</span><input id="s-name" placeholder="e.g. Netflix, Electricity, Apartment maintenance"></label>
+    <div class="two"><label class="field"><span>Category</span><select id="s-cat">${subscriptionCategories().map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
+    <label class="field"><span>Frequency</span><select id="s-freq"><option value="month">Monthly</option><option value="quarter">Quarterly</option><option value="year">Yearly</option></select></label></div>
+    <div class="two"><label class="field"><span>Amount type</span><select id="s-amtType"><option value="fixed">Fixed</option><option value="variable">Variable</option></select></label>
+    <label class="field"><span>Amount / typical amount (₹)</span><input id="s-amt" inputmode="decimal"></label></div>
+    <div class="two"><label class="field"><span>Unit (optional)</span><input id="s-unit" placeholder="kWh, GB, litre, unit"></label>
+    <label class="field"><span>Unit rate (₹)</span><input id="s-rate" inputmode="decimal" placeholder="e.g. 8.50"></label></div>
+    <div class="two"><label class="field"><span>Minimum / base (₹)</span><input id="s-min" inputmode="decimal"></label>
+    <label class="field"><span>Maximum (₹)</span><input id="s-max" inputmode="decimal"></label></div>
+    <p class="help">For dynamic bills such as electricity, water or gas, choose Variable. Actual linked Ledger payments will be used for monthly/quarterly spending.</p>`,
   sc=>{
-    const name = sc.querySelector("#s-name").value.trim(), amount = parseFloat(sc.querySelector("#s-amt").value.replace(/[,₹\s]/g,""));
-    if(!name || !amount){ toast("Fill in the name and amount."); return false; }
-    const key = mkey(name);
-    state.subsHidden = state.subsHidden.filter(k=>k !== key);
-    state.subsManual.push({ id: uidGen(), key, name, amount, freq: sc.querySelector("#s-freq").value, category: "Entertainment" });
-    persist([], true); toast("Subscription added.");
+    const name=sc.querySelector("#s-name").value.trim(), amount=parseFloat(sc.querySelector("#s-amt").value.replace(/[,₹\s]/g,""));
+    if(!name){toast("Fill in the name.");return false;}
+    const n=id=>{const v=sc.querySelector(id).value.replace(/[,₹\s]/g,"");return v===""?null:Number(v)};
+    const key=mkey(name), old=state.subsManual.find(m=>m.key===key); state.subsHidden=state.subsHidden.filter(k=>k!==key);
+    const obj={id:old?.id||uidGen(),key,name,amount:Number.isFinite(amount)?amount:0,freq:sc.querySelector("#s-freq").value,category:sc.querySelector("#s-cat").value,amountMode:sc.querySelector("#s-amtType").value,unit:sc.querySelector("#s-unit").value.trim(),unitRate:n("#s-rate"),minAmount:n("#s-min"),maxAmount:n("#s-max")};
+    if(old)Object.assign(old,obj); else state.subsManual.push(obj); persist([],true); toast(old?"Subscription updated.":"Subscription added.");
   });
 }
 function openBillSheet(){

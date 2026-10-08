@@ -48,6 +48,11 @@ service cloud.firestore {
         allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "all" || request.resource.data.audienceUids.hasAny([request.auth.uid]));
         allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
       }
+      match /assetRequests/{docId} {
+        allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
+        allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.shareWith == "some" || request.resource.data.shareWith == "all");
+        allow delete: if memberOf(familyId) && resource.data.ownerUid == request.auth.uid;
+      }
       match /completeData/{docId} {
         allow read: if memberOf(familyId) && (resource.data.ownerUid == request.auth.uid || resource.data.shareWith == "all" || resource.data.audienceUids.hasAny([request.auth.uid]));
         allow create, update: if memberOf(familyId) && request.resource.data.ownerUid == request.auth.uid;
