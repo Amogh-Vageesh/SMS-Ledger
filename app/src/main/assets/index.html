@@ -3625,7 +3625,7 @@ function renderFinanceHub(target){
   const selected=financeFamilyScope;
   const selectedName=unique.find(x=>x.id===selected)?.name || "All Family";
   target.innerHTML=`<div class="finance-hub card">
-    <div class="card-hub-head"><div><h2>Family Hub</h2><p>Showing financial data for ${esc(selectedName)}</p></div><div style="display:flex;align-items:center;gap:8px"><span class="chart-note">${people.length>1?"Shared data":"Your data"}</span><button type="button" class="mini" data-finance-share>Share</button></div></div>
+    <div class="card-hub-head"><div><h2>Family Hub</h2><p>Showing financial data for ${esc(selectedName)}</p></div><div style="display:flex;align-items:center;gap:8px"><span class="chart-note">${people.length>1?"Shared data":"Your data"}</span><button type="button" class="mini finance-share-btn" data-finance-share aria-label="Share this section">Share</button></div></div>
     <div class="fh-chips">${unique.map(c=>`<button class="fh-chip ${c.id===selected?"active":""}" data-finance-scope="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div>
     <div class="fh-note">Only the person's chosen/display name is shown. Relationship labels are not used.</div>
   </div>`;
@@ -3716,7 +3716,7 @@ function ledgerTransferRows(tx){
 }
 function ledgerTxnRows(tx,limit=30){ return tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,limit).map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Transaction")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${t.type==="credit"?"+":"−"}${money(t.type==="credit"?inAmt(t):spendAmt(t),true)}</b><small>${esc(t.bank||t.account||"")}</small></span></button>`).join("")||`<p class="help">No transactions for ${esc(ledgerPeriodLabel())}.</p>`; }
 function renderMyLedgerPage(){
-  const body=document.getElementById("ovBody");
+  const body=document.getElementById("overviewBody");
   if(!body) return;
   try{
   const tx=ledgerPeriodTxns();
@@ -5821,4 +5821,10 @@ button.insurance-row{
 .protection-actions{gap:8px;flex-wrap:wrap;margin:0 0 8px}.protection-section{padding-bottom:4px}.prot-category-block{border-top:1px solid var(--rule)}.prot-category-head{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) 20px!important;align-items:center!important;gap:8px!important;padding:13px 14px!important;border:0!important;background:var(--panel)!important;color:var(--text)!important;text-align:left!important}.prot-category-head .insurance-main{min-width:0;display:flex;flex-direction:column;gap:3px}.prot-category-head .insurance-main b{font-size:15px}.prot-category-head .insurance-main small{font-size:11px;color:var(--muted)}.prot-category-items{background:var(--raise)}.prot-item{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(92px,max-content) 18px!important;gap:8px!important;align-items:center!important;padding:11px 14px 11px 22px!important;border:0!important;border-top:1px solid var(--rule)!important;background:var(--raise)!important;color:var(--text)!important;text-align:left!important;box-sizing:border-box!important}.prot-item .insurance-main{min-width:0;display:flex;flex-direction:column;gap:3px}.prot-item .insurance-main b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prot-item .insurance-main small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prot-item .num{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}.prot-item .num b{font-size:14px;white-space:nowrap}.prot-item .num small{font-size:10px;color:var(--muted);white-space:nowrap}.prot-item .chev{font-size:18px;color:var(--muted);text-align:right}.rc-linked-list{max-height:260px;overflow:auto}.section-share-control{border-top:1px solid var(--rule);margin-top:8px;padding-top:10px}@media(max-width:390px){.prot-category-head{padding:12px!important}.prot-category-head .insurance-main b{font-size:14px}.prot-item{grid-template-columns:minmax(0,1fr) minmax(80px,max-content) 16px!important;padding-left:18px!important}.prot-item .insurance-main b{font-size:13px}.prot-item .num b{font-size:13px}.protection-actions .btn{font-size:12px;padding:8px 10px}}
 </style>
 
-<style>.prot-covered{color:var(--brass)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.covered-members-preview .chip{border:1px solid var(--rule);background:var(--soft);border-radius:999px;padding:5px 9px}</style>
+<style>.prot-covered{color:var(--brass)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.covered-members-preview .chip{border:1px solid var(--rule);background:var(--soft);border-radius:999px;padding:5px 9px}
+<style>
+/* v1.129 Home-style Family Hub header/share control */
+.finance-share-btn{min-width:74px;height:40px;padding:0 14px;border-radius:10px;white-space:nowrap;}
+.finance-hub .card-hub-head{align-items:center;}
+</style>
+</style>
