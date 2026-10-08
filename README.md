@@ -9,4 +9,4 @@ SMS Ledger v1.106 — Loan reconciliation, safe SMS deduplication and liabilitie
 - EMI / loan transactions show a loan-account link selector; bank/NBFC statement matching can populate the link.
 - Liabilities modal uses a consistent mobile two-column layout.
 - Credit-card outstanding is included in liabilities; credit-card limits are excluded.
-- v1.106 / versionCode 101.
+- v1.113 / versionCode 108.
