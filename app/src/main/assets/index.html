@@ -2617,7 +2617,7 @@ function renderSubscriptionCard(periodMode, cursorMonth, year){
   const cats={}; let total=0;
   subs.forEach(x=>{const sp=subscriptionSpendFor(x.key,start,end); if(sp.count){const c=x.category||"Other";cats[c]=(cats[c]||0)+sp.amount;total+=sp.amount;}});
   const rows=subs.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).slice(0,10).map(x=>{const sp=subscriptionSpendFor(x.key,start,end);const variable=x.amountMode==="variable";const amount=sp.count?sp.amount:(Number(x.perMonth)||0);return `<button class="trow" data-sub-open="${esc(x.key)}"><div class="l1 num"><span>${esc(x.name)}</span><b>${money(amount,true)}${variable?" · Variable":""}</b></div><div class="l2"><span class="chip">${esc(x.category||"Other")}</span><span>${esc(subscriptionFreqLabel(x.freq))}${x.next?` · Next ${esc(niceDate(x.next))}`:""}</span></div></button>`;}).join("");
-  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="cat"><span><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span>${esc(c)}</span><span class="amt num">${money(v)}</span></div>`).join("");
+  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="subscription-category-row"><span class="subscription-category-name"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span>${esc(c)}</span><span class="subscription-category-amount num">${money(v)}</span></div>`).join("");
   return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="pane-icon">↻</span></summary><div style="margin-top:10px"><div class="summary-cats" style="margin-bottom:8px">${catRows||'<p class="help">No linked payments in this period.</p>'}</div>${rows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
 }
 
@@ -3337,27 +3337,18 @@ function openWarrantySheet(existingId){
 }
 function protectionTxnCount(kind,id){return (state.txns||[]).filter(t=>t.protectionType===kind&&t.protectionId===id).length;}
 function renderProtectionCategoryRows(kind,list,groupMap){
-  const icon=kind==='Insurance'?'🛡️':kind==='Warranty'?'⚙️':'🔧';
+  const icon=kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧';
   const cats=Object.entries(groupMap);
   const countLabel=n=>kind==='Insurance'?`polic${n===1?'y':'ies'}`:kind==='Warranty'?`warrant${n===1?'y':'ies'}`:`plan${n===1?'':'s'}`;
   return cats.map(([label,items])=>`<div class="prot-category">
-    <button type="button" class="prot-category-head" data-prot-category="${esc(label)}">
-      <span class="prot-icon">${icon}</span>
-      <span class="prot-category-title"><b>${esc(label)}</b><small>${items.length} ${countLabel(items.length)}</small></span>
-      <span class="prot-category-chevron">⌄</span>
-    </button>
+    <button type="button" class="insurance-row prot-category-head" data-prot-category="${esc(label)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${countLabel(items.length)}</small></span><span class="chev">⌄</span></button>
     <div class="prot-category-items">
       ${items.map(x=>{
         const txc=protectionTxnCount(kind,x.id);
         const sub=kind==='Insurance'?`${esc(x.insurer||'')}${x.policyNumber?' · '+esc(x.policyNumber):''}`:kind==='Warranty'?`${esc(x.provider||'')}${x.warrantyNumber?' · '+esc(x.warrantyNumber):''}`:`${esc(x.provider||'')}${x.contractNumber?' · '+esc(x.contractNumber):''}`;
         const val=kind==='Insurance'?money(Number(x.coverage)||0,true):kind==='Warranty'?money(Number(x.coverage)||0,true):money(Number(x.cost)||0,true);
         const label2=kind==='Insurance'?'Cover':kind==='Warranty'?'Value':'Plan cost';
-        return `<button type="button" class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}">
-          <span class="prot-item-icon">${icon}</span>
-          <span class="prot-item-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub||'Details not specified'}</small>${txc?`<small class="prot-linked">${txc} linked transaction${txc===1?'':'s'}</small>`:''}</span>
-          <span class="prot-item-value"><small>${label2}</small><strong>${val}</strong></span>
-          <span class="prot-item-chevron">›</span>
-        </button>`;
+        return `<button type="button" class="insurance-row prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-icon">${icon}</span><span class="insurance-main"><b>${esc(x.name||x.product||x.insurer||'Item')}</b><small>${sub||'Details not specified'}</small>${txc?`<small>${txc} linked transaction${txc===1?'':'s'}</small>`:''}</span><span class="num"><small style="display:block;color:var(--muted);font-size:.68rem">${label2}</small>${val}</span><span class="chev">›</span></button>`;
       }).join('')}
     </div>
   </div>`).join('');
@@ -5638,3 +5629,47 @@ button.insurance-row{
 }
 </style>
 \n<style>\n/* v1.120 Protection + My Ledger + Assets mobile layout polish */\n.prot-category{width:100%;box-sizing:border-box;border-bottom:1px solid var(--rule);overflow:hidden;}\n.prot-category:last-child{border-bottom:0;}\n.prot-category-head{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) 28px;gap:10px;align-items:center;padding:12px 14px;border:0;border-bottom:1px solid var(--rule);background:var(--panel);color:var(--text);text-align:left;box-sizing:border-box;cursor:pointer;}\n.prot-icon,.prot-item-icon{width:36px;height:36px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-size:18px;flex:0 0 auto;}\n.prot-category-title{min-width:0;display:flex;flex-direction:column;gap:2px;}\n.prot-category-title b{font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-category-title small{font-size:12px;color:var(--muted);line-height:1.25;}\n.prot-category-chevron{font-size:20px;color:var(--muted);text-align:center;}\n.prot-category-items{width:100%;box-sizing:border-box;background:var(--raise);}\n.prot-item{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) minmax(82px,max-content) 18px;gap:9px;align-items:center;padding:11px 14px 11px 22px;border:0;border-bottom:1px solid var(--rule);background:var(--raise);color:var(--text);text-align:left;box-sizing:border-box;cursor:pointer;}\n.prot-item:last-child{border-bottom:0;}\n.prot-item:active,.prot-category-head:active{background:var(--soft);}\n.prot-item-icon{width:30px;height:30px;border-radius:9px;font-size:15px;background:var(--panel);}\n.prot-item-main{min-width:0;overflow:hidden;}\n.prot-item-main b{display:block;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-item-main small{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.prot-item-main .prot-linked{color:var(--brass);}\n.prot-item-value{min-width:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;overflow:hidden;}\n.prot-item-value small{font-size:10px;color:var(--muted);line-height:1.1;}\n.prot-item-value strong{font-size:14px;line-height:1.25;white-space:nowrap;}\n.prot-item-chevron{font-size:21px;color:var(--muted);text-align:right;}\n.insurance-pane{overflow:hidden!important;}\n.summary-cats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;width:100%!important;overflow:visible!important;align-items:stretch!important;}\n.summary-cats .cat{min-width:0!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:9px 10px!important;border:1px solid var(--rule)!important;border-radius:10px!important;background:var(--panel)!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:4px 7px!important;}\n.summary-cats .cat>span:first-child{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}\n.summary-cats .cat .amt{white-space:nowrap!important;text-align:right!important;font-size:13px!important;}\n.asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(82px,max-content) 18px!important;gap:7px!important;}\n.asset-card-row .asset-row-main b{font-size:14px!important;}\n.asset-card-row .asset-value-wrap{min-width:82px!important;}\n@media(max-width:390px){\n  .prot-category-head{grid-template-columns:34px minmax(0,1fr) 24px;gap:8px;padding:11px 12px;}\n  .prot-icon{width:32px;height:32px;font-size:16px;}\n  .prot-item{grid-template-columns:30px minmax(0,1fr) minmax(76px,max-content) 16px;gap:7px;padding:10px 10px 10px 18px;}\n  .prot-item-icon{width:28px;height:28px;font-size:14px;}\n  .prot-item-main b{font-size:14px;}\n  .prot-item-main small{font-size:11px;}\n  .prot-item-value{min-width:76px!important;}\n  .prot-item-value strong{font-size:13px;}\n}\n</style>\n
+<style>
+/* v1.121: restore the established SMS Ledger row design. No new card/grid treatment. */
+.prot-category{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;border:0!important;margin:0!important;background:transparent!important;}
+.prot-category-items{width:100%!important;max-width:100%!important;min-width:0!important;background:var(--panel)!important;}
+.prot-category-head.insurance-row{display:grid!important;grid-template-columns:38px minmax(0,1fr) 28px!important;gap:10px!important;align-items:center!important;padding:13px 15px!important;border-bottom:1px solid var(--rule)!important;background:transparent!important;}
+.prot-item.insurance-row{display:grid!important;grid-template-columns:38px minmax(0,1fr) minmax(92px,max-content) 20px!important;gap:10px!important;align-items:center!important;padding:12px 15px 12px 24px!important;border-bottom:1px solid var(--rule)!important;background:transparent!important;}
+.prot-item.insurance-row:last-child{border-bottom:0!important;}
+.prot-category-head .insurance-icon,.prot-item .insurance-icon{width:38px!important;height:38px!important;border-radius:12px!important;background:var(--soft)!important;display:grid!important;place-items:center!important;}
+.prot-item .insurance-icon{width:34px!important;height:34px!important;border-radius:10px!important;}
+.prot-category-head .insurance-main,.prot-item .insurance-main{min-width:0!important;overflow:hidden!important;}
+.prot-category-head .insurance-main b,.prot-item .insurance-main b{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:15px!important;line-height:1.25!important;}
+.prot-category-head .insurance-main small,.prot-item .insurance-main small{display:block!important;color:var(--muted)!important;font-size:12px!important;margin-top:3px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.prot-item .num{min-width:0!important;text-align:right!important;white-space:nowrap!important;font-size:14px!important;font-weight:700!important;}
+.prot-item .num small{font-weight:400!important;}
+.prot-item .chev,.prot-category-head .chev{font-size:1.4rem!important;color:var(--muted)!important;text-align:right!important;}
+
+/* Recurring/subscription categories: one stable row per category, matching Ledger/Assets. */
+.subscription-category-list{width:100%!important;max-width:100%!important;overflow:hidden!important;border-top:1px solid var(--rule)!important;}
+.subscription-category-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;align-items:center!important;width:100%!important;box-sizing:border-box!important;padding:11px 2px!important;border-bottom:1px solid var(--rule)!important;min-width:0!important;}
+.subscription-category-row:last-child{border-bottom:0!important;}
+.subscription-category-name{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important;}
+.subscription-category-name .dot{flex:0 0 10px!important;width:10px!important;height:10px!important;border-radius:50%!important;}
+.subscription-category-amount{white-space:nowrap!important;text-align:right!important;font-weight:700!important;}
+
+/* Keep Assets on the established compact two-column row layout. */
+.asset-card-row .asset-main-button{display:grid!important;grid-template-columns:34px minmax(0,1fr) minmax(88px,max-content) 20px!important;gap:8px!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;align-items:center!important;overflow:hidden!important;}
+.asset-card-row .asset-row-main{min-width:0!important;overflow:hidden!important;}
+.asset-card-row .asset-row-main b{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:15px!important;}
+.asset-card-row .asset-row-main small{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;color:var(--muted)!important;}
+.asset-card-row .asset-value-wrap{min-width:88px!important;max-width:100%!important;overflow:hidden!important;text-align:right!important;align-items:flex-end!important;}
+.asset-card-row .asset-value-wrap strong{font-size:15px!important;white-space:nowrap!important;}
+.asset-card-row .asset-value-indicator{font-size:10px!important;white-space:nowrap!important;}
+@media(max-width:390px){
+ .prot-category-head.insurance-row{grid-template-columns:34px minmax(0,1fr) 22px!important;gap:8px!important;padding:12px!important;}
+ .prot-item.insurance-row{grid-template-columns:32px minmax(0,1fr) minmax(78px,max-content) 18px!important;gap:7px!important;padding:11px 12px 11px 18px!important;}
+ .prot-category-head .insurance-icon{width:34px!important;height:34px!important;}
+ .prot-item .insurance-icon{width:30px!important;height:30px!important;}
+ .prot-category-head .insurance-main b,.prot-item .insurance-main b{font-size:14px!important;}
+ .prot-category-head .insurance-main small,.prot-item .insurance-main small{font-size:11px!important;}
+ .prot-item .num{font-size:13px!important;}
+ .asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(78px,max-content) 18px!important;gap:6px!important;}
+ .asset-card-row .asset-value-wrap{min-width:78px!important;}
+}
+</style>
