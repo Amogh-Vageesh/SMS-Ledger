@@ -5575,3 +5575,54 @@ connectDb();
 </script>
 </body>
 </html>
+<style>
+/* v1.119 mobile alignment cleanup: Protection, Subscriptions and Assets */
+.insurance-row,
+button.insurance-row{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  border-radius:0!important;
+  border-left:0!important;
+  border-right:0!important;
+  border-top:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  font:inherit!important;
+  text-align:left!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  box-shadow:none!important;
+}
+.insurance-row .insurance-main{min-width:0!important;overflow:hidden!important;}
+.insurance-row .insurance-main b{color:var(--text)!important;display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.insurance-row .insurance-main small{color:var(--muted)!important;display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.insurance-row .num{color:var(--text)!important;white-space:nowrap!important;text-align:right!important;}
+.prot-category{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;}
+.prot-category-items{width:100%!important;max-width:100%!important;min-width:0!important;}
+.prot-category-head{cursor:pointer!important;}
+.prot-item{cursor:pointer!important;}
+.summary-cats{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow-x:auto!important;overflow-y:hidden!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;}
+.summary-cats button{flex:0 0 auto!important;width:auto!important;min-width:max-content!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;color:var(--text)!important;background:var(--panel)!important;}
+.summary-cats button.active{color:var(--brass-ink)!important;background:var(--brass)!important;}
+.trow{box-sizing:border-box!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;}
+.trow .l1,.trow .l2{min-width:0!important;max-width:100%!important;}
+.trow .l1 span:first-child{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.trow .l1 b{flex:0 0 auto!important;white-space:nowrap!important;}
+.asset-card-row{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important;}
+.asset-card-row .asset-main-button{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;grid-template-columns:34px minmax(0,1fr) minmax(90px,max-content) 20px!important;gap:8px!important;align-items:center!important;overflow:hidden!important;}
+.asset-card-row .asset-row-main{min-width:0!important;max-width:100%!important;overflow:hidden!important;}
+.asset-card-row .asset-row-main b{min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.asset-card-row .asset-row-main small{min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+.asset-card-row .asset-value-wrap{min-width:0!important;width:auto!important;max-width:100%!important;overflow:hidden!important;}
+.asset-card-row .asset-value-wrap strong,.asset-card-row .asset-value-indicator{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.asset-card-row .chev{width:20px!important;text-align:right!important;}
+@media(max-width:390px){
+  .insurance-row{padding:12px 12px!important;gap:8px!important;}
+  .insurance-icon{width:34px!important;height:34px!important;}
+  .asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(82px,max-content) 18px!important;gap:6px!important;}
+  .asset-card-row .asset-value-wrap{min-width:82px!important;}
+}
+</style>
