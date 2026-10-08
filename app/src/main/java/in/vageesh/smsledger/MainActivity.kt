@@ -11,6 +11,13 @@ import android.content.res.Configuration
 import android.location.LocationManager
 import android.telephony.SubscriptionManager
 import android.graphics.Color
+import android.graphics.Typeface
+import android.view.Gravity
+import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +29,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.activity.addCallback
@@ -49,7 +58,11 @@ import kotlin.concurrent.thread
 class MainActivity : ComponentActivity() {
 
     private lateinit var web: WebView
+    private lateinit var rootFrame: FrameLayout
+    private var lockOverlay: View? = null
     private var pageReady = false
+    private var appUnlocked = false
+    private var lockPromptShowing = false
     private var pendingSave: String? = null
     private val prefs by lazy { getSharedPreferences("ledger", MODE_PRIVATE) }
 
@@ -337,7 +350,13 @@ class MainActivity : ComponentActivity() {
             }
         }
         applyChrome()
-        setContentView(web)
+        rootFrame = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor(if (resolvedNight()) "#17140F" else "#F4EFE4"))
+            addView(web, FrameLayout.LayoutParams(-1, -1))
+        }
+        setContentView(rootFrame)
+        appUnlocked = !prefs.getBoolean("appLockEnabled", true)
+        if (!appUnlocked) showAppLockOverlay()
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html")
         ContextCompat.registerReceiver(this, smsQueueReceiver, IntentFilter(ACTION_SMS_QUEUED), ContextCompat.RECEIVER_NOT_EXPORTED)
 
@@ -346,6 +365,92 @@ class MainActivity : ComponentActivity() {
                 if (handled != "true") finish()
             }
         }
+    }
+
+    private fun canUseDeviceAuth(): Boolean {
+        val mgr = BiometricManager.from(this)
+        val result = mgr.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+        return result == BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    private fun showAppLockOverlay() {
+        if (!::rootFrame.isInitialized || !prefs.getBoolean("appLockEnabled", true)) return
+        if (lockOverlay == null) {
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setPadding(32, 48, 32, 48)
+                setBackgroundColor(Color.parseColor(if (resolvedNight()) "#17140F" else "#F4EFE4"))
+            }
+            val title = TextView(this).apply {
+                text = "Unlock SMS Ledger"
+                textSize = 25f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor(if (resolvedNight()) "#F7F1E6" else "#241F19"))
+                gravity = Gravity.CENTER
+            }
+            val subtitle = TextView(this).apply {
+                text = "Use your fingerprint, face or device PIN to continue."
+                textSize = 15f
+                setTextColor(Color.parseColor(if (resolvedNight()) "#B8B0A2" else "#665F55"))
+                gravity = Gravity.CENTER
+                setPadding(0, 14, 0, 24)
+            }
+            val button = Button(this).apply {
+                text = "Unlock"
+                setOnClickListener { authenticateApp() }
+            }
+            box.addView(title, LinearLayout.LayoutParams(-1, -2))
+            box.addView(subtitle, LinearLayout.LayoutParams(-1, -2))
+            box.addView(button, LinearLayout.LayoutParams(-1, 56))
+            lockOverlay = box
+            rootFrame.addView(box, FrameLayout.LayoutParams(-1, -1))
+        }
+        lockOverlay?.visibility = View.VISIBLE
+        if (!lockPromptShowing) authenticateApp()
+    }
+
+    private fun authenticateApp() {
+        if (lockPromptShowing || !prefs.getBoolean("appLockEnabled", true)) {
+            if (!prefs.getBoolean("appLockEnabled", true)) { appUnlocked = true; lockOverlay?.visibility = View.GONE }
+            return
+        }
+        if (!canUseDeviceAuth()) {
+            prefs.edit().putBoolean("appLockEnabled", false).apply()
+            appUnlocked = true
+            lockOverlay?.visibility = View.GONE
+            toastJs("Your phone does not have a secure screen lock configured, so app lock was turned off.")
+            onPageReady()
+            return
+        }
+        lockPromptShowing = true
+        val executor = ContextCompat.getMainExecutor(this)
+        val prompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                lockPromptShowing = false
+                appUnlocked = true
+                lockOverlay?.visibility = View.GONE
+                onPageReady()
+            }
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                lockPromptShowing = false
+                if (errorCode == BiometricPrompt.ERROR_CANCELED || errorCode == BiometricPrompt.ERROR_USER_CANCELED) {
+                    toastJs("SMS Ledger is locked. Tap Unlock to try again.")
+                } else toastJs(errString.toString())
+            }
+        })
+        val info = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock SMS Ledger")
+            .setSubtitle("Your financial data is protected on this device.")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            .build()
+        prompt.authenticate(info)
+    }
+
+    private fun setAppLockEnabled(enabled: Boolean) {
+        if (!enabled) { prefs.edit().putBoolean("appLockEnabled", false).apply(); appUnlocked = true; return }
+        if (!canUseDeviceAuth()) { toastJs("Set a fingerprint, face or device PIN on your phone first."); return }
+        prefs.edit().putBoolean("appLockEnabled", true).apply(); appUnlocked = false; showAppLockOverlay()
     }
 
     override fun onDestroy() {
@@ -358,20 +463,21 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         NotificationManagerCompat.from(this).cancel(SmsReceiver.NOTIFY_ID)
+        if (prefs.getBoolean("appLockEnabled", true) && !appUnlocked) {
+            showAppLockOverlay()
+            return
+        }
         if (pageReady) {
             pushStatus()
             if (prefs.getBoolean("smsDataReady", false)) drainPendingSms()
-            // Never scan SMS merely because Android reports the permission as granted.
-            // First-run onboarding must complete before any SMS is read.
+            // New SMS are received immediately by SmsReceiver. Avoid rescanning the entire inbox
+            // on every resume; this was a major source of the few-second startup delay.
             val smsConsentConfirmed = prefs.getBoolean("smsConsentConfirmed", false)
-            if (smsConsentConfirmed && hasSms() && prefs.getBoolean("smsDataReady", false)) {
-                // v1.47: migrate existing installations from the old 90-day first import
-                // to a one-time full historical bank-SMS import.
-                if (!prefs.getBoolean("fullSmsImportV47Done", false)) {
-                    scanInbox(0L, announce = true)
-                } else if (prefs.getBoolean("initialImportDone", false)) {
-                    scanInbox()
-                }
+            val lastScan = prefs.getLong("lastScan", 0L)
+            val recentlyScanned = System.currentTimeMillis() - lastScan < 5L * 60L * 1000L
+            if (smsConsentConfirmed && hasSms() && prefs.getBoolean("smsDataReady", false) && !recentlyScanned) {
+                if (!prefs.getBoolean("fullSmsImportV47Done", false)) scanInbox(0L, announce = true)
+                else if (prefs.getBoolean("initialImportDone", false)) web.postDelayed({ scanInbox() }, 1200L)
             }
             web.evaluateJavascript("window.appOnline && window.appOnline()", null)
         }
@@ -380,6 +486,7 @@ class MainActivity : ComponentActivity() {
     private var waitingForLanguage = false
 
     private fun onPageReady() {
+        if (prefs.getBoolean("appLockEnabled", true) && !appUnlocked) return
         pushStatus()
         web.evaluateJavascript("window.appOnline && window.appOnline()", null)
         if (prefs.getBoolean("smsDataReady", false)) drainPendingSms()
@@ -646,6 +753,12 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun backupNow(): Boolean = BackupScheduler.backupNow(this@MainActivity)
+
+        @JavascriptInterface
+        fun isAppLockEnabled(): Boolean = prefs.getBoolean("appLockEnabled", true)
+
+        @JavascriptInterface
+        fun setAppLockEnabled(enabled: Boolean) = runOnUiThread { setAppLockEnabled(enabled) }
 
         /** The theme the person picked in Settings: "system", "light" or "dark". Applied immediately. */
         @JavascriptInterface
