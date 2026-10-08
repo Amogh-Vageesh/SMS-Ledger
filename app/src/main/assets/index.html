@@ -2610,15 +2610,21 @@ function openSubscriptionLinkSheet(key){
 function renderSubscriptionCard(periodMode, cursorMonth, year){
   const subs=allSubs(); if(!subs.length) return `<div class="card"><div class="card-h"><h2>Subscriptions & recurring</h2><button class="mini" id="addSubLedger">+ Add</button></div><p class="help">Track subscriptions, recurring payments and variable bills here.</p></div>`;
   let start=null,end=null,label="";
-  if(periodMode==="month"){ const d=new Date(cursorMonth+"-01T00:00:00"); start=iso(d); d.setMonth(d.getMonth()+1); d.setDate(0); end=iso(d); label=monthLabel(cursorMonth); }
-  else if(periodMode==="quarter"){ const [y,q]=quarterParts(cursorMonth); const d=new Date(y,(q-1)*3,1); start=iso(d); d.setMonth(d.getMonth()+3); d.setDate(0); end=iso(d); label=`Q${q} ${y}`; }
-  else if(periodMode==="year"){ start=`${year}-01-01`; end=`${year}-12-31`; label=String(year); }
-  else { label="All years"; }
-  const cats={}; let total=0;
-  subs.forEach(x=>{const sp=subscriptionSpendFor(x.key,start,end); if(sp.count){const c=x.category||"Other";cats[c]=(cats[c]||0)+sp.amount;total+=sp.amount;}});
-  const rows=subs.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).slice(0,10).map(x=>{const sp=subscriptionSpendFor(x.key,start,end);const variable=x.amountMode==="variable";const amount=sp.count?sp.amount:(Number(x.perMonth)||0);return `<button class="trow" data-sub-open="${esc(x.key)}"><div class="l1 num"><span>${esc(x.name)}</span><b>${money(amount,true)}${variable?" · Variable":""}</b></div><div class="l2"><span class="chip">${esc(x.category||"Other")}</span><span>${esc(subscriptionFreqLabel(x.freq))}${x.next?` · Next ${esc(niceDate(x.next))}`:""}</span></div></button>`;}).join("");
-  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="subscription-category-row"><span class="subscription-category-name"><span class="dot" style="background:${CAT_COLOR[c]||"#777"}"></span>${esc(c)}</span><span class="subscription-category-amount num">${money(v)}</span></div>`).join("");
-  return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="pane-icon">↻</span></summary><div style="margin-top:10px"><div class="summary-cats" style="margin-bottom:8px">${catRows||'<p class="help">No linked payments in this period.</p>'}</div>${rows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
+  if(periodMode==="month"){start=cursorMonth;end=cursorMonth;label=monthLabel(cursorMonth);}
+  else if(periodMode==="quarter"){const ms=quarterMonths(cursorMonth);start=ms[0];end=ms[2];label=quarterLabelForMonth(cursorMonth);}
+  else if(periodMode==="year"){start=`${year}-01`;end=`${year}-12`;label=String(year);}
+  else {label="All years";}
+  const groups={}; let total=0;
+  subs.forEach(x=>{const c=x.category||"Other";(groups[c]||(groups[c]=[])).push(x);const sp=subscriptionSpendFor(x.key,start,end);if(sp.count)total+=sp.amount;});
+  const categoryRows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,items])=>{
+    let catSpend=0; items.forEach(x=>{const sp=subscriptionSpendFor(x.key,start,end);catSpend+=sp.count?sp.amount:(Number(x.perMonth)||0);});
+    const itemRows=items.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).map(x=>{
+      const sp=subscriptionSpendFor(x.key,start,end), variable=x.amountMode==="variable", amount=sp.count?sp.amount:(Number(x.perMonth)||0);
+      return `<button class="subscription-item-row" data-sub-open="${esc(x.key)}"><span class="subscription-item-name"><b>${esc(x.name)}</b><small>${x.next?`Next ${esc(niceDate(x.next))}`:""}</small></span><span class="subscription-item-value"><b>${money(amount,true)}${variable?" · Variable":""}</b><small>${esc(subscriptionFreqLabel(x.freq))}</small></span></button>`;
+    }).join("");
+    return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>/ month</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
+  }).join("");
+  return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="pane-icon">↻</span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -2743,13 +2749,15 @@ function renderAccounts(){
       html+=`<div class="asset-account-switch"><button class="btn ${assetFilter==="Active"?"active":""}" id="assetActiveFilter">Active accounts</button><button class="btn ${accountView==="Credit"?"active":""}" id="assetCreditFilter">Credit cards</button><button class="btn ${assetFilter==="Closed"?"active":""}" id="assetClosedFilter">Closed accounts</button></div>`;
       html+=`<details class="asset-pane collapsible-pane" data-asset-pane="assets" ${assetPaneOpen.assets?"open":""}><summary data-pane-toggle="assets"><div><h2>${assetFilter==="Closed"?"Closed assets":"Assets"}</h2><p>${assets.length} asset${assets.length===1?'':'s'} · ${safeMoney(assetTotal)}</p></div><span class="pane-icon">◆</span></summary>${assetFilter!=="Closed"?`<div class="pane-action"><button type="button" class="btn primary" id="addAssetInPane">+ Add asset</button></div>`:''}`;
       if(assets.length){
-        html+=assets.map(a=>{
-          try{
-            const linked=assetLinkedExpenses(a).length;
-            const loanAgg=assetLoanAggregate(a);
-            const icon=a?.type==="vehicle"?'🚗':a?.type==="gold"?'◈':a?.type==="land"?'⌂':'▦';
-            return `<div class="asset-card-row" data-asset-row="${esc(a?.id||"")}"><button type="button" class="asset-main-button" data-asset="${esc(a?.id||"")}"><span class="asset-icon">${icon}</span><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>Total spent ${safeMoney(assetTotalSpent(a))}</small></span><span class="asset-value-wrap"><small class="asset-current-label">Current value</small><strong class="num">${safeMoney(assetCurrentValue(a))}</strong>${assetValueIndicator(a)}</span><span class="chev">›</span></button><button type="button" class="mini asset-loan-btn" data-add-loan-asset="${esc(a?.id||"")}">+ Add loan / lender</button></div>`;
-          }catch(e){ diag.push("asset row"); return `<div class="pane-empty">${esc(a?.name||"Asset")} · ${safeMoney(a?.currentValue)}</div>`; }
+        const assetGroups={}; assets.forEach(a=>{const k=assetTypeLabel(a.type)||"Other Assets";(assetGroups[k]||(assetGroups[k]=[])).push(a);});
+        html+=Object.entries(assetGroups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,items])=>{
+          const catTotal=items.reduce((n,a)=>n+assetCurrentValue(a),0);
+          const itemRows=items.map(a=>{
+            try{
+              return `<button type="button" class="asset-simple-row" data-asset="${esc(a?.id||"")}"><span class="asset-row-main"><b>${esc(a?.name||"Unnamed asset")}</b><small>${esc(assetTypeLabel(a.type)||"")} · Total spent ${safeMoney(assetTotalSpent(a))}</small></span><span class="asset-simple-value"><b class="num">${safeMoney(assetCurrentValue(a))}</b><small>Current value</small></span></button>`;
+            }catch(e){ diag.push("asset row"); return `<div class="pane-empty">${esc(a?.name||"Asset")} · ${safeMoney(a?.currentValue)}</div>`; }
+          }).join("");
+          return `<div class="asset-category-block"><button type="button" class="asset-category-row" data-asset-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} asset${items.length===1?"":"s"}</small></span><span class="asset-category-right"><b class="num">${safeMoney(catTotal)}</b><small>Current value</small><i>⌄</i></span></button><div class="asset-category-items hidden">${itemRows}</div></div>`;
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
       html+=`</details>`;
@@ -4514,6 +4522,7 @@ document.getElementById("overviewBody").addEventListener("click", e=>{
   const op = e.target.closest("[data-open]"); if(op){ cursor = op.dataset.open; ovMode = "month"; window.scrollTo(0,0); render(); return; }
   const yb = e.target.closest("[data-year]"); if(yb){ ovYear = +yb.dataset.year; ovMode = "year"; window.scrollTo(0,0); render(); return; }
   const mn = e.target.closest("[data-merchant]"); if(mn){ openMerchant(mn.dataset.merchant, "overview"); return; }
+  const subCat=e.target.closest("[data-sub-category]"); if(subCat){ const body=subCat.parentElement.querySelector(".subscription-category-items"); if(body){body.classList.toggle("hidden"); const i=subCat.querySelector("i"); if(i)i.textContent=body.classList.contains("hidden")?"⌄":"⌃";} return; }
   const sub=e.target.closest("[data-sub-open]"); if(sub){ openRecurringSheet(sub.dataset.subOpen); return; }
   if(e.target.closest("#addSubLedger")){ openSubSheet(); return; }
   const c = e.target.closest("[data-cat]"); if(c){ listCat = c.dataset.cat; view = "list"; render(); }
@@ -4567,6 +4576,7 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   if(e.target.id === "unhideAccts"){ Object.values(state.accounts).forEach(a=>delete a.hidden); persist([], true); render(); return; }
   const stg=e.target.closest("[data-section-toggle]"); if(stg){ const k=stg.dataset.sectionToggle; acctSectionHidden[k]=!acctSectionHidden[k]; render(); return; }
   if(e.target.id === "addAssetInPane"){ openAssetSheet(null); return; }
+  const acat=e.target.closest("[data-asset-category]"); if(acat){ const body=acat.parentElement.querySelector(".asset-category-items"); if(body){body.classList.toggle("hidden"); const i=acat.querySelector("i"); if(i)i.textContent=body.classList.contains("hidden")?"⌄":"⌃";} return; }
   const addKind=e.target.closest("[data-add-account-kind]"); if(addKind){ const kind=addKind.dataset.addAccountKind; openAcctSheet(null,"",kind); return; }
   if(e.target.closest("#openLiabilityDetails")){ openLiabilityDetails(); return; }
   const al=e.target.closest("[data-add-loan-asset]"); if(al){ openAcctSheet(null,al.dataset.addLoanAsset); return; }
@@ -5672,4 +5682,84 @@ button.insurance-row{
  .asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(78px,max-content) 18px!important;gap:6px!important;}
  .asset-card-row .asset-value-wrap{min-width:78px!important;}
 }
+</style>
+<style>
+/* v1.122 established two-column mobile rows: no decorative icons */
+.subscription-groups,.asset-category-block{width:100%;}
+.subscription-category-block,.asset-category-block{border-bottom:1px solid var(--rule);}
+.subscription-category-block:last-child,.asset-category-block:last-child{border-bottom:0;}
+.subscription-category-row,.asset-category-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:0;background:var(--panel);color:var(--text);text-align:left;box-sizing:border-box;}
+.subscription-category-row:active,.asset-category-row:active,.subscription-item-row:active,.asset-simple-row:active{background:var(--soft);}
+.subscription-category-row>span:first-child,.asset-category-row>span:first-child{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.subscription-category-row b,.asset-category-row b{font-size:15px;line-height:1.25;}
+.subscription-category-row small,.asset-category-row small{color:var(--muted);font-size:11px;line-height:1.2;}
+.subscription-category-right,.asset-category-right{display:grid;grid-template-columns:auto 18px;grid-template-rows:auto auto;column-gap:7px;align-items:center;text-align:right;min-width:90px;}
+.subscription-category-right b,.asset-category-right b{grid-column:1;font-size:14px;white-space:nowrap;}
+.subscription-category-right small,.asset-category-right small{grid-column:1;}
+.subscription-category-right i,.asset-category-right i{grid-column:2;grid-row:1/3;font-style:normal;font-size:18px;color:var(--muted);}
+.subscription-category-items,.asset-category-items{background:var(--raise);}
+.subscription-item-row,.asset-simple-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 14px 11px 22px;border:0;border-top:1px solid var(--rule);background:var(--raise);color:var(--text);text-align:left;box-sizing:border-box;}
+.subscription-item-name,.asset-row-main{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.subscription-item-name b,.asset-row-main b{font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-item-name small,.asset-row-main small,.subscription-item-value small,.asset-simple-value small{font-size:11px;color:var(--muted);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-item-value,.asset-simple-value{min-width:88px;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.subscription-item-value b,.asset-simple-value b{font-size:14px;line-height:1.2;white-space:nowrap;}
+.asset-simple-value{min-width:100px;}
+.asset-simple-row{padding-left:22px;}
+/* Hide old icon columns only in the newly grouped asset rows */
+.asset-category-block .asset-icon,.asset-category-block .asset-loan-btn{display:none!important;}
+@media(max-width:390px){
+ .subscription-category-row,.asset-category-row{padding:12px 12px;gap:8px;}
+ .subscription-item-row,.asset-simple-row{padding:10px 12px 10px 18px;gap:8px;}
+ .subscription-category-right,.asset-category-right{min-width:82px;}
+ .subscription-item-value{min-width:82px;}
+ .asset-simple-value{min-width:88px;}
+ .subscription-category-row b,.asset-category-row b{font-size:14px;}
+ .subscription-item-name b,.asset-row-main b{font-size:13px;}
+ .subscription-item-value b,.asset-simple-value b{font-size:13px;}
+}
+</style>
+<style>
+/* v1.122: established two-column mobile rows; no decorative icons in grouped assets/protection-adjacent lists */
+.subscription-groups,.asset-category-block{width:100%;}
+.subscription-category-block,.asset-category-block{border-bottom:1px solid var(--rule);}
+.subscription-category-block:last-child,.asset-category-block:last-child{border-bottom:0;}
+.subscription-category-row,.asset-category-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:0;background:var(--panel);color:var(--text);text-align:left;box-sizing:border-box;}
+.subscription-category-row:active,.asset-category-row:active,.subscription-item-row:active,.asset-simple-row:active{background:var(--soft);}
+.subscription-category-row>span:first-child,.asset-category-row>span:first-child{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.subscription-category-row b,.asset-category-row b{font-size:15px;line-height:1.25;}
+.subscription-category-row small,.asset-category-row small{color:var(--muted);font-size:11px;line-height:1.2;}
+.subscription-category-right,.asset-category-right{display:grid;grid-template-columns:auto 18px;grid-template-rows:auto auto;column-gap:7px;align-items:center;text-align:right;min-width:90px;}
+.subscription-category-right b,.asset-category-right b{grid-column:1;font-size:14px;white-space:nowrap;}
+.subscription-category-right small,.asset-category-right small{grid-column:1;}
+.subscription-category-right i,.asset-category-right i{grid-column:2;grid-row:1/3;font-style:normal;font-size:18px;color:var(--muted);}
+.subscription-category-items,.asset-category-items{background:var(--raise);}
+.subscription-item-row,.asset-simple-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 14px 11px 22px;border:0;border-top:1px solid var(--rule);background:var(--raise);color:var(--text);text-align:left;box-sizing:border-box;}
+.subscription-item-name,.asset-row-main{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.subscription-item-name b,.asset-row-main b{font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-item-name small,.asset-row-main small,.subscription-item-value small,.asset-simple-value small{font-size:11px;color:var(--muted);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-item-value,.asset-simple-value{min-width:88px;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.subscription-item-value b,.asset-simple-value b{font-size:14px;line-height:1.2;white-space:nowrap;}
+.asset-simple-value{min-width:100px;}
+.asset-simple-row{padding-left:22px;}
+@media(max-width:390px){
+ .subscription-category-row,.asset-category-row{padding:12px 12px;gap:8px;}
+ .subscription-item-row,.asset-simple-row{padding:10px 12px 10px 18px;gap:8px;}
+ .subscription-category-right,.asset-category-right{min-width:82px;}
+ .subscription-item-value{min-width:82px;}
+ .asset-simple-value{min-width:88px;}
+ .subscription-category-row b,.asset-category-row b{font-size:14px;}
+ .subscription-item-name b,.asset-row-main b{font-size:13px;}
+ .subscription-item-value b,.asset-simple-value b{font-size:13px;}
+}
+</style>
+<style>
+/* v1.122: remove decorative icons from Protection lists and keep two-column established rows */
+.prot-category-head{grid-template-columns:minmax(0,1fr) 24px!important;gap:8px!important;padding-left:14px!important;}
+.prot-category-head .insurance-icon{display:none!important;}
+.prot-category-head .insurance-main{min-width:0;}
+.prot-item{grid-template-columns:minmax(0,1fr) minmax(82px,max-content) 18px!important;gap:8px!important;padding-left:22px!important;}
+.prot-item .insurance-icon{display:none!important;}
+.prot-item .insurance-main{min-width:0;}
+.asset-pane[data-asset-pane="assets"]>summary .pane-icon{display:none!important;}
 </style>
