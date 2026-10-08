@@ -831,7 +831,7 @@ const CATS = [
   ["Shopping","#c77aa0"],["Bills & utilities","#9b8fd6"],["Entertainment","#e07f6a"],["Health","#5fb3a3"],
   ["Travel","#4f8fd9"],["Education","#b5a84a"],["Investments","#7cc49a"],["EMI & loans","#a0677a"],
   ["Rent","#8c7a5e"],["Transfers","#8a93a0"],["Cash","#b0a58f"],["Other","#6d665a"],
-  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
+  ["Self transfer","#6f7f8f"],["Friends and family transfers","#9b8ab0"],["Payment confirmation","#7c8896"],["Card payments","#5c6f86"],["Protection","#d6a12f"],["Loan repayment","#7a9e8f"],["Loan proceeds","#8d9c68"],["Loan transfer","#8b7aa8"],["Income","#93b98c"],["Refunds","#77b3b0"]
 ];
 const BASE_CAT_COUNT = CATS.length;
 const PALETTE = ["#d17b88","#7aa6a1","#c2a06b","#8e86c9","#6fae7c","#c78b62","#5f95b8","#b7b35a","#a57bb0","#6c9a8b","#c96f5e","#8aa35c"];
@@ -1157,7 +1157,7 @@ function applyLanguage(lang){
 
 /* ---------- State ---------- */
 const LS_KEY = "smsledger.v1";
-function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [], insurance: [], financeFamilyScope: "all" }; }
+function blankState(){ return { onboardingVersion: 0, smsPermissionConfirmed: false, txns: [], rules: {}, budgets: {}, bills: [], accounts: {}, subsHidden: [], monthStart: 1, names: {}, customCats: [], subsManual: [], assets: [], family: { members: {}, completeDataSharing: false, completeDataShareWith: "all" }, lang: "", ruleBase: { rules: {}, names: {}, labels: {} }, people: {}, events: {}, calendar: [], shopping: [], loanDocuments: [], insurance: [], warranties: [], maintenancePlans: [], financeFamilyScope: "all" }; }
 let state = blankState();
 let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
@@ -1264,7 +1264,7 @@ async function flushDb(){
     setStatus("Couldn't sync just now. Your entries are safe on this device.");
   }
 }
-function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [] }; }
+function settingsDoc(){ return { rules: state.rules, ruleBase: state.ruleBase, budgets: state.budgets, bills: state.bills, accounts: state.accounts, subsHidden: state.subsHidden, monthStart: state.monthStart, names: state.names, customCats: state.customCats, subsManual: state.subsManual, assets: state.assets || [], insurance: state.insurance || [], warranties: state.warranties || [], maintenancePlans: state.maintenancePlans || [] }; }
 async function connectDb(){
   try{
     if(!window.claude || !window.claude.use) return;
@@ -1558,6 +1558,9 @@ function categorize(merchant, low, isCredit, mode, vpa){
   // short keywords ("vi", "lic", "mf") must be whole words, so names like "Ravi" don't match
   const has = (text, w) => { const k = w.trim(); return k.length <= 3 ? new RegExp("(^|[^a-z])" + k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "([^a-z]|$)").test(text) : text.includes(w); };
   if(!isCredit){
+    const ph = hay + " " + low;
+    if(/\b(insurance|insurer|premium|policy|lic|hdfc life|icici pru|sbi life|star health|niva bupa|care health|acko|bajaj allianz|tata aig|go digit|digit insurance)\b/i.test(ph)) return "Protection";
+    if(/\b(warranty|extended warranty|amc|annual maintenance|maintenance package|service package|care plan)\b/i.test(ph)) return "Protection";
     for(const [cat, words] of Object.entries(KEYWORDS)) if(words.some(w=>has(hay, w))) return cat;
     for(const [cat, words] of Object.entries(KEYWORDS)) if(words.some(w=>has(" "+low+" ", w))) return cat;
   }
@@ -2171,7 +2174,7 @@ const FAMILY_SHARE_LABELS={ledger:"Ledger / Transactions",banks:"Bank Accounts",
 function familyShareConfig(uid){ const fam=state.family=state.family||{members:{}}; fam.sectionSharing=fam.sectionSharing||{}; const cur=fam.sectionSharing[uid]||{}; const out={...FAMILY_SHARE_DEFAULTS,...cur}; fam.sectionSharing[uid]=out; return out; }
 function filteredCompleteStateForMember(uid){
   const c=familyShareConfig(uid), src=state;
-  const out={...src,txns:c.ledger?(src.txns||[]).map(x=>({...x})):[],assets:c.assets?(src.assets||[]).map(x=>({...x})) : [],accounts:{},insurance:c.insurance?(src.insurance||[]).map(x=>({...x})):[],budgets:c.budgets?{...(src.budgets||{})}:{},events:c.budgets?(src.events||[]).map(x=>({...x})):[],calendar:c.budgets?(src.calendar||[]).map(x=>({...x})):[],shopping:c.budgets?(src.shopping||[]).map(x=>({...x})):[],loanDocuments:c.loans?(src.loanDocuments||[]).map(x=>({...x})):[]};
+  const out={...src,txns:c.ledger?(src.txns||[]).map(x=>({...x})):[],assets:c.assets?(src.assets||[]).map(x=>({...x})) : [],accounts:{},insurance:c.insurance?(src.insurance||[]).map(x=>({...x})):[],warranties:c.insurance?(src.warranties||[]).map(x=>({...x})):[],maintenancePlans:c.insurance?(src.maintenancePlans||[]).map(x=>({...x})):[],budgets:c.budgets?{...(src.budgets||{})}:{},events:c.budgets?(src.events||[]).map(x=>({...x})):[],calendar:c.budgets?(src.calendar||[]).map(x=>({...x})):[],shopping:c.budgets?(src.shopping||[]).map(x=>({...x})):[],loanDocuments:c.loans?(src.loanDocuments||[]).map(x=>({...x})):[]};
   Object.entries(src.accounts||{}).forEach(([k,a])=>{if(!a||a.hidden)return; const kind=a.kind||"bank"; const isRet=/epf|pf|nps|pension|retirement|provident/i.test(String(a.label||"")+" "+String(a.kind||"")); const ok=(kind==="bank"&&c.banks)||(kind==="card"&&c.cards)||(kind==="invest"&&c.investments)||(kind==="loan"&&c.loans)||(isRet&&c.retirement)||((kind==="wallet"||kind==="fastag")&&c.cash); if(!ok)return; out.accounts[k]={...a};});
   out.family={cloudId:src.family?.cloudId,cloudName:src.family?.cloudName,cloudCode:src.family?.cloudCode,me:src.family?.me}; out.googleOnboardingDone=undefined; out.googleSkipped=undefined; return out;
 }
@@ -3201,31 +3204,37 @@ function openWarrantySheet(existingId){
   const p={...(state.warranties||[]).find(x=>x.id===existingId)||{}};
   sheet(existingId?"Edit warranty":"Add warranty",`<div class="two"><label class="field"><span>Warranty / product</span><input id="war-name" value="${esc(p.name||"")}"></label><label class="field"><span>Provider</span><input id="war-provider" value="${esc(p.provider||"")}"></label></div><div class="two"><label class="field"><span>Warranty number</span><input id="war-no" value="${esc(p.warrantyNumber||"")}"></label><label class="field"><span>Coverage / value (₹)</span><input id="war-cover" inputmode="decimal" value="${p.coverage||""}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="war-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="war-end" type="date" value="${p.expiryDate||""}"></label></div><label class="field"><span>Notes</span><input id="war-note" value="${esc(p.note||"")}"></label>`,sc=>{
     const name=sc.querySelector('#war-name').value.trim(); if(!name){toast('Enter the warranty or product name.');return false;}
-    const obj={...p,id:p.id||'war-'+uidGen(),name,provider:sc.querySelector('#war-provider').value.trim(),warrantyNumber:sc.querySelector('#war-no').value.trim(),coverage:Number(sc.querySelector('#war-cover').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#war-start').value||todayISO(),expiryDate:sc.querySelector('#war-end').value||'',note:sc.querySelector('#war-note').value.trim()};
+    const obj={...p,id:p.id||'war-'+uidGen(),name,provider:sc.querySelector('#war-provider').value.trim(),warrantyNumber:sc.querySelector('#war-no').value.trim(),category:p.category||'Other Warranty',coverage:Number(sc.querySelector('#war-cover').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#war-start').value||todayISO(),expiryDate:sc.querySelector('#war-end').value||'',note:sc.querySelector('#war-note').value.trim()};
     state.warranties=state.warranties||[];const i=state.warranties.findIndex(x=>x.id===obj.id);if(i>=0)state.warranties[i]=obj;else state.warranties.push(obj);persist([],true);toast(existingId?'Warranty updated.':'Warranty added.');
   },existingId?[["Delete",()=>{state.warranties=state.warranties.filter(x=>x.id!==existingId);persist([],true);toast('Warranty deleted.');}]]:null);
 }
+function protectionTxnCount(kind,id){return (state.txns||[]).filter(t=>t.protectionType===kind&&t.protectionId===id).length;}
+function renderProtectionCategoryRows(kind,list,groupMap){
+  const cats=Object.entries(groupMap); return cats.map(([label,items])=>`<div class="insurance-row"><span class="insurance-icon">${kind==='Insurance'?'🛡':kind==='Warranty'?'⚙':'🔧'}</span><span class="insurance-main"><b>${esc(label)}</b><small>${items.length} ${kind==='Insurance'?'polic'+(items.length===1?'y':'ies'):kind==='Warranty'?'warrant'+(items.length===1?'y':'ies'):'plan'+(items.length===1?'':'s')} · ${items.reduce((n,x)=>n+protectionTxnCount(kind,x.id),0)} linked transactions</small></span><span class="num">${kind==='Insurance'?money(items.reduce((n,x)=>n+(Number(x.coverage)||0),0),true):''}</span></div>`).join('');
+}
+function renderMaintenance(list,remote=false){
+ const groups={}; list.forEach(x=>{const k=x.category||'Other Maintenance';(groups[k]||(groups[k]=[])).push(x);});
+ let h=`<div class="card"><div class="card-h"><h2>Maintenance Plans</h2><span class="chart-note">${list.length} plans</span></div><section class="insurance-pane">${list.length?renderProtectionCategoryRows('Maintenance',list,groups):'<div class="pane-empty">No maintenance plans.</div>'}</section>`;
+ if(!remote) h+=`<div class="row"><button class="btn primary" id="addMaintenance">+ Add maintenance plan</button></div>`;
+ return h+'</div>';
+}
+function openMaintenanceSheet(existingId){
+ const p={...(state.maintenancePlans||[]).find(x=>x.id===existingId)||{}};
+ sheet(existingId?'Edit maintenance plan':'Add maintenance plan',`<div class="two"><label class="field"><span>Category</span><select id="mp-cat">${PROTECTION_TYPES.Maintenance.map(x=>`<option${x===(p.category||'Vehicle Maintenance')?' selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Plan / package name</span><input id="mp-name" value="${esc(p.name||'')}"></label></div><div class="two"><label class="field"><span>Provider</span><input id="mp-provider" value="${esc(p.provider||'')}"></label><label class="field"><span>Contract number</span><input id="mp-no" value="${esc(p.contractNumber||'')}"></label></div><div class="two"><label class="field"><span>Linked asset</span><select id="mp-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===p.assetId?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="field"><span>Package cost (₹)</span><input id="mp-cost" inputmode="decimal" value="${p.cost||''}"></label></div><div class="two"><label class="field"><span>Start date</span><input id="mp-start" type="date" value="${p.startDate||todayISO()}"></label><label class="field"><span>Expiry date</span><input id="mp-end" type="date" value="${p.expiryDate||''}"></label></div><div class="two"><label class="field"><span>Services included</span><input id="mp-services" inputmode="numeric" value="${p.servicesIncluded||''}"></label><label class="field"><span>Next service</span><input id="mp-next" type="date" value="${p.nextServiceDate||''}"></label></div><label class="field"><span>Notes / services included</span><input id="mp-note" value="${esc(p.note||'')}"></label>`,sc=>{const name=sc.querySelector('#mp-name').value.trim();if(!name){toast('Enter the maintenance plan name.');return false;}const obj={...p,id:p.id||'mp-'+uidGen(),category:sc.querySelector('#mp-cat').value,name,provider:sc.querySelector('#mp-provider').value.trim(),contractNumber:sc.querySelector('#mp-no').value.trim(),assetId:sc.querySelector('#mp-asset').value||'',cost:Number(sc.querySelector('#mp-cost').value.replace(/[,₹\s]/g,''))||0,startDate:sc.querySelector('#mp-start').value||todayISO(),expiryDate:sc.querySelector('#mp-end').value||'',servicesIncluded:Number(sc.querySelector('#mp-services').value)||0,nextServiceDate:sc.querySelector('#mp-next').value||'',note:sc.querySelector('#mp-note').value.trim()};state.maintenancePlans=state.maintenancePlans||[];const i=state.maintenancePlans.findIndex(x=>x.id===obj.id);if(i>=0)state.maintenancePlans[i]=obj;else state.maintenancePlans.push(obj);persist([],true);toast(existingId?'Maintenance plan updated.':'Maintenance plan added.');},existingId?[['Delete',()=>{state.maintenancePlans=state.maintenancePlans.filter(x=>x.id!==existingId);persist([],true);toast('Maintenance plan deleted.');}]]:null);
+}
 function renderInsurance(){
-  const el=document.getElementById("insuranceBody"); if(!el)return;
-  const remote=selectedRemoteCompleteState();
-  let list=[];
-  if(remote) list=Array.isArray(remote.insurance)?remote.insurance.slice():[];
-  else if(financeFamilyScope==="all"){
-    list=(state.insurance||[]).slice();
-    familyMembers().forEach(m=>{if(Array.isArray(m.completeState?.insurance))list.push(...m.completeState.insurance);});
-    const seen=new Set(); list=list.filter(p=>{const k=String(p.id||"")+"|"+String(p.policyNumber||"")+"|"+String(p.insurer||"");if(seen.has(k))return false;seen.add(k);return true;});
-  } else list=(state.insurance||[]).slice();
-  const active=list.filter(p=>insuranceStatus(p)==="Active"),expired=list.filter(p=>insuranceStatus(p)==="Expired");
-  const filter=state.insuranceFilter||"Active",shown=filter==="Expired"?expired:active;
-  let html=renderFinanceHubTop();
-  const accidentalTotal=list.reduce((n,p)=>n+(Number(p.accidentalCoverage)||0),0);
-  html+=`<div class="card"><div class="card-h"><h2>Coverage</h2><span class="chart-note">${shown.length} shown</span></div><div class="insurance-summary"><div><small>Life</small><b>${money(insuranceCoverageTotal(list,"Term/Life"))}</b></div><div><small>Accidental</small><b>${money(accidentalTotal)}</b></div><div><small>Health</small><b>${money(insuranceCoverageTotal(list,"Health"))}</b></div></div><p class="hint">Insurance is protection, not an asset or net-worth value. Premiums remain expenses.</p></div>`;
-  html+=`<div class="insurance-filter"><button class="${filter==="Active"?"active":""}" data-ins-filter="Active">Active (${active.length})</button><button class="${filter==="Expired"?"active":""}" data-ins-filter="Expired">Expired (${expired.length})</button></div>`;
-  html+=`<section class="insurance-pane">${shown.length?shown.map(p=>`<div class="insurance-row" data-ins-id="${esc(p.id||"")}"><span class="insurance-icon">${p.type==="Health"?"♥":p.type==="Term/Life"?"◇":p.type==="Vehicle"?"🚗":p.type==="Travel & One-Time"?"✈":"▣"}</span><span class="insurance-main"><b>${esc(p.insurer||"Insurance policy")}</b><small>${esc(p.coveredMembers||"")} · ${esc(p.policyNumber||"No policy number")}</small><small>Sum assured ${money(Number(p.coverage)||0,true)} · Accidental ${money(Number(p.accidentalCoverage)||0,true)}</small></span><span class="num">${money(Number(p.coverage)||0,true)}</span></div>`).join(""):`<div class="pane-empty">No ${filter.toLowerCase()} insurance policies.</div>`}</section>`;
-  if(!remote) html+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="addInsurance">+ Add insurance</button><button class="btn" id="uploadInsurancePolicy">Import policy document(s)</button></div><p class="help">Import one or many policy PDFs/text reports. The app will extract policy rows into a review list before saving. Manual entry remains available.</p>`;
-  let warranties=[]; if(remote) warranties=Array.isArray(remote.warranties)?remote.warranties.slice():[]; else warranties=(state.warranties||[]).slice();
-  html+=renderWarranties(warranties,remote);
-  el.innerHTML=html;bindFinanceHub();
+ const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();let ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
+ const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');
+ const wg=group(war,x=>x.category||'Other Warranty');
+ let html=renderFinanceHubTop();html+=`<div class="card"><div class="card-h"><h2>Insurances & Warranties</h2><span class="chart-note">${ins.length} policies · ${war.length} warranties · ${mp.length} plans</span></div><div class="insurance-filter"><button class="active" data-prot-tab="Overview">Overview</button><button data-prot-tab="Insurances">Insurances</button><button data-prot-tab="Warranties">Warranties</button><button data-prot-tab="Maintenance">Maintenance</button></div></div>`;
+ html+=`<div class="card"><div class="card-h"><h2>Insurances</h2><button class="mini" data-prot-collapse="insurance">⌃</button></div><div id="prot-insurance">${renderProtectionCategoryRows('Insurance',ins,ig)||'<p class="help">No insurance policies.</p>'}</div></div>`;
+ html+=`<div class="card"><div class="card-h"><h2>Warranties</h2><button class="mini" data-prot-collapse="warranty">⌃</button></div><div id="prot-warranty">${renderProtectionCategoryRows('Warranty',war,wg)||'<p class="help">No warranties.</p>'}</div></div>`;
+ html+=`<div class="card"><div class="card-h"><h2>Maintenance Plans</h2><button class="mini" data-prot-collapse="maintenance">⌃</button></div><div id="prot-maintenance">${renderProtectionCategoryRows('Maintenance',mp,group(mp,x=>x.category||'Other Maintenance'))||'<p class="help">No maintenance plans.</p>'}</div></div>`;
+ if(!remote) html+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="addInsurance">+ Add insurance</button><button class="btn" id="addWarranty">+ Add warranty</button><button class="btn" id="addMaintenance">+ Add maintenance</button><button class="btn" id="uploadInsurancePolicy">Import policy document(s)</button></div>`;
+ el.innerHTML=html;bindFinanceHub();
+ el.querySelector('#addMaintenance')?.addEventListener('click',()=>openMaintenanceSheet());
+ el.querySelectorAll('[data-prot-collapse]').forEach(b=>b.addEventListener('click',()=>{const id='prot-'+(b.dataset.protCollapse==='insurance'?'insurance':b.dataset.protCollapse==='warranty'?'warranty':'maintenance');const x=el.querySelector('#'+id);if(x){x.classList.toggle('hidden');b.textContent=x.classList.contains('hidden')?'⌄':'⌃';}}));
+ el.querySelectorAll('.insurance-row').forEach(r=>r.addEventListener('click',()=>{const kind=r.querySelector('.insurance-icon')?.textContent||'';}));
 }
 function openInsuranceSheet(existingId, extracted={}){
   const p={...(state.insurance||[]).find(x=>x.id===existingId)||{}, ...extracted};
@@ -3906,6 +3915,37 @@ function openEventPicker(currentId, forName, forDate, onPick){
   });
 }
 
+
+const PROTECTION_TYPES={
+  Insurance:["Life Insurance","Health Insurance","Vehicle Insurance","Property Insurance","Travel Insurance","Other Insurance"],
+  Warranty:["Vehicle Warranty","Mobile & Electronics Warranty","Home Appliance Warranty","Other Warranty"],
+  Maintenance:["Vehicle Maintenance","Home Appliance Maintenance","Home / Property Maintenance","Electronics Maintenance","Other Maintenance"]
+};
+function protectionItems(kind){
+  if(kind==='Insurance') return (state.insurance||[]).map(x=>({id:x.id,name:x.insurer||'Insurance policy',sub:x.type||'Insurance',meta:x.policyNumber||''}));
+  if(kind==='Warranty') return (state.warranties||[]).map(x=>({id:x.id,name:x.name||x.product||'Warranty',sub:x.category||'Warranty',meta:x.warrantyNumber||''}));
+  return (state.maintenancePlans||[]).map(x=>({id:x.id,name:x.name||'Maintenance plan',sub:x.category||'Maintenance',meta:x.contractNumber||''}));
+}
+function protectionMatch(t){
+  const text=mkey((t.merchant||'')+' '+(t.raw||'')+' '+(t.note||''));
+  const checks=[['Insurance',state.insurance||[],x=>[x.insurer,x.policyNumber,x.note,x.coveredMembers].join(' ')],['Warranty',state.warranties||[],x=>[x.name,x.provider,x.warrantyNumber,x.note].join(' ')],['Maintenance',state.maintenancePlans||[],x=>[x.name,x.provider,x.contractNumber,x.note].join(' ')]];
+  for(const [kind,list,get] of checks){
+    const hit=list.find(x=>{const vals=mkey(get(x)||''); return vals && (text.includes(vals) || vals.split(' ').filter(z=>z.length>3).some(z=>text.includes(z)));});
+    if(hit) return {kind,id:hit.id};
+  }
+  return null;
+}
+function protectionLinkBlock(t){
+  const p=t.protectionType||''; const id=t.protectionId||'';
+  const opts=['Insurance','Warranty','Maintenance'].map(k=>`<option value="${k}"${k===p?' selected':''}>${k}</option>`).join('');
+  const initial=p||'Insurance'; const items=protectionItems(initial);
+  return `<div id="e-protectionWrap" class="card" style="margin-top:4px;display:${t.category==='Protection'?'block':'none'}"><label class="field" style="margin:0"><span>Protection type</span><select id="e-protectionType">${opts}</select></label><label class="field" style="margin-top:8px"><span>Link to</span><select id="e-protectionId"><option value="">Select ${initial.toLowerCase()}</option>${items.map(x=>`<option value="${esc(x.id)}"${x.id===id?' selected':''}>${esc(x.name)} · ${esc(x.sub)}${x.meta?' · '+esc(x.meta):''}</option>`).join('')}</select></label><p class="help">The Ledger transaction stays the single financial record. Linking only associates it with the Protection item.</p></div>`;
+}
+function refreshProtectionPicker(sc, selectedId){
+  const type=sc.querySelector('#e-protectionType')?.value||'Insurance', sel=sc.querySelector('#e-protectionId'); if(!sel)return;
+  const items=protectionItems(type); sel.innerHTML=`<option value="">Select ${type.toLowerCase()}</option>`+items.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · ${esc(x.sub)}${x.meta?' · '+esc(x.meta):''}</option>`).join('');
+  if(selectedId) sel.value=selectedId;
+}
 function openSheet(t, isNew){
   const loanMatch = !isNew ? findLoanMatch(t) : null;
   const scrim = document.createElement("div"); scrim.className = "scrim";
@@ -3925,6 +3965,7 @@ function openSheet(t, isNew){
       <label class="field"><span>Date</span><input id="e-date" type="date" value="${t.date||todayISO()}"></label>
       <label class="field"><span>Category</span><select id="e-cat">${CATS.map(([c])=>`<option${c===t.category?" selected":""}>${esc(c)}</option>`).join("")}</select></label>
     </div>
+    ${protectionLinkBlock(t)}
     <label class="field"><span>Link to asset / indirect expense</span><select id="e-asset"><option value="">None</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${t.assetId===a.id?" selected":""}>${esc(a.name)} · ${esc(assetTypeLabel(a.type))}</option>`).join("")}</select></label>
     <div id="e-loanLinkWrap" class="card" style="margin-top:4px;display:none"><label class="field" style="margin:0"><span id="e-loanLinkLabel">Link this loan transaction to loan account</span><select id="e-loanAccount"><option value="">Select loan account</option>${Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="loan"&&!a.hidden).map(([k,a])=>`<option value="${esc(k)}"${t.loanAccount===k?" selected":""}>${esc(a.label||a.lenderName||a.bank||"Loan")} · ${money(Number(a.balance)||0,true)}</option>`).join("")}</select></label><p class="help" id="e-loanHint">For Bank/NBFC loans, imported loan statements can match payments using date, amount, lender and loan reference.</p></div>
     ${(()=>{const sug=suggestAssetForTxn(t); return sug&&!t.assetId?`<p class="help" id="e-assetSuggest">Suggested asset: <b>${esc(sug.name)}</b> based on merchant/message. Please confirm by selecting it.</p>`:"";})()}
@@ -3975,7 +4016,7 @@ function openSheet(t, isNew){
     const hit=cand.find(x=>x.score>0)||cand.find(x=>{const n=mkey(x.a.lenderName||x.a.bank||x.a.label||"");return n&&text.includes(n);})||cand.find(x=>x.a.lenderType&&["Bank","NBFC"].includes(x.a.lenderType)&&x.a.account&&t.account===x.a.account);
     if(hit) loanAccountSel.value=hit.k;
   };
-  const syncLoanLink=()=>{ const show=catSelect.value==="EMI & loans"||catSelect.value==="Loan repayment"; if(loanLinkWrap) loanLinkWrap.style.display=show?"block":"none"; const lab=scrim.querySelector("#e-loanLinkLabel"); if(lab) lab.textContent=scrim.querySelector("#e-type").value==="credit"?"Link loan received / disbursement to loan account":"Link loan repayment to loan account"; if(show) autoLoanMatch(); else if(loanAccountSel) loanAccountSel.value=""; };
+  const syncLoanLink=()=>{ const show=catSelect.value==="EMI & loans"||catSelect.value==="Loan repayment"; const pwrap=scrim.querySelector("#e-protectionWrap"); if(pwrap) pwrap.style.display=catSelect.value==="Protection"?"block":"none"; if(pwrap&&catSelect.value==="Protection") refreshProtectionPicker(scrim,t.protectionId); if(loanLinkWrap) loanLinkWrap.style.display=show?"block":"none"; const lab=scrim.querySelector("#e-loanLinkLabel"); if(lab) lab.textContent=scrim.querySelector("#e-type").value==="credit"?"Link loan received / disbursement to loan account":"Link loan repayment to loan account"; if(show) autoLoanMatch(); else if(loanAccountSel) loanAccountSel.value=""; };
   catSelect.onchange=syncLoanLink; syncLoanLink();
   let selPerson = t.person || "";
   let selEvent = t.event || "";
@@ -4037,6 +4078,7 @@ function openSheet(t, isNew){
       category: scrim.querySelector("#e-cat").value || "Other",
       userCat: t.userCat || (!isNew && scrim.querySelector("#e-cat").value !== t.category) || undefined,
       note: scrim.querySelector("#e-note").value.trim() };
+    const pwrap=scrim.querySelector("#e-protectionWrap"); if(upd.category==="Protection"&&pwrap){ upd.protectionType=pwrap.querySelector("#e-protectionType")?.value||"Insurance"; const pid=pwrap.querySelector("#e-protectionId")?.value||""; if(pid) upd.protectionId=pid; else delete upd.protectionId; } else { delete upd.protectionType; delete upd.protectionId; }
     if(String(upd.category||"")!==String(t.category||"")) upd.categoryEdited=true;
     const cur = scrim.querySelector("#e-cur").value;
     if(cur === "INR"){ delete upd.currency; delete upd.fxRate; delete upd.fxAuto; }
