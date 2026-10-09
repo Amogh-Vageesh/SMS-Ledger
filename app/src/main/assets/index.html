@@ -634,6 +634,13 @@ body{font-size:var(--fs-body);line-height:1.45}
 #overviewBody .ledger-pane-chevron,#overviewBody .pane-icon{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:42px;pointer-events:none}
 #overviewBody .ledger-section-jumpbar{display:none!important}
 
+
+/* v1.145: keep recurring section heading and category amounts aligned with Ledger panes. */
+#ledgerSubsPane>summary h2{font-size:16px!important;line-height:1.25!important;margin:0!important;font-weight:700!important;}
+#ledgerSubsPane>summary .ledger-pane-heading{min-width:0;display:flex;flex-direction:column;gap:3px;}
+#ledgerSubsPane>summary .ledger-pane-heading p{margin:4px 0 0;color:var(--muted);font-size:12px;}
+.ledger-subsection-title{font-size:14px;margin:12px 0 4px;color:var(--muted);}
+
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -2313,8 +2320,12 @@ function cleanDuplicateRecurringTransactions(){
 function allSubs(){
   state.subsManual=Array.isArray(state.subsManual)?state.subsManual:[]; state.subsHidden=Array.isArray(state.subsHidden)?state.subsHidden:[]; state.txns=Array.isArray(state.txns)?state.txns:[];
   const det = detectSubs(), keys = new Set(det.map(x=>x.key));
+  // Index latest debit by normalized merchant once; avoid rescanning/sorting every transaction
+  // separately for each manually tracked recurring item on every period switch.
+  const latestDebitByMerchant=new Map();
+  state.txns.forEach(t=>{if(t.type!=="debit")return;const k=mkey(t.merchant);if(!k)return;const prev=latestDebitByMerchant.get(k);if(!prev||String(t.date||"")>String(prev.date||""))latestDebitByMerchant.set(k,t);});
   const man = (state.subsManual||[]).filter(m=>!state.subsHidden.includes(m.key)).map(m=>{
-    const last = state.txns.filter(t=>t.type==="debit" && mkey(t.merchant) === m.key).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const last = latestDebitByMerchant.get(m.key);
     const step = m.freq === "year" ? 365 : m.freq === "quarter" ? 91 : 30;
     let next = null; if(last){ next = last.date; while(next <= todayISO()) next = addDays(next, step); }
     const perMonth = m.freq === "year" ? m.amount/12 : m.freq === "quarter" ? m.amount/3 : m.amount;
@@ -2527,7 +2538,7 @@ function outgoingCompleteStateForMember(uid){
   const anyLedger=allow('ledger')||ledgerKeys.some(allow);
   const shareTxn=t=>{
     if(allow('ledger')||allow('ledger-transactions')) return true;
-    const transfer=['Transfers','Self transfer'].includes(t.category);
+    const transfer=['Transfers','Self transfer','Friends and family transfers'].includes(t.category)||t.type==='transfer'||t.transfer===true||t.isTransfer===true;
     if(t.type==='credit'&&t.category!=='Refunds'&&allow('ledger-income')) return true;
     if(t.type==='debit'&&!transfer&&allow('ledger-expenses')) return true;
     if(transfer&&allow('ledger-transfers')) return true;
@@ -3030,24 +3041,32 @@ function openSubscriptionLinkSheet(key){
     ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
-  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
   let start=null,end=null,label="";
   if(periodMode==="month"){const [y,m]=String(cursorMonth||currentPK()).split("-").map(Number);start=`${y}-${String(m).padStart(2,"0")}-01`;end=iso(new Date(y,m,0));label=monthLabel(cursorMonth);}
   else if(periodMode==="quarter"){const ms=quarterMonths(cursorMonth);start=ms[0]+"-01";const [ey,em]=ms[2].split("-").map(Number);end=iso(new Date(ey,em,0));label=quarterLabelForMonth(cursorMonth);}
   else if(periodMode==="year"){start=`${year}-01-01`;end=`${year}-12-31`;label=String(year);}
   else {label="All years";}
   const groups={}; let total=0;
-  subs.forEach(x=>{const c=x.category||"Other";(groups[c]||(groups[c]=[])).push(x);const sp=subscriptionSpendFor(x.key,start,end);if(sp.count)total+=sp.amount;});
+  // Build one per-render transaction index so period totals do not repeatedly scan all SMS rows.
+  const periodSpend=new Map(), allSpendCache=new Map();
+  const spendFor=(key,periodOnly=true)=>{
+    const cache=periodOnly?periodSpend:allSpendCache;
+    if(cache.has(key)) return cache.get(key);
+    const rows=subscriptionRowsFor(key).filter(t=>{const d=ledgerDateKey(t.date);return !!d&&(!periodOnly||(!start||d>=start)&&(!end||d<=end));});
+    const result={amount:rows.reduce((a,t)=>a+spendAmt(t),0),count:rows.length,rows}; cache.set(key,result); return result;
+  };
+  subs.forEach(x=>{const c=x.category||"Other";(groups[c]||(groups[c]=[])).push(x);const sp=spendFor(x.key);total+=sp.amount;});
   const categoryRows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,items])=>{
-    let catSpend=0; items.forEach(x=>{const all=subscriptionSpendFor(x.key,null,null);const sp=subscriptionSpendFor(x.key,start,end);catSpend+=all.count?sp.amount:(Number(x.perMonth)||0);});
+    let catSpend=0; items.forEach(x=>{catSpend+=spendFor(x.key).amount;});
     const itemRows=items.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).map(x=>{
-      const allSpend=subscriptionSpendFor(x.key,null,null), sp=subscriptionSpendFor(x.key,start,end), variable=x.amountMode==="variable", amount=allSpend.count?sp.amount:(Number(x.perMonth)||0);
+      const allSpend=spendFor(x.key,false), sp=spendFor(x.key), variable=x.amountMode==="variable", amount=sp.amount;
       const linkedRows=(sp.rows||[]).slice(0,10); const linked=linkedRows.map(t=>`<button type="button" class="subscription-linked-mini" data-tx-open="${esc(t.id)}"><span>${esc(niceDate(t.date))} · ${esc(t.merchant||x.name)}</span><b>${money(spendAmt(t),true)}</b></button>`).join("") || `<p class="help subscription-no-payments">No linked payments in ${esc(label)}. Change the period or edit this recurring item to link existing Ledger transactions.</p>`;
       return `<div class="subscription-item-wrap"><button class="subscription-item-row" data-sub-open="${esc(x.key)}"><span class="subscription-item-name"><b>${esc(x.name)}</b><small>${x.next?`Next ${esc(niceDate(x.next))}`:""} · ${(sp.count||0)} linked payment${sp.count===1?'':'s'}</small></span><span class="subscription-item-value"><b>${money(amount,true)}${variable?" · Variable":""}</b><small>${esc(subscriptionFreqLabel(x.freq))}</small></span></button>${`<div class="subscription-linked-preview">${linked}</div>`}</div>`;
     }).join("");
-    return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>/ month</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
+    return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>${esc(label)}</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
   }).join("");
-  return `<details class="card collapsible-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -4097,7 +4116,7 @@ function ledgerPeriodBounds(){
   // All Years must derive its range from the saved transaction store, not a
   // display helper that may already apply a view/filter.
   const dates=(Array.isArray(state.txns)?state.txns:[])
-    .filter(t=>t&&counts(t))
+    .filter(t=>t)
     .map(t=>ledgerDateKey(t.date)).filter(Boolean).sort();
   return [dates[0]||"1900-01-01",dates[dates.length-1]||todayISO()];
 }
@@ -4116,9 +4135,12 @@ function ledgerPeriodTxns(){
   const base = typeof displayTxns === "function"
     ? displayTxns()
     : (Array.isArray(state.txns) ? state.txns : []);
+  // Transfers are deliberately excluded from spending via counts(), but must remain
+  // visible in My Ledger's Transfers section and its category breakdown.
+  const isLedgerTransfer = t => !!t && (['Transfers','Self transfer','Friends and family transfers'].includes(t.category) || t.type==='transfer' || t.transfer===true || t.isTransfer===true);
   return base.filter(t=>{
     const d=ledgerDateKey(t&&t.date);
-    return !!t&&!!d&&d>=a&&d<=b&&counts(t);
+    return !!t&&!!d&&d>=a&&d<=b&&(counts(t)||isLedgerTransfer(t));
   }).sort((x,y)=>ledgerDateKey(y.date).localeCompare(ledgerDateKey(x.date)));
 }
 function ledgerShareKey(title){return ({"Income":"ledger-income","Expenses":"ledger-expenses","Transfers":"ledger-transfers","Expense Categories":"ledger-expenses","Events":"ledger-events","Subscriptions & Recurring":"ledger-subscriptions","Recent Transactions":"ledger-transactions"})[title]||"ledger";}
@@ -4135,8 +4157,13 @@ function ledgerEventRows(){
   return vals.sort((x,y)=>(y.e.date||"").localeCompare(x.e.date||"")).map(x=>`<button class="ledger-two-col-row" data-openevov="${esc(x.e.id)}"><span><b>${esc(x.e.name)}</b><small>${x.e.date?esc(niceDate(x.e.date)):"No date"} · ${x.count} transaction${x.count===1?"":"s"}</small></span><span><b>${money(x.total,true)}</b><small>Event</small></span></button>`).join("")||`<p class="help">No events for ${esc(ledgerPeriodLabel())}.</p>`;
 }
 function ledgerTransferRows(tx){
-  const rows=tx.filter(t=>t.type==="debit"&&["Transfers","Self transfer"].includes(t.category));
-  return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||t.note||"Internal transfer")}</b><small>${esc(niceDate(t.date))} · ${esc(t.bank||t.account||"Account transfer")}</small></span><span><b>${money(spendAmt(t),true)}</b><small>Internal transfer</small></span></button>`).join("")||`<p class="help">No internal transfers for ${esc(ledgerPeriodLabel())}.</p>`;
+  const isTransfer=t=>!!t&&(["Transfers","Self transfer","Friends and family transfers"].includes(t.category)||t.type==="transfer"||t.transfer===true||t.isTransfer===true);
+  const rows=tx.filter(isTransfer);
+  if(!rows.length) return `<p class="help">No transfers for ${esc(ledgerPeriodLabel())}.</p>`;
+  const totals={}; rows.forEach(t=>{const c=t.category||"Transfers";totals[c]=(totals[c]||0)+Math.abs(Number(t.amount)||0);});
+  const categories=Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="ledger-two-col-row"><span><b>${esc(c)}</b><small>Transfer category · ${rows.filter(t=>(t.category||"Transfers")===c).length} entries</small></span><span><b>${money(v,true)}</b><small>${esc(ledgerPeriodLabel())}</small></span></div>`).join("");
+  const items=rows.slice().sort((a,b)=>ledgerDateKey(b.date).localeCompare(ledgerDateKey(a.date))).map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||t.note||"Transfer")}</b><small>${esc(niceDate(t.date))} · ${esc(t.bank||t.account||t.category||"Account transfer")}</small></span><span><b>${money(Math.abs(Number(t.amount)||0),true)}</b><small>${esc(t.category||"Transfers")}</small></span></button>`).join("");
+  return `<div class="transfer-category-breakdown">${categories}</div><h3 class="ledger-subsection-title">Transactions</h3>${items}`;
 }
 function ledgerTxnRows(tx,limit=30){ return tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,limit).map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Transaction")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${t.type==="credit"?"+":"−"}${money(t.type==="credit"?inAmt(t):spendAmt(t),true)}</b><small>${esc(t.bank||t.account||"")}</small></span></button>`).join("")||`<p class="help">No transactions for ${esc(ledgerPeriodLabel())}.</p>`; }
 function renderMyLedgerPage(){
@@ -4146,9 +4173,9 @@ function renderMyLedgerPage(){
   const tx=ledgerPeriodTxns();
   const income=tx.filter(t=>t.type==="credit"&&t.category!=="Refunds").reduce((s,t)=>s+inAmt(t),0);
   const refunds=tx.filter(t=>t.type==="credit"&&t.category==="Refunds").reduce((s,t)=>s+inAmt(t),0);
-  const expenseTx=tx.filter(t=>t.type==="debit"&&!['Transfers','Self transfer'].includes(t.category));
+  const expenseTx=tx.filter(t=>t.type==="debit"&&!['Transfers','Self transfer','Friends and family transfers'].includes(t.category)&&t.type!=='transfer'&&!t.transfer&&!t.isTransfer);
   const expenses=Math.max(0,expenseTx.reduce((s,t)=>s+spendAmt(t),0)-refunds);
-  const transferTx=tx.filter(t=>t.type==="debit"&&["Transfers","Self transfer"].includes(t.category));
+  const transferTx=tx.filter(t=>['Transfers','Self transfer','Friends and family transfers'].includes(t.category)||t.type==='transfer'||t.transfer===true||t.isTransfer===true);
   const transfers=transferTx.reduce((s,t)=>s+spendAmt(t),0);
   const cats={}; expenseTx.forEach(t=>cats[t.category]=(cats[t.category]||0)+spendAmt(t));
   const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<button class="ledger-two-col-row" data-cat="${esc(c)}"><span><b>${esc(c)}</b><small>Expense category</small></span><span><b>${money(v,true)}</b><small>${expenses?Math.round(v/expenses*100):0}% of expenses</small></span></button>`).join("")||`<p class="help">No expense categories for ${esc(ledgerPeriodLabel())}.</p>`;
