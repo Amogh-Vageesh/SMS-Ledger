@@ -665,6 +665,21 @@ body{font-size:var(--fs-body);line-height:1.45}
 #ledgerSubsPane>summary .ledger-pane-heading p{margin:4px 0 0;color:var(--muted);font-size:12px;}
 .ledger-subsection-title{font-size:14px;margin:12px 0 4px;color:var(--muted);}
 
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -677,6 +692,21 @@ body{font-size:var(--fs-body);line-height:1.45}
 #ovMode.ledger-period-filter{margin-top:4px!important;}
 #ovMode.ledger-period-filter button{min-height:42px!important;font-size:.88rem!important;}
 @media(max-width:390px){.finance-hub{padding:12px!important}.finance-hub .card-hub-head{grid-template-columns:minmax(0,1fr) auto auto!important;gap:7px!important}.finance-hub .card-hub-head h2{font-size:1.02rem!important}.finance-hub .finance-hub-data-label{font-size:.72rem!important}.finance-hub .finance-share-btn{min-width:68px!important;padding:0 10px!important}.finance-hub .fh-chip{font-size:.76rem!important;padding:7px 10px!important}}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 <style>
 /* v1.119 mobile alignment cleanup: Protection, Subscriptions and Assets */
@@ -728,6 +758,21 @@ button.insurance-row{
   .asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(82px,max-content) 18px!important;gap:6px!important;}
   .asset-card-row .asset-value-wrap{min-width:82px!important;}
 }
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style>
@@ -771,6 +816,21 @@ button.insurance-row{
   .prot-item-value{min-width:76px!important;}
   .prot-item-value strong{font-size:13px;}
 }
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style>
@@ -816,6 +876,21 @@ button.insurance-row{
  .asset-card-row .asset-main-button{grid-template-columns:32px minmax(0,1fr) minmax(78px,max-content) 18px!important;gap:6px!important;}
  .asset-card-row .asset-value-wrap{min-width:78px!important;}
 }
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 <style>
 /* v1.122 established two-column mobile rows: no decorative icons */
@@ -852,6 +927,21 @@ button.insurance-row{
  .subscription-item-name b,.asset-row-main b{font-size:13px;}
  .subscription-item-value b,.asset-simple-value b{font-size:13px;}
 }
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 <style>
 /* v1.122: established two-column mobile rows; no decorative icons in grouped assets/protection-adjacent lists */
@@ -886,6 +976,21 @@ button.insurance-row{
  .subscription-item-name b,.asset-row-main b{font-size:13px;}
  .subscription-item-value b,.asset-simple-value b{font-size:13px;}
 }
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 <style>
 /* v1.122: remove decorative icons from Protection lists and keep two-column established rows */
@@ -896,18 +1001,78 @@ button.insurance-row{
 .prot-item .insurance-icon{display:none!important;}
 .prot-item .insurance-main{min-width:0;}
 .asset-pane[data-asset-pane="assets"]>summary .pane-icon{display:none!important;}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style>
 /* v1.123: keep Protection and My Ledger aligned with established two-column sections */
 .protection-actions{gap:8px;flex-wrap:wrap;margin:0 0 8px}.protection-section{padding-bottom:4px}.prot-category-block{border-top:1px solid var(--rule)}.prot-category-head{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) 20px!important;align-items:center!important;gap:8px!important;padding:13px 14px!important;border:0!important;background:var(--panel)!important;color:var(--text)!important;text-align:left!important}.prot-category-head .insurance-main{min-width:0;display:flex;flex-direction:column;gap:3px}.prot-category-head .insurance-main b{font-size:15px}.prot-category-head .insurance-main small{font-size:11px;color:var(--muted)}.prot-category-items{background:var(--raise)}.prot-item{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(92px,max-content) 18px!important;gap:8px!important;align-items:center!important;padding:11px 14px 11px 22px!important;border:0!important;border-top:1px solid var(--rule)!important;background:var(--raise)!important;color:var(--text)!important;text-align:left!important;box-sizing:border-box!important}.prot-item .insurance-main{min-width:0;display:flex;flex-direction:column;gap:3px}.prot-item .insurance-main b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prot-item .insurance-main small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prot-item .num{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}.prot-item .num b{font-size:14px;white-space:nowrap}.prot-item .num small{font-size:10px;color:var(--muted);white-space:nowrap}.prot-item .chev{font-size:18px;color:var(--muted);text-align:right}.rc-linked-list{max-height:260px;overflow:auto}.section-share-control{border-top:1px solid var(--rule);margin-top:8px;padding-top:10px}@media(max-width:390px){.prot-category-head{padding:12px!important}.prot-category-head .insurance-main b{font-size:14px}.prot-item{grid-template-columns:minmax(0,1fr) minmax(80px,max-content) 16px!important;padding-left:18px!important}.prot-item .insurance-main b{font-size:13px}.prot-item .num b{font-size:13px}.protection-actions .btn{font-size:12px;padding:8px 10px}}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
-<style>.prot-covered{color:var(--brass)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.covered-members-preview .chip{border:1px solid var(--rule);background:var(--soft);border-radius:999px;padding:5px 9px}</style>
+<style>.prot-covered{color:var(--brass)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.covered-members-preview .chip{border:1px solid var(--rule);background:var(--soft);border-radius:999px;padding:5px 9px}
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
+</style>
 <style>
 /* v1.129 Home-style Family Hub header/share control */
 .finance-share-btn{min-width:74px;height:40px;padding:0 14px;border-radius:10px;white-space:nowrap;}
 .finance-hub .card-hub-head{align-items:center;}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 </head>
 <body>
@@ -3075,7 +3240,7 @@ function openSubscriptionLinkSheet(key){
     ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
-  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
   let start=null,end=null,label="";
   if(periodMode==="month"){const [y,m]=String(cursorMonth||currentPK()).split("-").map(Number);start=`${y}-${String(m).padStart(2,"0")}-01`;end=iso(new Date(y,m,0));label=monthLabel(cursorMonth);}
   else if(periodMode==="quarter"){const ms=quarterMonths(cursorMonth);start=ms[0]+"-01";const [ey,em]=ms[2].split("-").map(Number);end=iso(new Date(ey,em,0));label=quarterLabelForMonth(cursorMonth);}
@@ -3100,7 +3265,7 @@ function renderSubscriptionCard(periodMode, cursorMonth, year){
     }).join("");
     return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>${esc(label)}</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
   }).join("");
-  return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -3852,7 +4017,7 @@ function openMaintenanceSheet(existingId){
 function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();const ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
- const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=x.coveredItem||x.assetName||(linkedAsset&&linkedAsset.name)||x.product||x.name||(kind==='Insurance'?'Insured person / group':kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const meta=`${provider}${x.expiryDate?' · Expires '+x.expiryDate:' · Expiry date not set'}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
+ const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=x.coveredItem||x.assetName||(linkedAsset&&linkedAsset.name)||x.product||x.name||(kind==='Insurance'?'Insured person / group':kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const expiryLabel=x.expiryDate?(()=>{const d=ledgerDateKey(x.expiryDate);if(!d)return x.expiryDate;const [yy,mm]=d.split('-').map(Number);return new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});})():'Not set';const meta=`${provider} · Expires ${expiryLabel}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
  const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), insurancePremium=ins.reduce((a,x)=>a+(Number(x.premium)||0),0), warrantyCost=war.reduce((a,x)=>a+(Number(x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
  let html=`${renderFinanceHubTop()}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShareTop">Share</button></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Total insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Total insurance premium</small><b>${money(insurancePremium,true)}</b></div><div><small>Total warranty cost</small><b>${money(warrantyCost,true)}</b></div><div><small>Total maintenance cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
  html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);el.querySelector("#protectionShareTop")?.addEventListener("click",()=>openSectionSharePicker("protection","Protection"));
@@ -4213,7 +4378,7 @@ function renderMyLedgerPage(){
   const transferTx=tx.filter(t=>['Transfers','Self transfer','Friends and family transfers'].includes(t.category)||t.type==='transfer'||t.transfer===true||t.isTransfer===true);
   const transfers=transferTx.reduce((s,t)=>s+spendAmt(t),0);
   const cats={}; expenseTx.forEach(t=>cats[t.category]=(cats[t.category]||0)+spendAmt(t));
-  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<button class="ledger-two-col-row" data-cat="${esc(c)}"><span><b>${esc(c)}</b><small>Expense category</small></span><span><b>${money(v,true)}</b><small>${expenses?Math.round(v/expenses*100):0}% of expenses</small></span></button>`).join("")||`<p class="help">No expense categories for ${esc(ledgerPeriodLabel())}.</p>`;
+  const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<button class="ledger-two-col-row" data-cat="${esc(c)}"><span><b class="expense-category-name" style="color:${CAT_COLOR[c]||'#777'}">${esc(c)}</b><small>Expense category</small></span><span><b>${money(v,true)}</b><small>${expenses?Math.round(v/expenses*100):0}% of expenses</small></span></button>`).join("")||`<p class="help">No expense categories for ${esc(ledgerPeriodLabel())}.</p>`;
   const incomeRows=tx.filter(t=>t.type==="credit"&&t.category!=="Refunds").map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||t.note||"Income")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Income")}</small></span><span><b>${money(inAmt(t),true)}</b><small>Income</small></span></button>`).join("")||`<p class="help">No income for ${esc(ledgerPeriodLabel())}.</p>`;
   const expenseRows=expenseTx.map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Expense")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${money(spendAmt(t),true)}</b><small>${t.subscriptionKey?"Recurring":"Expense"}</small></span></button>`).join("")||`<p class="help">No expenses for ${esc(ledgerPeriodLabel())}.</p>`;
   let subs=""; try{ subs=renderSubscriptionCard(ovMode==="all"?"all":ovMode,cursor||currentPK(),ovMode==="year"?ovYear:Number(String(cursor||currentPK()).slice(0,4))); }catch(e){ console.error("Subscription section failed",e); subs=ledgerPane("Subscriptions & Recurring","Unable to load recurring entries",'<p class="help">Recurring data could not be displayed. Your Ledger transactions are safe.</p>'); }
@@ -4251,6 +4416,8 @@ function renderOverview(){
   const title=document.getElementById("monthName");
   if(title){
     title.classList.toggle("nopick",ovMode!=="month" && ovMode!=="year");
+    title.style.pointerEvents=(ovMode==="month"||ovMode==="year")?"auto":"none";
+    title.setAttribute("aria-label",ovMode==="year"?"Choose year":"Choose month");
     title.textContent=ovMode==="month"?monthLabel(cursor||currentPK()):ovMode==="quarter"?quarterLabelForMonth(cursor||currentPK()):ovMode==="year"?String(ovYear):"All years";
   }
   const prev=document.getElementById("prevM"), next=document.getElementById("nextM");
@@ -4933,6 +5100,7 @@ function openYearPicker(){
   const years = [...new Set((state.txns||[]).map(t=>{const d=ledgerDateKey(t?.date);return d?Number(d.slice(0,4)):NaN;}).filter(y=>Number.isInteger(y)&&y>=1900&&y<=9999))].sort((a,b)=>b-a);
   const thisYear = Number(current.slice(0,4));
   if(!years.includes(thisYear)) years.unshift(thisYear);
+  if(Number.isInteger(Number(ovYear))&&!years.includes(Number(ovYear))) years.unshift(Number(ovYear));
   if(!years.length) years.push(thisYear);
   const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="yearPickerSheet";
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose year"><h2>Choose year</h2><div class="mgrid">${years.map(y=>`<button type="button" data-year-pick="${y}" class="${y===ovYear?"cur":""}">${y}</button>`).join("")}</div></div>`;
@@ -6147,6 +6315,21 @@ connectDb();
 .ledger-two-col-row>span:last-child{min-width:92px;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;}
 .ledger-two-col-row>span:last-child b{font-size:14px;line-height:1.2;white-space:nowrap;}
 @media(max-width:390px){.ledger-pane>summary{padding:12px}.ledger-two-col-row{grid-template-columns:minmax(0,1fr) minmax(82px,max-content);gap:8px;padding:10px 12px 10px 16px}.ledger-two-col-row>span:last-child{min-width:82px}.ledger-two-col-row>span:first-child b,.ledger-two-col-row>span:last-child b{font-size:13px}}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style id="v127-protection-clean-ui">
@@ -6171,6 +6354,21 @@ connectDb();
 .prot-item-frequency{font-size:10px;color:var(--muted);line-height:1.2;white-space:nowrap;}
 .prot-item-chevron{font-size:20px;color:var(--muted);text-align:right;}
 @media(max-width:390px){.prot-category-head{grid-template-columns:minmax(0,1fr) 20px!important;padding:12px!important}.prot-item{grid-template-columns:minmax(0,1fr) minmax(88px,max-content) 16px!important;gap:7px!important;padding:11px 10px 11px 16px!important}.prot-item-main b{font-size:14px}.prot-item-main small{font-size:11px}.prot-item-value{min-width:88px}.prot-item-value strong{font-size:13px}}
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
+
 </style>
 
 <style>
@@ -6253,6 +6451,21 @@ connectDb();
 /* v1.141: My Ledger uses period controls only; hide legacy transaction-type filter chips here. */
 #v-overview .ledger-type-filter,#v-overview [data-ledger-type-filter],
 #v-overview .transaction-type-filters,#v-overview .type-filter-row{display:none!important}
+
+
+/* v1.150 layout corrections */
+#overviewBody .donut-layout{display:grid;grid-template-columns:minmax(0,0.88fr) minmax(0,1.12fr);align-items:center;gap:8px}
+#overviewBody .donut-wrap{transform:translateX(-6px);min-width:0}
+#overviewBody .donut-legend{min-width:0;padding-left:4px}
+#overviewBody .donut-legend>*{overflow-wrap:anywhere;word-break:normal}
+#overviewBody .expense-category-name{font-weight:700}
+#overviewBody .ledger-pane summary{touch-action:pan-y}
+#overviewBody .ledger-pane-body,#overviewBody .subscription-groups,#overviewBody .subscription-category-items{ -webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-y:contain}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{display:flex;align-items:center;gap:10px;min-width:max-content;margin-left:8px}
+#overviewBody #ledgerSubsPane>summary .ledger-pane-actions .mini{min-width:64px;min-height:40px;margin:0;flex:0 0 auto}
+#overviewBody #ledgerSubsPane>summary .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;min-width:20px;flex:0 0 20px}
+.prot-item .insurance-main small{overflow-wrap:anywhere}
+@media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
 
 </style>
 
