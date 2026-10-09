@@ -4215,7 +4215,7 @@ function renderOverview(){
   document.querySelectorAll("#ovMode button").forEach(b=>{b.setAttribute("aria-pressed",String(b.dataset.m===ovMode));b.classList.toggle("active",b.dataset.m===ovMode);});
   const title=document.getElementById("monthName");
   if(title){
-    title.classList.toggle("nopick",ovMode!=="month");
+    title.classList.toggle("nopick",ovMode!=="month" && ovMode!=="year");
     title.textContent=ovMode==="month"?monthLabel(cursor||currentPK()):ovMode==="quarter"?quarterLabelForMonth(cursor||currentPK()):ovMode==="year"?String(ovYear):"All years";
   }
   const prev=document.getElementById("prevM"), next=document.getElementById("nextM");
@@ -4889,7 +4889,22 @@ function openMonthPicker(){
   });
   const cur = scrim.querySelector(".cur"); if(cur && cur.scrollIntoView) cur.scrollIntoView({block:"center"});
 }
-document.getElementById("monthName").onclick = ()=>{ if(ovMode === "month") openMonthPicker(); };
+document.getElementById("monthName").onclick = ()=>{
+  if(ovMode === "month") { openMonthPicker(); return; }
+  if(ovMode === "year") { openYearPicker(); return; }
+};
+function openYearPicker(){
+  const current = currentPK();
+  const years = [...new Set((state.txns||[]).map(t=>String(t?.date||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)).map(Number))].sort((a,b)=>b-a);
+  const thisYear = Number(current.slice(0,4));
+  if(!years.includes(thisYear)) years.unshift(thisYear);
+  if(!years.length) years.push(thisYear);
+  const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="yearPickerSheet";
+  scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose year"><h2>Choose year</h2><div class="mgrid">${years.map(y=>`<button type="button" data-year-pick="${y}" class="${y===ovYear?"cur":""}">${y}</button>`).join("")}</div></div>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click",e=>{const b=e.target.closest("[data-year-pick]");if(b){ovYear=Number(b.dataset.yearPick);ovMode="year";saveLocal();scrim.remove();render();return;}if(e.target===scrim)scrim.remove();});
+  const cur=scrim.querySelector(".cur"); if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:"center"});
+}
 document.getElementById("monthName2").onclick = openMonthPicker;
 document.getElementById("ovMode").addEventListener("click", e=>{
   const b=e.target.closest("button[data-m]");
