@@ -1,3 +1,7 @@
+# SMS Ledger v1.131
+
+Source release with My Ledger, Protection, transaction-linking and Family Hub fixes.
+
 SMS Ledger v1.108 — consolidated ledger, loan reconciliation, liability UI, recurring collapse, and granular family sharing.
 
 SMS Ledger v1.106 — Loan reconciliation, safe SMS deduplication and liabilities UI
