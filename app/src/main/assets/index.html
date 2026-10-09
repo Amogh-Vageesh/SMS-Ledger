@@ -596,7 +596,7 @@ body{font-size:var(--fs-body);line-height:1.45}
 .protection-summary-inline b{font-size:1.12rem;font-weight:700;overflow-wrap:anywhere;line-height:1.3;color:var(--text)}
 .protection-top .protection-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .protection-top .protection-actions .mini{font-size:.9rem;padding:8px 10px;min-height:36px}
-.link-txn-scroll{max-height:48vh;overflow-y:auto;overscroll-behavior:contain}
+.link-txn-scroll{min-width:0;max-width:100%;box-sizing:border-box;overflow-x:hidden;max-height:48vh;overflow-y:auto;overscroll-behavior:contain}
 .link-txn-row{display:grid!important;grid-template-columns:minmax(0,1fr) 24px;gap:10px;align-items:center;width:100%;box-sizing:border-box}
 .link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere}
 .link-txn-row input[type=checkbox]{justify-self:center;margin:0}
@@ -3255,7 +3255,7 @@ function openSubscriptionLinkSheet(key){
     ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
-  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
+  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
   let start=null,end=null,label="";
   if(periodMode==="month"){const [y,m]=String(cursorMonth||currentPK()).split("-").map(Number);start=`${y}-${String(m).padStart(2,"0")}-01`;end=iso(new Date(y,m,0));label=monthLabel(cursorMonth);}
   else if(periodMode==="quarter"){const ms=quarterMonths(cursorMonth);start=ms[0]+"-01";const [ey,em]=ms[2].split("-").map(Number);end=iso(new Date(ey,em,0));label=quarterLabelForMonth(cursorMonth);}
@@ -3274,13 +3274,19 @@ function renderSubscriptionCard(periodMode, cursorMonth, year){
   const categoryRows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,items])=>{
     let catSpend=0; items.forEach(x=>{catSpend+=spendFor(x.key).amount;});
     const itemRows=items.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).map(x=>{
-      const allSpend=spendFor(x.key,false), sp=spendFor(x.key), variable=x.amountMode==="variable", amount=sp.amount;
+      const allSpend=spendFor(x.key,false), sp=spendFor(x.key), variable=x.amountMode==="variable";
+      // Variable bills display the average actual payment within the selected period,
+      // while category totals above remain the total actually spent in that period.
+      // If there are no linked payments in the period, show the configured typical amount.
+      const configuredAverage=Number(x.amount)||0;
+      const displayAmount=variable?(sp.count>0?sp.amount/sp.count:configuredAverage):(sp.count>0?sp.amount:((cat==="Sports"||cat==="Utility Bills")?configuredAverage:0));
+      const amountCaption=variable?(sp.count>0?`Avg / payment · ${esc(label)}`:"Configured average") : (sp.count>0?`${sp.count} payment${sp.count===1?'':'s'} · ${esc(label)}`:esc(subscriptionFreqLabel(x.freq)));
       const linkedRows=(sp.rows||[]).slice(0,10); const linked=linkedRows.map(t=>`<button type="button" class="subscription-linked-mini" data-tx-open="${esc(t.id)}"><span>${esc(niceDate(t.date))} · ${esc(t.merchant||x.name)}</span><b>${money(spendAmt(t),true)}</b></button>`).join("") || `<p class="help subscription-no-payments">No linked payments in ${esc(label)}. Change the period or edit this recurring item to link existing Ledger transactions.</p>`;
-      return `<div class="subscription-item-wrap"><button class="subscription-item-row" data-sub-open="${esc(x.key)}"><span class="subscription-item-name"><b>${esc(x.name)}</b><small>${x.next?`Next ${esc(niceDate(x.next))}`:""} · ${(sp.count||0)} linked payment${sp.count===1?'':'s'}</small></span><span class="subscription-item-value"><b>${money(amount,true)}${variable?" · Variable":""}</b><small>${esc(subscriptionFreqLabel(x.freq))}</small></span></button>${`<div class="subscription-linked-preview">${linked}</div>`}</div>`;
+      return `<div class="subscription-item-wrap"><button class="subscription-item-row" data-sub-open="${esc(x.key)}"><span class="subscription-item-name"><b>${esc(x.name)}</b><small>${x.next?`Next ${esc(niceDate(x.next))}`:""} · ${(sp.count||0)} linked payment${sp.count===1?'':'s'}</small></span><span class="subscription-item-value"><b>${money(displayAmount,true)}${variable?" · Variable":""}</b><small>${amountCaption}</small></span></button>${`<div class="subscription-linked-preview">${linked}</div>`}</div>`;
     }).join("");
     return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>${esc(label)}</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
   }).join("");
-  return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
+  return `<details class="card collapsible-pane ledger-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div class="ledger-pane-heading"><h2>Subscriptions & Recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div></div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -3363,6 +3369,17 @@ function accountRowHtml(a,today){
     return `<div class="account-row static"><span class="n">${esc(a&&a.label||"Account")}</span><span class="num account-value">${money(Number(a&&a.balance)||0,true)}</span><span class="account-meta"><span>Balance ${money(Number(a&&a.balance)||0,true)}</span></span></div>`;
   }
 }
+
+function openLoanGivenSheet(id){
+  state.loanReceivables=Array.isArray(state.loanReceivables)?state.loanReceivables:[];
+  const old=state.loanReceivables.find(x=>x.id===id)||{};
+  sheet(id?"Edit loan given":"Add loan given to someone",`<label class="field"><span>Person / borrower name</span><input id="lg-name" value="${esc(old.name||"")}" required></label><div class="two"><label class="field"><span>Amount given (₹)</span><input id="lg-amount" inputmode="decimal" value="${old.amount??""}" required></label><label class="field"><span>Amount received back (₹)</span><input id="lg-repaid" inputmode="decimal" value="${old.repaid??0}"></label></div><div class="two"><label class="field"><span>Date given</span><input id="lg-date" type="date" value="${old.date||todayISO()}"></label><label class="field"><span>Expected repayment</span><input id="lg-due" type="date" value="${old.dueDate||""}"></label></div><div class="two"><label class="field"><span>Interest rate (% p.a.)</span><input id="lg-rate" inputmode="decimal" value="${old.rate??""}"></label><label class="field"><span>Status</span><select id="lg-status"><option${(old.status||"Open")==="Open"?" selected":""}>Open</option><option${old.status==="Closed"?" selected":""}>Closed</option></select></label></div><label class="field"><span>Notes</span><textarea id="lg-note">${esc(old.note||"")}</textarea></label>`,sc=>{const name=sc.querySelector('#lg-name').value.trim();const amount=Number(sc.querySelector('#lg-amount').value.replace(/[,₹\s]/g,''))||0;const repaid=Math.max(0,Number(sc.querySelector('#lg-repaid').value.replace(/[,₹\s]/g,''))||0);if(!name||amount<=0){toast('Enter borrower name and amount.');return false;}const obj={...old,id:old.id||'lg-'+uidGen(),name,amount,repaid,date:sc.querySelector('#lg-date').value||todayISO(),dueDate:sc.querySelector('#lg-due').value||'',rate:Number(sc.querySelector('#lg-rate').value)||0,status:sc.querySelector('#lg-status').value,note:sc.querySelector('#lg-note').value.trim()};state.loanReceivables=state.loanReceivables.filter(x=>x.id!==obj.id);state.loanReceivables.push(obj);persist([],true);render();toast('Loan given saved.');},id?[["Delete",()=>{state.loanReceivables=state.loanReceivables.filter(x=>x.id!==id);persist([],true);render();toast('Loan record deleted.');}]]:null);
+}
+function renderLoansGivenPane(){
+ const rows=Array.isArray(state.loanReceivables)?state.loanReceivables:[];const open=rows.filter(x=>x.status!=="Closed");const total=open.reduce((n,x)=>n+Math.max(0,(Number(x.amount)||0)-(Number(x.repaid)||0)),0);
+ return `<details class="asset-pane collapsible-pane" data-asset-pane="loans-given"><summary><div><h2>Loans Given</h2><p>${open.length} open · ${money(total,true)} receivable</p></div><span class="pane-icon">⌁</span></summary><div class="pane-action"><button type="button" class="btn primary" id="addLoanGiven">+ Add loan given</button></div>${rows.map(x=>{const remaining=Math.max(0,(Number(x.amount)||0)-(Number(x.repaid)||0));return `<button type="button" class="account-row" data-loan-given-edit="${esc(x.id)}"><span class="n">${esc(x.name)}</span><span class="num account-value" style="color:${remaining>0?'#d32f2f':'var(--good)'}">${money(remaining,true)}</span><span class="account-meta"><span>Given ${esc(niceDate(x.date||""))}${x.dueDate?' · Due '+esc(niceDate(x.dueDate)):''}</span><span>${esc(x.status||"Open")}</span></span></button>`;}).join("")||'<div class="pane-empty">No loans given recorded.</div>'}</details>`;
+}
+
 function renderAccounts(){
   const el=document.getElementById("accountsBody"); if(!el) return;
   const remote=selectedRemoteCompleteState();
@@ -3417,7 +3434,7 @@ function renderAccounts(){
           return `<div class="asset-category-block"><button type="button" class="asset-category-row" data-asset-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} asset${items.length===1?"":"s"}</small></span><span class="asset-category-right"><b class="num">${safeMoney(catTotal)}</b><small>Current value</small><i>⌄</i></span></button><div class="asset-category-items hidden">${itemRows}</div></div>`;
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
-      html+=`${sectionShareControl("assets","Assets")}</details>`;
+      html+=`</details>`;
     }catch(e){ diag.push("assets section"); html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Assets</h2></div></div><div class="pane-empty">Assets could not be fully calculated, but saved data was not deleted.</div></section>`; }
 
     const accountPane=(title,subtitle,items,total,id)=>{
@@ -3428,7 +3445,7 @@ function renderAccounts(){
         const open=id==='bank'; const desc='';
         const addLabel={bank:'+ Add bank account',other:'+ Add investment / other account',card:'+ Add credit card',loan:'+ Add loan account'}[id]||'';
         const addHtml=addLabel?`<div class="pane-action"><button type="button" class="btn ${id==='loan'?'primary':''}" data-add-account-kind="${id}">${addLabel}</button></div>`:'';
-        const paneKey=(id==="bank"?"bank":id==="card"?"card":id==="loan"?"loan":"other"); const isOpen=assetPaneOpen[paneKey] ?? open; return `<details class="asset-pane collapsible-pane" data-asset-pane="${paneKey}" ${isOpen?"open":""}><summary data-pane-toggle="${paneKey}"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${addHtml}${rows}${sectionShareControl(paneKey==="bank"?"banks":paneKey==="card"?"cards":paneKey==="loan"?"loans":"investments",title)}</details>`;
+        const paneKey=(id==="bank"?"bank":id==="card"?"card":id==="loan"?"loan":"other"); const isOpen=assetPaneOpen[paneKey] ?? open; return `<details class="asset-pane collapsible-pane" data-asset-pane="${paneKey}" ${isOpen?"open":""}><summary data-pane-toggle="${paneKey}"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${addHtml}${rows}</details>`;
       }catch(e){ diag.push(title); return `<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2></div></div><div class="pane-empty">This section could not be displayed.</div></section>`; }
     };
     if(accountView==="Credit"){
@@ -3444,6 +3461,7 @@ function renderAccounts(){
       html+=accountPane('Other accounts','account',other,otherTotal,'other');
       html+=accountPane('Credit Cards','card',cards,cardOutstanding,'card');
       html+=accountPane('Loan accounts','loan',loans,loanTotal,'loan');
+      html+=renderLoansGivenPane();
     }
 
     try{
@@ -4032,7 +4050,7 @@ function openMaintenanceSheet(existingId){
 function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();const ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
- const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=x.coveredItem||x.assetName||(linkedAsset&&linkedAsset.name)||x.product||x.name||(kind==='Insurance'?'Insured person / group':kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const expiryLabel=x.expiryDate?(()=>{const d=ledgerDateKey(x.expiryDate);if(!d)return x.expiryDate;const [yy,mm]=d.split('-').map(Number);return new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});})():'Not set';const meta=`${provider} · Expires ${expiryLabel}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
+ const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=(linkedAsset&&linkedAsset.name)||x.coveredItem||x.assetName||x.product||x.name||(kind==='Insurance'?(x.policyScope||x.scope||'Life / Health policy'):kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const expiryLabel=x.expiryDate?(()=>{const d=ledgerDateKey(x.expiryDate);if(!d)return x.expiryDate;const [yy,mm]=d.split('-').map(Number);return new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});})():'Not set';const scopeLabel=x.policyScope||x.scope||x.coverageScope||'';const meta=`${provider} · Expires ${expiryLabel}${scopeLabel?' · '+scopeLabel:''}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
  const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), insurancePremium=ins.reduce((a,x)=>a+(Number(x.premium)||0),0), warrantyCost=war.reduce((a,x)=>a+(Number(x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
  let html=`${renderFinanceHubTop({showManage:false})}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShareTop">Share</button></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Total insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Total insurance premium</small><b>${money(insurancePremium,true)}</b></div><div><small>Total warranty cost</small><b>${money(warrantyCost,true)}</b></div><div><small>Total maintenance cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
  html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);el.querySelector("#protectionShareTop")?.addEventListener("click",()=>openSectionSharePicker("protection","Protection"));
@@ -4252,7 +4270,7 @@ function renderFinanceHub(target, options={}){
   const selected=financeFamilyScope;
   const selectedName=unique.find(x=>x.id===selected)?.name || "All Family";
   target.innerHTML=`<div class="card finance-hub home-family-hub">
-    <div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(selectedName)}</span>${options.showManage===true?'<button type="button" class="mini finance-manage-family" data-manage-family>Manage family</button>':''}<button type="button" class="iconbtn finance-share-btn" data-finance-share aria-label="Share this section" title="Share">Share</button></div>
+    <div class="card-h"><h2>Family Hub</h2>${options.showManage===true?'<button type="button" class="mini finance-manage-family" data-manage-family>Manage family</button>':''}<button type="button" class="iconbtn finance-share-btn" data-finance-share aria-label="Share this section" title="Share">Share</button></div>
     <div class="members finance-family-members">${unique.map(c=>`<button class="member-chip ${c.id===selected?"active":""}" data-finance-scope="${esc(c.id)}"><span class="member-avatar">${esc((c.name||"?").trim().charAt(0).toUpperCase())}</span><b>${esc(c.name)}</b></button>`).join("")}</div>
     <p class="hint" style="margin:0">${people.length>1?'All data shared among family members is shown here.':'Showing your financial data. Share a section to let selected family members see it.'} Only chosen display names are used.</p>
   </div>`;
@@ -4339,7 +4357,7 @@ function ledgerPeriodBounds(){
     const q=Math.floor((cm-1)/3)+1, sm=(q-1)*3+1;
     return [`${cy}-${String(sm).padStart(2,"0")}-01`,iso(new Date(cy,sm+2,0))];
   }
-  if(mode==="year") { const y=Number(ovYear)||cy; return [`${y}-01-01`,`${y}-12-31`]; }
+  if(mode==="year") { const y=Number(ovYear)||Number(anchor.slice(0,4))||cy; return [`${y}-01-01`,`${y}-12-31`]; }
   // All Years must derive its range from the saved transaction store, not a
   // display helper that may already apply a view/filter.
   const dates=(Array.isArray(state.txns)?state.txns:[])
@@ -4376,7 +4394,7 @@ function ledgerPane(title,subtitle,body,open=false){
   return `<details class="card ledger-pane" data-ledger-section="${esc(title)}" ${open?"open":""}>
     <summary><div class="ledger-pane-heading"><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:""}</div>
     <span class="ledger-pane-actions"><button type="button" class="mini ledger-section-share" data-share-section-key="${esc(key)}" data-share-section-label="${esc(title)}" aria-label="Share ${esc(title)}">Share</button><span class="ledger-pane-chevron">⌄</span></span></summary>
-    <div class="ledger-pane-body">${body}${sectionShareControl(key,title)}</div></details>`;
+    <div class="ledger-pane-body">${body}</div></details>`;
 }
 function ledgerEventRows(){
   const [a,b]=ledgerPeriodBounds(), vals=[];
@@ -4407,7 +4425,7 @@ function renderMyLedgerPage(){
   const cats={}; expenseTx.forEach(t=>cats[t.category]=(cats[t.category]||0)+spendAmt(t));
   const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<button class="ledger-two-col-row" data-cat="${esc(c)}"><span><b class="expense-category-name" style="color:${CAT_COLOR[c]||'#777'}">${esc(c)}</b><small>Expense category</small></span><span><b>${money(v,true)}</b><small>${expenses?Math.round(v/expenses*100):0}% of expenses</small></span></button>`).join("")||`<p class="help">No expense categories for ${esc(ledgerPeriodLabel())}.</p>`;
   const incomeRows=tx.filter(t=>t.type==="credit"&&t.category!=="Refunds").map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||t.note||"Income")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Income")}</small></span><span><b>${money(inAmt(t),true)}</b><small>Income</small></span></button>`).join("")||`<p class="help">No income for ${esc(ledgerPeriodLabel())}.</p>`;
-  const expenseRows=expenseTx.map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Expense")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${money(spendAmt(t),true)}</b><small>${t.subscriptionKey?"Recurring":"Expense"}</small></span></button>`).join("")||`<p class="help">No expenses for ${esc(ledgerPeriodLabel())}.</p>`;
+  const expenseRows=expenseTx.map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Expense")}</b><small>${esc(niceDate(t.date))} · <span class="category-color-tag" style="color:${CAT_COLOR[t.category]||"#777"};font-weight:700">${esc(t.category||"Other")}</span></small></span><span><b>${money(spendAmt(t),true)}</b><small>${t.subscriptionKey?"Recurring":"Expense"}</small></span></button>`).join("")||`<p class="help">No expenses for ${esc(ledgerPeriodLabel())}.</p>`;
   let subs=""; try{ subs=renderSubscriptionCard(ovMode==="all"?"all":ovMode,cursor||currentPK(),ovMode==="year"?ovYear:Number(String(cursor||currentPK()).slice(0,4))); }catch(e){ console.error("Subscription section failed",e); subs=ledgerPane("Subscriptions & Recurring","Unable to load recurring entries",'<p class="help">Recurring data could not be displayed. Your Ledger transactions are safe.</p>'); }
   const net=income-expenses;
   let html=`<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Current actual value held · not period-limited</span></div><button type="button" class="mini" id="ledgerShareTop">Share</button></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint">Income ${money(income)} · Expenses ${money(expenses)} · Net ${net<0?"−":"+"}${money(Math.abs(net))}. Internal transfers are excluded from income and expenses.</p></div>`;
@@ -5313,6 +5331,8 @@ document.getElementById("accountsBody").addEventListener("click", e=>{
   if(e.target.id === "unhideAccts"){ Object.values(state.accounts).forEach(a=>delete a.hidden); persist([], true); render(); return; }
   const stg=e.target.closest("[data-section-toggle]"); if(stg){ const k=stg.dataset.sectionToggle; acctSectionHidden[k]=!acctSectionHidden[k]; render(); return; }
   if(e.target.id === "addAssetInPane"){ openAssetSheet(null); return; }
+  if(e.target.closest("#addLoanGiven")){openLoanGivenSheet();return;}
+  const loanGiven=e.target.closest("[data-loan-given-edit]");if(loanGiven){openLoanGivenSheet(loanGiven.dataset.loanGivenEdit);return;}
   const acat=e.target.closest("[data-asset-category]"); if(acat){ const body=acat.parentElement.querySelector(".asset-category-items"); if(body){body.classList.toggle("hidden"); const i=acat.querySelector("i"); if(i)i.textContent=body.classList.contains("hidden")?"⌄":"⌃";} return; }
   const addKind=e.target.closest("[data-add-account-kind]"); if(addKind){ const kind=addKind.dataset.addAccountKind; openAcctSheet(null,"",kind); return; }
   if(e.target.closest("#openLiabilityDetails")){ openLiabilityDetails(); return; }
@@ -5567,7 +5587,7 @@ function openLiabilityDetails(){
   const cards=Object.entries(state.accounts||{}).filter(([k,a])=>a&&a.kind==="card"&&!a.hidden&&!a.closed).map(([k,a])=>({k,a,source:"Credit card",name:a.label||a.bank||"Credit card",purpose:"Credit card",amount:Math.max(0,Number(a.outstanding)||0),limit:Math.max(0,Number(a.availLimit)||0)})).filter(x=>x.amount>0);
   const all=[...rows,...cards].sort((a,b)=>b.amount-a.amount);
   const total=all.reduce((s,x)=>s+x.amount,0);
-  const body=all.length?all.map(x=>`<button type="button" class="liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="liability-main"><div class="liability-left"><b class="liability-name">${esc(x.name)}</b><small>${esc(x.purpose)} · ${esc(x.source)}</small></div><div class="liability-right"><b class="num over liability-amount">${money(x.amount,true)}</b>${x.original?`<small class="liability-remaining">Remaining ${money(x.amount,true)}</small>`:x.limit?`<small class="liability-remaining">Limit ${money(x.limit,true)}</small>`:""}</div></div>${x.original?`<div class="liability-numbers"><span>Loan amount <b>${money(x.original,true)}</b></span></div>`:""}${x.limit?`<div class="liability-numbers"><span>Credit limit <b>${money(x.limit,true)}</b></span></div>`:""}</button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
+  const body=all.length?all.map(x=>`<button type="button" class="liability-detail-row" data-liability-acct="${esc(x.k)}"><div class="liability-main"><div class="liability-left"><b class="liability-name">${esc(x.name)}</b><small>${esc(x.purpose)} · ${esc(x.source)}</small></div><div class="liability-right"><b class="num over liability-amount" style="color:#d32f2f">${money(x.amount,true)}</b>${x.limit?`<small class="liability-remaining">Limit ${money(x.limit,true)}</small>`:""}</div></div>${x.original?`<div class="liability-numbers"><span>Loan amount <b>${money(x.original,true)}</b></span></div>`:""}${x.limit?`<div class="liability-numbers"><span>Credit limit <b>${money(x.limit,true)}</b></span></div>`:""}</button>`).join(''):'<p class="help">No outstanding liabilities recorded.</p>';
   sheet('Liabilities',`<div class="liability-total-card"><small>Total liabilities</small><b class="num over">${money(total,true)}</b></div><div class="asset-loan-list">${body}</div>`,null);
   const liabilityScr=document.querySelector('.scrim:last-of-type'); if(liabilityScr) liabilityScr.classList.add('liability-sheet');
   const scr=document.querySelector('.scrim:last-of-type'); if(scr) scr.addEventListener('click',e=>{const b=e.target.closest('[data-liability-acct]');if(!b)return;const s=b.closest('.scrim');if(s)s.remove();openAcctSheet(b.dataset.liabilityAcct);});
@@ -6422,7 +6442,7 @@ connectDb();
 .protection-section>summary::-webkit-details-marker{display:none}
 .protection-section-summary h2{margin:0}.protection-section-summary small{display:block;color:var(--muted);margin-top:4px}
 .protection-section-content{padding:0 12px 12px}
-.link-txn-scroll{max-height:45vh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+.link-txn-scroll{min-width:0;max-width:100%;box-sizing:border-box;overflow-x:hidden;max-height:45vh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
 .link-txn-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;box-sizing:border-box;padding:11px 0;border-bottom:1px solid var(--rule)}
 .link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere}
 .link-txn-row input{justify-self:end;align-self:center}
@@ -6498,3 +6518,25 @@ connectDb();
 
 </body>
 </html>
+
+/* v1.152 targeted layout and category color corrections */
+.category-color-tag{display:inline-block;max-width:100%;overflow-wrap:anywhere;}
+.link-txn-row{box-sizing:border-box;max-width:100%;min-width:0;gap:8px;overflow:hidden;}
+.link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere;}
+.link-txn-row small{overflow-wrap:anywhere;white-space:normal;}
+.liability-amount{color:#d32f2f!important;}
+#overviewBody .ledger-pane-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+#overviewBody details.ledger-pane>summary{gap:10px;}
+#overviewBody .ledger-pane-heading{min-width:0;flex:1;}
+
+/* v1.152 Family Hub parity with Home */
+.finance-hub.home-family-hub{background:var(--panel);border:1px solid var(--rule);border-radius:18px;padding:16px;color:var(--text);box-shadow:none;}
+.finance-hub.home-family-hub .card-h{display:flex;align-items:center;gap:10px;min-width:0;margin-bottom:10px;}
+.finance-hub.home-family-hub .card-h h2{font-size:18px;line-height:1.25;font-weight:750;margin:0;min-width:0;}
+.finance-hub.home-family-hub .members{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.finance-hub.home-family-hub .member-chip{display:flex;align-items:center;gap:8px;min-height:42px;padding:7px 11px;border-radius:999px;background:var(--soft);border:1px solid var(--rule);color:var(--text);font-size:14px;}
+.finance-hub.home-family-hub .member-chip.active{background:var(--raise);border-color:var(--brass);}
+.finance-hub.home-family-hub .hint{font-size:12px;line-height:1.45;}
+#overviewBody details#ledgerSubsPane>summary{display:flex;align-items:center;gap:10px;}
+#overviewBody #ledgerSubsPane .ledger-pane-actions{margin-left:auto;min-width:22px;justify-content:flex-end;}
+#overviewBody #ledgerSubsPane .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;line-height:1;}
