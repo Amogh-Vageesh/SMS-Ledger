@@ -584,6 +584,19 @@ body{font-size:var(--fs-body);line-height:1.45}
 .protection-actions-compact{gap:8px;flex-wrap:wrap;align-items:center}.protection-actions-compact .mini{min-height:38px;padding:8px 12px}.protection-actions-compact .mini.primary{background:var(--gold);color:#17130b;border-color:var(--gold)}
 .finance-hub.card{margin-bottom:12px}.card-hub-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.card-hub-head h2{margin:0}.card-hub-head p{margin:4px 0 0;color:var(--muted)}
 .ledger-two-col-row,.subscription-category-row,.subscription-item-row,.prot-category-head,.prot-item{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);padding:14px 2px;color:var(--text);cursor:pointer}.ledger-two-col-row span:first-child,.subscription-item-name,.prot-item .insurance-main{min-width:0}.ledger-two-col-row span:first-child b,.subscription-item-name b,.prot-item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ledger-two-col-row small,.subscription-item-name small,.prot-item small{display:block;color:var(--muted);margin-top:4px}.ledger-two-col-row>span:last-child,.subscription-item-value,.prot-item>.num{min-width:92px;text-align:right}.prot-item{grid-template-columns:minmax(0,1fr) auto 24px}.prot-item>.num{text-align:right}.prot-category-items.hidden,.subscription-category-items.hidden{display:none}
+
+/* v1.133: align Protection summary with standard card typography and mobile grid */
+.protection-summary-inline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.protection-summary-inline>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.protection-summary-inline small{font-size:.82rem;color:var(--muted);line-height:1.25}
+.protection-summary-inline b{font-size:1rem;font-weight:650;overflow-wrap:anywhere;line-height:1.3}
+.protection-top .protection-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.protection-top .protection-actions .mini{font-size:.9rem;padding:8px 10px;min-height:36px}
+.link-txn-scroll{max-height:48vh;overflow-y:auto;overscroll-behavior:contain}
+.link-txn-row{display:grid!important;grid-template-columns:minmax(0,1fr) 24px;gap:10px;align-items:center;width:100%;box-sizing:border-box}
+.link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere}
+.link-txn-row input[type=checkbox]{justify-self:center;margin:0}
+@media(max-width:380px){.protection-summary-inline{gap:6px}.protection-summary-inline small{font-size:.76rem}.protection-summary-inline b{font-size:.9rem}.protection-top .protection-actions .mini{font-size:.82rem;padding:7px 8px}}
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -2030,14 +2043,25 @@ function cleanDuplicateRecurringTransactions(){
 function allSubs(){
   state.subsManual=Array.isArray(state.subsManual)?state.subsManual:[]; state.subsHidden=Array.isArray(state.subsHidden)?state.subsHidden:[]; state.txns=Array.isArray(state.txns)?state.txns:[];
   const det = detectSubs(), keys = new Set(det.map(x=>x.key));
-  const man = (state.subsManual||[]).filter(m=>!keys.has(m.key) && !state.subsHidden.includes(m.key)).map(m=>{
+  const man = (state.subsManual||[]).filter(m=>!state.subsHidden.includes(m.key)).map(m=>{
     const last = state.txns.filter(t=>t.type==="debit" && mkey(t.merchant) === m.key).sort((a,b)=>b.date.localeCompare(a.date))[0];
     const step = m.freq === "year" ? 365 : m.freq === "quarter" ? 91 : 30;
     let next = null; if(last){ next = last.date; while(next <= todayISO()) next = addDays(next, step); }
     const perMonth = m.freq === "year" ? m.amount/12 : m.freq === "quarter" ? m.amount/3 : m.amount;
     return { ...m, next, perMonth: (!m.currency || m.currency === "INR") ? perMonth : 0, manual: true };
   });
-  return det.concat(man);
+  const byKey=new Map();
+  det.forEach(x=>byKey.set(String(x.key),x));
+  man.forEach(x=>{const old=byKey.get(String(x.key));byKey.set(String(x.key),old?{...old,...x,manual:true}:x);});
+  // Transactions explicitly tagged as recurring/subscription must remain visible even if
+  // merchant-frequency detection cannot infer a schedule (e.g. a new annual bill).
+  (state.txns||[]).forEach(t=>{
+    const k=String(t?.subscriptionKey||t?.recurringKey||"").trim();
+    if(!k||state.subsHidden.includes(k)||byKey.has(k))return;
+    const label=String(t.merchant||t.note||k);
+    byKey.set(k,{key:k,name:label,amount:Number(t.amount)||0,freq:"month",category:t.subscriptionCategory||t.category||"Other",amountMode:"variable",manual:false,tagged:true});
+  });
+  return [...byKey.values()];
 }
 
 /* ---------- Home ---------- */
@@ -2219,7 +2243,7 @@ function openSectionSharePicker(key,label){
   });
 }
 function sectionShareControl(key,label){ const on=sectionIsShared(key); return `<div class="switchrow section-share-control"><span><b>Share ${esc(label)}</b><small style="display:block;color:var(--muted)">${on?'Shared with selected family members':'Not shared'}</small></span><label class="switch"><input type="checkbox" data-section-share-toggle="${esc(key)}" ${on?'checked':''}><span class="track"></span></label></div>`; }
-function bindSectionShareControls(root){ root.querySelectorAll('[data-section-share-toggle]').forEach(t=>t.addEventListener('change',e=>{const key=e.target.dataset.sectionShareToggle;const label=e.target.closest('.section-share-control')?.querySelector('b')?.textContent?.replace(/^Share\s+/,'')||key;if(e.target.checked){e.target.checked=false;openSectionSharePicker(key,label);}else{state.family=state.family||{members:{}};state.family.shareSections=state.family.shareSections||{};state.family.shareSections[key]=[];persist([],true);publishFamilyCloud(true);render();}})); }
+function bindSectionShareControls(root){ root.querySelectorAll('[data-section-share-toggle]').forEach(t=>{if(t.dataset.boundShare==='1')return;t.dataset.boundShare='1';t.addEventListener('change',e=>{e.stopPropagation();const key=e.target.dataset.sectionShareToggle;const label=e.target.closest('.section-share-control')?.querySelector('b')?.textContent?.replace(/^Share\s+/,'')||key;if(e.target.checked){e.target.checked=false;openSectionSharePicker(key,label);}else{state.family=state.family||{members:{}};state.family.shareSections=state.family.shareSections||{};state.family.shareSections[key]=[];persist([],true);publishFamilyCloud(true);render();}});}); }
 function outgoingCompleteStateForMember(uid){ const fam=state.family||{};const shares=fam.shareSections||{};const details=fam.shareDetails||{};const explicit=Object.keys(shares).length>0;const allow=k=>!explicit||(Array.isArray(shares[k])&&shares[k].map(String).includes(String(uid)));const has=(k,d)=>{const a=details[k];return !Array.isArray(a)||a.length===0||a.includes(d);};const src=state;const ledgerSectionKeys=['ledger-income','ledger-expenses','ledger-transfers','ledger-events','ledger-subscriptions','ledger-transactions'];const anyLedger=allow('ledger')||ledgerSectionKeys.some(allow);const shareTxn=t=>{if(allow('ledger')||allow('ledger-transactions'))return true;const transfer=['Transfers','Self transfer'].includes(t.category);if(t.type==='credit'&&t.category!=='Refunds'&&allow('ledger-income'))return true;if(t.type==='debit'&&!transfer&&allow('ledger-expenses'))return true;if(transfer&&allow('ledger-transfers'))return true;if((t.subscriptionKey||t.recurringKey)&&allow('ledger-subscriptions'))return true;if((t.event||t.eventId)&&allow('ledger-events'))return true;return false;};const out={...src,txns:anyLedger?(src.txns||[]).filter(shareTxn).map(x=>({...x})):[],assets:allow('assets')?(src.assets||[]).map(x=>{const y={...x};if(!has('assets','details')){delete y.currentValue;delete y.marketUpdated;delete y.marketSource;delete y.purchasePrice;}if(!has('assets','ownership')){delete y.owners;delete y.coOwners;}return y;}):[],insurance:(allow('protection')||allow('protection-insurances'))?(src.insurance||[]).map(x=>{const y={...x};if(!has('protection','financial')){delete y.coverage;delete y.accidentalCoverage;delete y.premium;}if(!has('protection','covered')){delete y.coveredMembers;delete y.nominee;}return y;}):[],warranties:(allow('protection')||allow('protection-warranties'))?(src.warranties||[]).map(x=>{const y={...x};if(!has('protection','financial')){delete y.coverage;delete y.value;}return y;}):[],maintenancePlans:(allow('protection')||allow('protection-maintenance'))?(src.maintenancePlans||[]).map(x=>{const y={...x};if(!has('protection','financial')){delete y.cost;delete y.amount;}return y;}):[],subsManual:allow('ledger')?(src.subsManual||[]).map(x=>({...x})):[],subsHidden:allow('ledger')?[...(src.subsHidden||[])]:[],accounts:{},budgets:allow('budgets')?{...(src.budgets||{})}:{},events:(allow('budgets')||allow('ledger-events'))?{...(src.events||{})}:{},calendar:allow('budgets')?[...(src.calendar||[])]:[],shopping:allow('budgets')?[...(src.shopping||[])]:[],loanDocuments:allow('loans')?(src.loanDocuments||[]).map(x=>({...x})):[]};Object.entries(src.accounts||{}).forEach(([k,a])=>{if(!a||a.hidden)return;const kind=a.kind||'bank';const ret=/epf|pf|nps|pension|retirement|provident/i.test(String(a.label||'')+' '+String(a.kind||''));const ok=(kind==='bank'&&allow('banks'))||(kind==='card'&&allow('cards'))||(kind==='invest'&&allow('investments'))||(kind==='loan'&&allow('loans'))||(ret&&allow('retirement'))||((kind==='wallet'||kind==='fastag')&&allow('cash'));if(ok)out.accounts[k]={...a};});out.family={};out.googleOnboardingDone=undefined;out.googleSkipped=undefined;return out; }
 function filteredCompleteStateForMember(uid){
   const c=familyShareConfig(uid), src=state;
@@ -2601,12 +2625,14 @@ function subscriptionCategories(){
 }
 function subscriptionFreqLabel(f){ return f === "quarter" ? "Quarterly" : f === "year" ? "Yearly" : "Monthly"; }
 function subscriptionRowsFor(key){
-  return (state.txns||[]).filter(t=>t&&t.type==="debit"&&(
-    t.subscriptionKey===key || mkey(t.merchant)===key
-  )).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const wanted=String(key||"").trim();
+  return displayTxns().filter(t=>t&&t.type==="debit"&&(
+    String(t.subscriptionKey||"")===wanted || mkey(t.merchant)===wanted ||
+    (t.recurringKey&&String(t.recurringKey)===wanted)
+  )).sort((a,b)=>String(b.date||"").slice(0,10).localeCompare(String(a.date||"").slice(0,10)));
 }
 function subscriptionSpendFor(key, periodStart, periodEnd){
-  const rows=subscriptionRowsFor(key).filter(t=>(!periodStart||t.date>=periodStart)&&(!periodEnd||t.date<=periodEnd));
+  const rows=subscriptionRowsFor(key).filter(t=>{const d=String(t.date||"").slice(0,10);return (!periodStart||d>=periodStart)&&(!periodEnd||d<=periodEnd);});
   return {amount:rows.reduce((a,t)=>a+spendAmt(t),0), count:rows.length, rows};
 }
 function subscriptionIdentity(x){ return x && (x.key || x.id); }
@@ -2817,7 +2843,7 @@ function renderAccounts(){
           return `<div class="asset-category-block"><button type="button" class="asset-category-row" data-asset-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} asset${items.length===1?"":"s"}</small></span><span class="asset-category-right"><b class="num">${safeMoney(catTotal)}</b><small>Current value</small><i>⌄</i></span></button><div class="asset-category-items hidden">${itemRows}</div></div>`;
         }).join('');
       }else html+=`<div class="pane-empty">No assets yet. Add your home, land, vehicle, gold or other assets.</div>`;
-      html+=`</details>`;
+      html+=`${sectionShareControl("assets","Assets")}</details>`;
     }catch(e){ diag.push("assets section"); html+=`<section class="asset-pane"><div class="asset-pane-head"><div><h2>Assets</h2></div></div><div class="pane-empty">Assets could not be fully calculated, but saved data was not deleted.</div></section>`; }
 
     const accountPane=(title,subtitle,items,total,id)=>{
@@ -2828,7 +2854,7 @@ function renderAccounts(){
         const open=id==='bank'; const desc='';
         const addLabel={bank:'+ Add bank account',other:'+ Add investment / other account',card:'+ Add credit card',loan:'+ Add loan account'}[id]||'';
         const addHtml=addLabel?`<div class="pane-action"><button type="button" class="btn ${id==='loan'?'primary':''}" data-add-account-kind="${id}">${addLabel}</button></div>`:'';
-        const paneKey=(id==="bank"?"bank":id==="card"?"card":id==="loan"?"loan":"other"); const isOpen=assetPaneOpen[paneKey] ?? open; return `<details class="asset-pane collapsible-pane" data-asset-pane="${paneKey}" ${isOpen?"open":""}><summary data-pane-toggle="${paneKey}"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${addHtml}${rows}</details>`;
+        const paneKey=(id==="bank"?"bank":id==="card"?"card":id==="loan"?"loan":"other"); const isOpen=assetPaneOpen[paneKey] ?? open; return `<details class="asset-pane collapsible-pane" data-asset-pane="${paneKey}" ${isOpen?"open":""}><summary data-pane-toggle="${paneKey}"><div><h2>${title}</h2><p>${items.length} ${subtitle}${items.length!==1?'s':''} · ${safeMoney(total)}</p></div><span class="pane-icon">${id==='loan'?'⌁':id==='bank'?'▣':'◌'}</span></summary>${addHtml}${rows}${sectionShareControl(paneKey==="bank"?"banks":paneKey==="card"?"cards":paneKey==="loan"?"loans":"investments",title)}</details>`;
       }catch(e){ diag.push(title); return `<section class="asset-pane"><div class="asset-pane-head"><div><h2>${title}</h2></div></div><div class="pane-empty">This section could not be displayed.</div></section>`; }
     };
     if(accountView==="Credit"){
@@ -2860,7 +2886,7 @@ function renderAccounts(){
     if(hid) html+=`<div class="row" style="justify-content:center"><button class="btn link" id="unhideAccts">Show ${hid} hidden accounts</button></div>`;
     if(diag.length) html+=`<p class="help" style="margin-top:12px">Some optional details could not be displayed. Your saved data remains on this phone.</p>`;
     el.innerHTML=renderFinanceHubTop()+html;
-    bindFinanceHub();
+    bindFinanceHub(); bindSectionShareControls(el);
   }catch(err){
     console.error("Assets tab render failed",err);
     // Last-resort UI: never hide the page behind a generic error. Show actionable controls and the exact error in a details block.
@@ -3433,9 +3459,9 @@ function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();const ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
  const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const name=kind==='Insurance'?(x.insurer||'Insurance policy'):kind==='Warranty'?(x.name||x.product||'Warranty'):(x.name||'Maintenance plan');const meta=kind==='Insurance'?`${x.insurer||''}${x.policyNumber?' · '+x.policyNumber:''}`:kind==='Warranty'?`${x.provider||''}${x.warrantyNumber?' · '+x.warrantyNumber:''}`:`${x.provider||''}${x.contractNumber?' · '+x.contractNumber:''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:kind==='Warranty'?(x.cost||x.value||0):(x.cost||x.amount||0))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty value':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
- const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), insurancePremium=ins.reduce((a,x)=>a+(Number(x.premium)||0),0), warrantyCover=war.reduce((a,x)=>a+(Number(x.coverage||x.value||x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
- let html=`${renderFinanceHubTop()}<div class="card protection-top"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}</div><div class="card protection-summary-card"><div class="card-h"><h2>Protection summary</h2><span class="chart-note">Coverage and costs</span></div><div class="num protection-summary-total">${money(insuranceCover+warrantyCover,true)}</div><p class="help">Combined insurance and warranty coverage</p><div class="networth-grid protection-summary-grid"><div><small>Insurance cover</small><b>${money(insuranceCover,true)}</b><small>Premium / year</small><b>${money(insurancePremium,true)}</b></div><div><small>Warranty cover</small><b>${money(warrantyCover,true)}</b></div><div><small>Maintenance packages</small><b>${money(maintenanceCost,true)}</b><small>Package cost</small></div></div></div>`;
- html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();el.querySelector('#protectionShare')?.addEventListener('click',()=>openSectionSharePicker('protection','Protection'));bindSectionShareControls(el);
+ const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), warrantyCover=war.reduce((a,x)=>a+(Number(x.coverage||x.value||x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
+ let html=`${renderFinanceHubTop()}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Warranty cover</small><b>${money(warrantyCover,true)}</b></div><div><small>Maintenance package cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
+ html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);
  el.querySelector('#addMaintenance')?.addEventListener('click',()=>openMaintenanceSheet());el.querySelectorAll('[data-prot-category]').forEach(r=>r.addEventListener('click',()=>{const body=r.parentElement.querySelector('.prot-category-items');if(body){body.classList.toggle('hidden');const c=r.querySelector('.chev');if(c)c.textContent=body.classList.contains('hidden')?'⌄':'⌃';}}));el.querySelectorAll('[data-prot-kind]').forEach(r=>r.addEventListener('click',()=>{const kind=r.dataset.protKind,id=r.dataset.protId;if(kind==='Insurance')openInsuranceSheet(id);else if(kind==='Warranty')openWarrantySheet(id);else openMaintenanceSheet(id);}));
 }
 function protectionLinkedTransactions(kind,id){
@@ -3562,11 +3588,12 @@ function renderHome(){
         <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
       </div>
       <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
-      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
-      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}
-      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}${sectionShareControl('budgets','Home Events')}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}${sectionShareControl('budgets','Calendar')}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}${sectionShareControl('budgets','Shopping List')}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}${sectionShareControl('ledger-transactions','Shared Activity')}</div>` : ''}
+      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p>${sectionShareControl('ledger','Home Financial Summary')}</div>`;
+    bindSectionShareControls(body);
   }catch(err){
     console.error('Family Hub render failed', err);
     body.innerHTML=`<div class="card"><div class="card-h"><h2>Family Hub</h2></div><p class="help">Family Hub is loading. Your family data is safe on this phone.</p><div class="row"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button></div></div>`;
@@ -3708,14 +3735,15 @@ function currentQuarterMonth(){ const [y,q]=quarterParts(currentPK()); return `$
 
 function ledgerPeriodBounds(){
   const mode=ovMode||"month";
-  if(mode==="month") return periodRange(cursor||currentPK()).map(iso);
+  const norm=d=>String(d||"").slice(0,10);
+  if(mode==="month") { const r=periodRange(cursor||currentPK()); return [norm(iso(r[0])),norm(iso(r[1]))]; }
   if(mode==="quarter"){
     const [y,q]=quarterParts(cursor||currentPK());
     const start=`${y}-${String((q-1)*3+1).padStart(2,"0")}-01`;
-    return [start,iso(new Date(y,q*3,0))];
+    return [start,norm(iso(new Date(y,q*3,0)))];
   }
   if(mode==="year") return [`${ovYear}-01-01`,`${ovYear}-12-31`];
-  const dates=displayTxns().filter(t=>t.date).map(t=>t.date).sort();
+  const dates=(state.txns||[]).filter(t=>t&&t.date).map(t=>norm(t.date)).sort();
   return [dates[0]||"1900-01-01",dates.at(-1)||todayISO()];
 }
 function ledgerPeriodLabel(){
@@ -3724,7 +3752,7 @@ function ledgerPeriodLabel(){
   if(ovMode==="year") return String(ovYear);
   return "All years";
 }
-function ledgerPeriodTxns(){ const [a,b]=ledgerPeriodBounds(); return displayTxns().filter(t=>t.date>=a&&t.date<=b&&counts(t)); }
+function ledgerPeriodTxns(){ const [a,b]=ledgerPeriodBounds(); return displayTxns().filter(t=>{const d=String(t.date||"").slice(0,10);return d>=a&&d<=b&&counts(t);}); }
 function ledgerShareKey(title){return ({"Income":"ledger-income","Expenses":"ledger-expenses","Transfers":"ledger-transfers","Expense Categories":"ledger-expenses","Events":"ledger-events","Subscriptions & Recurring":"ledger-subscriptions","Recent Transactions":"ledger-transactions"})[title]||"ledger";}
 function ledgerPane(title,subtitle,body,open=false){ const key=ledgerShareKey(title); return `<details class="card ledger-pane" ${open?"open":""}><summary><div><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:""}</div><span class="ledger-pane-chevron">⌄</span></summary><div class="ledger-pane-body">${body}${sectionShareControl(key,title)}</div></details>`; }
 function ledgerEventRows(){
@@ -4448,7 +4476,7 @@ function openMonthPicker(){
 }
 document.getElementById("monthName").onclick = ()=>{ if(ovMode === "month") openMonthPicker(); };
 document.getElementById("monthName2").onclick = openMonthPicker;
-document.getElementById("ovMode").addEventListener("click", e=>{ const b=e.target.closest("[data-m]"); if(!b)return; ovMode=b.dataset.m; if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4); if(ovMode==="quarter") cursor=`${quarterParts(cursor||currentPK())[0]}-${String((quarterParts(cursor||currentPK())[1]-1)*3+1).padStart(2,"0")}`; render(); });
+document.getElementById("ovMode").addEventListener("click", e=>{ const b=e.target.closest("[data-m]"); if(!b)return; ovMode=b.dataset.m; if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4); if(ovMode==="quarter"){const [qy,qq]=quarterParts(cursor||currentPK());cursor=`${qy}-${String((qq-1)*3+1).padStart(2,"0")}`;} saveLocal(); render(); });
 
 /* ---------- Events ---------- */
 document.querySelector(".tabs nav").addEventListener("click", e=>{

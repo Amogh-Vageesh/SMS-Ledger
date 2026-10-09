@@ -1,4 +1,4 @@
-# SMS Ledger v1.132
+# SMS Ledger v1.133
 
 Source release with My Ledger, Protection, transaction-linking and Family Hub fixes.
 
