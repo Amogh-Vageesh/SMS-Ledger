@@ -602,6 +602,27 @@ body{font-size:var(--fs-body);line-height:1.45}
 .link-txn-row input[type=checkbox]{justify-self:center;margin:0}
 @media(max-width:380px){.protection-summary-inline{gap:6px}.protection-summary-inline small{font-size:.76rem}.protection-summary-inline b{font-size:1rem}.protection-top .protection-actions .mini{font-size:.82rem;padding:7px 8px}}
 
+/* v1.149: normalize Family Hub controls and member cards across all finance tabs */
+.finance-hub .finance-manage-family,
+.finance-hub .finance-share-btn{
+  min-height:40px!important;height:40px!important;box-sizing:border-box!important;
+  border-radius:10px!important;padding:0 13px!important;font-size:.88rem!important;
+  font-weight:650!important;white-space:nowrap!important;display:inline-flex!important;
+  align-items:center!important;justify-content:center!important;line-height:1!important;
+}
+.finance-hub .finance-share-btn{border:1px solid var(--rule)!important;background:var(--raise)!important;color:var(--text)!important;min-width:92px!important;}
+.finance-hub .finance-manage-family{min-width:112px!important;}
+.finance-hub .member-chip{min-height:42px!important;border:1px solid var(--rule)!important;border-radius:12px!important;background:var(--raise)!important;color:var(--text)!important;padding:8px 12px!important;display:inline-flex!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important;}
+.finance-hub .member-chip.active{background:var(--soft)!important;border-color:var(--brass)!important;}
+.finance-hub .member-avatar{width:28px!important;height:28px!important;flex:0 0 28px!important;border-radius:50%!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:var(--soft)!important;color:var(--text)!important;}
+@media(max-width:390px){.finance-hub .finance-manage-family,.finance-hub .finance-share-btn{min-width:0!important;padding:0 9px!important;font-size:.8rem!important}.finance-hub .finance-manage-family{min-width:0!important}.finance-hub .member-chip{padding:7px 9px!important}}
+/* Settings groups: make each settings panel independently collapsible without moving its controls. */
+#v-settings .settings-collapsible{border:1px solid var(--rule);border-radius:14px;background:var(--panel);margin:0 0 12px;overflow:hidden}
+#v-settings .settings-collapsible>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;font-weight:700;cursor:pointer}
+#v-settings .settings-collapsible>summary::-webkit-details-marker{display:none}
+#v-settings .settings-collapsible>summary:after{content:'⌄';color:var(--muted);font-size:18px}
+#v-settings .settings-collapsible[open]>summary:after{content:'⌃'}
+#v-settings .settings-collapsible>.settings-collapsible-body{padding:0 12px 12px}
 /* v1.142: compact Family Hub header, with controls grouped and safely separated */
 .finance-hub.home-family-hub .card-h{
  display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px;
@@ -969,8 +990,8 @@ button.insurance-row{
 </section>
 
 <section id="v-settings" class="hidden">
-  <h1 class="section-h" style="margin-top:4px" data-notr>Language · ಭಾಷೆ</h1>
   <div class="settings-jump"><select id="settingsJump" aria-label="Settings quick navigation"><option value="">Jump to a setting…</option><option value="settings-categories">Categories</option><option value="settings-sms">Automatic SMS reading</option><option value="settings-security">App security</option><option value="settings-cloud">Cloud account</option><option value="settings-family">Family</option><option value="settings-import">Historical & missing-month import</option><option value="settings-loan-docs">Loan documents</option><option value="settings-backup">Automatic backup</option><option value="settings-data">Your data</option><option value="settings-rules">Merchant rules</option></select></div>
+  <h1 class="section-h" style="margin-top:12px" data-notr>Language · ಭಾಷೆ</h1>
   <div class="set-block" data-notr>
     <div class="seg wide" id="langSeg" role="group" aria-label="Language" style="margin:12px 0">
       <button data-lang="en">English</button><button data-lang="kn">ಕನ್ನಡ</button>
@@ -1422,7 +1443,7 @@ function tr(s){
   for(const [rx, fn] of KN_RX){ const m = k.match(rx); if(m) return lead + fn(m) + trail; }
   return str;
 }
-const SKIP_TR = "script,style,textarea,input,.raw,[data-notr]";
+const SKIP_TR = "script,style,textarea,input,.raw,[data-notr],.date-en,[data-date-english]";
 function trNode(root){
   if(LANG !== "kn" || !root) return;
   if(root.nodeType === 3){ if(!root.parentElement || !root.parentElement.closest(SKIP_TR)){ const v = tr(root.nodeValue); if(v !== root.nodeValue) root.nodeValue = v; } return; }
@@ -1433,6 +1454,16 @@ function trNode(root){
   const els = root.querySelectorAll ? [root, ...root.querySelectorAll("[placeholder],[aria-label],[title]")] : [];
   els.forEach(e=>["placeholder","aria-label","title"].forEach(a=>{ const v = e.getAttribute && e.getAttribute(a); if(v){ const t = tr(v); if(t !== v) e.setAttribute(a, t); } }));
 }
+Object.assign(KN,{
+ "My Ledger":"ನನ್ನ ಲೆಡ್ಜರ್","Recent Transactions":"ಇತ್ತೀಚಿನ ವಹಿವಾಟುಗಳು","Expense Categories":"ಖರ್ಚಿನ ವರ್ಗಗಳು",
+ "Subscriptions & Recurring":"ಚಂದಾದಾರಿಕೆ ಮತ್ತು ಪುನರಾವರ್ತಿತ ಪಾವತಿಗಳು","Quarter":"ತ್ರೈಮಾಸಿಕ","Quarterly":"ತ್ರೈಮಾಸಿಕ","Yearly":"ವಾರ್ಷಿಕ",
+ "Choose year":"ವರ್ಷ ಆಯ್ಕೆಮಾಡಿ","Choose month":"ತಿಂಗಳು ಆಯ್ಕೆಮಾಡಿ","Total Balance":"ಒಟ್ಟು ಬಾಕಿ","Current actual value held · not period-limited":"ಪ್ರಸ್ತುತ ನಿಜವಾದ ಮೊತ್ತ · ಅವಧಿಗೆ ಸೀಮಿತವಲ್ಲ",
+ "Insurance":"ವಿಮೆ","Insurances":"ವಿಮೆ ಪಾಲಿಸಿಗಳು","Warranties":"ವಾರಂಟಿಗಳು","Maintenance":"ನಿರ್ವಹಣೆ","Expiry date not set":"ಅವಧಿ ಮುಕ್ತಾಯ ದಿನಾಂಕ ಹೊಂದಿಸಿಲ್ಲ",
+ "Covered:":"ವಿಮೆ ವ್ಯಾಪ್ತಿಯಲ್ಲಿ:","Sum assured":"ವಿಮಾ ಮೊತ್ತ","premium total":"ಒಟ್ಟು ಪ್ರೀಮಿಯಂ","warranty cost":"ವಾರಂಟಿ ವೆಚ್ಚ","package cost":"ಪ್ಯಾಕೇಜ್ ವೆಚ್ಚ",
+ "Income":"ಆದಾಯ","Expenses":"ಖರ್ಚು","Transfers":"ವರ್ಗಾವಣೆಗಳು","Transfer category":"ವರ್ಗಾವಣೆ ವರ್ಗ","Transactions":"ವಹಿವಾಟುಗಳು","No transfers for":"ಈ ಅವಧಿಗೆ ವರ್ಗಾವಣೆಗಳಿಲ್ಲ",
+ "Jump to a setting…":"ಸೆಟ್ಟಿಂಗ್‌ಗೆ ಹೋಗಿ…","Manage Family":"ಕುಟುಂಬ ನಿರ್ವಹಣೆ","Share":"ಹಂಚಿಕೊಳ್ಳಿ","Hide":"ಮರೆಮಾಡಿ","Show":"ತೋರಿಸಿ"
+});
+
 let trObserver = null;
 function applyLanguage(lang){
   LANG = lang === "kn" ? "kn" : "en";
@@ -1651,7 +1682,7 @@ function toast(msg){
 function niceDate(iso){
   const [y,m,d] = iso.split("-").map(Number);
   const dt = new Date(y, m-1, d);
-  return dt.toLocaleDateString(LANG === "kn" ? "kn-IN" : "en-IN",{weekday:"short", day:"numeric", month:"short"});
+  return dt.toLocaleDateString("en-IN",{weekday:"short", day:"numeric", month:"short"});
 }
 
 /* ---------- SMS parser ---------- */
@@ -4157,7 +4188,7 @@ function ledgerPane(title,subtitle,body,open=false){
 }
 function ledgerEventRows(){
   const [a,b]=ledgerPeriodBounds(), vals=[];
-  eventList().forEach(e=>{ const linked=eventTransactions(e.id).filter(t=>t.date>=a&&t.date<=b); if(linked.length) vals.push({e,count:linked.length,total:linked.filter(t=>t.type==="debit"&&counts(t)).reduce((s,t)=>s+spendAmt(t),0)}); });
+  eventList().forEach(e=>{ const linked=eventTransactions(e.id).filter(t=>{const d=ledgerDateKey(t.date);return !!d&&d>=a&&d<=b;}); if(linked.length) vals.push({e,count:linked.length,total:linked.filter(t=>t.type==="debit"&&counts(t)).reduce((s,t)=>s+spendAmt(t),0)}); });
   return vals.sort((x,y)=>(y.e.date||"").localeCompare(x.e.date||"")).map(x=>`<button class="ledger-two-col-row" data-openevov="${esc(x.e.id)}"><span><b>${esc(x.e.name)}</b><small>${x.e.date?esc(niceDate(x.e.date)):"No date"} · ${x.count} transaction${x.count===1?"":"s"}</small></span><span><b>${money(x.total,true)}</b><small>Event</small></span></button>`).join("")||`<p class="help">No events for ${esc(ledgerPeriodLabel())}.</p>`;
 }
 function ledgerTransferRows(tx){
@@ -4187,7 +4218,7 @@ function renderMyLedgerPage(){
   const expenseRows=expenseTx.map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Expense")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${money(spendAmt(t),true)}</b><small>${t.subscriptionKey?"Recurring":"Expense"}</small></span></button>`).join("")||`<p class="help">No expenses for ${esc(ledgerPeriodLabel())}.</p>`;
   let subs=""; try{ subs=renderSubscriptionCard(ovMode==="all"?"all":ovMode,cursor||currentPK(),ovMode==="year"?ovYear:Number(String(cursor||currentPK()).slice(0,4))); }catch(e){ console.error("Subscription section failed",e); subs=ledgerPane("Subscriptions & Recurring","Unable to load recurring entries",'<p class="help">Recurring data could not be displayed. Your Ledger transactions are safe.</p>'); }
   const net=income-expenses;
-  let html=`<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held · ${esc(ledgerPeriodLabel())}</span></div><button type="button" class="mini" id="ledgerShareTop">Share</button></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint">Income ${money(income)} · Expenses ${money(expenses)} · Net ${net<0?"−":"+"}${money(Math.abs(net))}. Internal transfers are excluded from income and expenses.</p></div>`;
+  let html=`<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Current actual value held · not period-limited</span></div><button type="button" class="mini" id="ledgerShareTop">Share</button></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint">Income ${money(income)} · Expenses ${money(expenses)} · Net ${net<0?"−":"+"}${money(Math.abs(net))}. Internal transfers are excluded from income and expenses.</p></div>`;
   html+=expenseDonut(cats,expenses);
   html+=ledgerPane("Recent Transactions",`${tx.length} transactions in ${ledgerPeriodLabel()}`,ledgerTxnRows(tx),true);
   html+=subs;
@@ -4195,7 +4226,7 @@ function renderMyLedgerPage(){
   html+=ledgerPane("Expenses",`${money(expenses)} · ${expenseTx.length} entries`,expenseRows);
   html+=ledgerPane("Transfers",`${money(transfers)} · ${transferTx.length} internal transfers`,ledgerTransferRows(tx));
   html+=ledgerPane("Expense Categories",`${Object.keys(cats).length} categories · ${money(expenses)}`,catRows);
-  html+=ledgerPane("Events",`${eventList().filter(e=>{const [a,b]=ledgerPeriodBounds();return e.date>=a&&e.date<=b;}).length} events`,ledgerEventRows());
+  html+=ledgerPane("Events",`${eventList().filter(e=>{const [a,b]=ledgerPeriodBounds();const d=ledgerDateKey(e.date);return !!d&&d>=a&&d<=b;}).length} events`,ledgerEventRows());
   body.innerHTML=html;
   body.querySelector('.ledger-section-jumpbar')?.remove();
   // Remove obsolete transaction-type filter controls from the My Ledger view.
@@ -4899,7 +4930,7 @@ document.getElementById("monthName").onclick = ()=>{
 };
 function openYearPicker(){
   const current = currentPK();
-  const years = [...new Set((state.txns||[]).map(t=>String(t?.date||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)).map(Number))].sort((a,b)=>b-a);
+  const years = [...new Set((state.txns||[]).map(t=>{const d=ledgerDateKey(t?.date);return d?Number(d.slice(0,4)):NaN;}).filter(y=>Number.isInteger(y)&&y>=1900&&y<=9999))].sort((a,b)=>b-a);
   const thisYear = Number(current.slice(0,4));
   if(!years.includes(thisYear)) years.unshift(thisYear);
   if(!years.length) years.push(thisYear);
