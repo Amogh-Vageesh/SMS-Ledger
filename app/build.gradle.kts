@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 135
-        versionName = "1.140"
+        versionName = "1.141"
     }
 
     // A fixed key kept in this (private) repo, so every new build installs as an update

@@ -2910,8 +2910,8 @@ function subscriptionRowsFor(key){
       (rk && (rk===wanted || mkey(rk)===wantedNorm)) ||
       (!!merchantNorm && !!wantedNorm && (
         merchantNorm===wantedNorm ||
-        (merchantNorm.length>=4 && wantedNorm.length>=4 &&
-          (merchantNorm.includes(wantedNorm)||wantedNorm.includes(merchantNorm)))
+        (merchantNorm.length>=6 && wantedNorm.length>=6 &&
+          (merchantNorm===wantedNorm || (merchantNorm.startsWith(wantedNorm+' ') || wantedNorm.startsWith(merchantNorm+' '))))
       ));
   }).sort((a,b)=>ledgerDateKey(b.date).localeCompare(ledgerDateKey(a.date)));
 }
@@ -2969,7 +2969,7 @@ function openSubscriptionLinkSheet(key){
     if(ids.length){persist([...months],true);toast(`${ids.length} transaction${ids.length===1?"":"s"} linked.`);} else toast("No transactions selected.");
   });
   const scr=document.querySelector('.scrim:last-of-type');
-  const applyFilters=()=>{if(!scr)return;const q=(scr.querySelector('#sub-link-search')?.value||'').toLowerCase();const cat=scr.querySelector('#sub-link-category')?.value||'';const per=scr.querySelector('#sub-link-period')?.value||'all';const anchor=ledgerDateKey(todayISO())||todayISO();const month=anchor.slice(0,7);const [yy,mm]=month.split('-').map(Number);const qStart=`${yy}-${String(Math.floor((mm-1)/3)*3+1).padStart(2,'0')}-01`;const qEnd=iso(new Date(yy,Math.floor((mm-1)/3)*3+3,0));const yStart=`${yy}-01-01`,yEnd=`${yy}-12-31`;scr.querySelectorAll('.link-txn-row').forEach(row=>{const d=ledgerDateKey(row.dataset.date);let ok=!!d&&(!q||row.dataset.search.includes(q))&&(!cat||row.dataset.category===cat);if(per==='month')ok=ok&&d>=`${month}-01`&&d<=iso(new Date(yy,mm,0));if(per==='quarter')ok=ok&&d>=qStart&&d<=qEnd;if(per==='year')ok=ok&&d>=yStart&&d<=yEnd;row.style.display=ok?'flex':'none';});};
+  const applyFilters=()=>{if(!scr)return;const q=(scr.querySelector('#sub-link-search')?.value||'').toLowerCase();const cat=scr.querySelector('#sub-link-category')?.value||'';const per=scr.querySelector('#sub-link-period')?.value||'all';const selectedMonth=String(cursor||currentPK()).slice(0,7);const anchor=ledgerDateKey(selectedMonth+'-01')||todayISO();const month=anchor.slice(0,7);const [yy,mm]=month.split('-').map(Number);const qStart=`${yy}-${String(Math.floor((mm-1)/3)*3+1).padStart(2,'0')}-01`;const qEnd=iso(new Date(yy,Math.floor((mm-1)/3)*3+3,0));const selectedYear=Number(ovMode==='year'?ovYear:month.slice(0,4));const yStart=`${selectedYear}-01-01`,yEnd=`${selectedYear}-12-31`;scr.querySelectorAll('.link-txn-row').forEach(row=>{const d=ledgerDateKey(row.dataset.date);let ok=!!d&&(!q||row.dataset.search.includes(q))&&(!cat||row.dataset.category===cat);if(per==='month')ok=ok&&d>=`${month}-01`&&d<=iso(new Date(yy,mm,0));if(per==='quarter')ok=ok&&d>=qStart&&d<=qEnd;if(per==='year')ok=ok&&d>=yStart&&d<=yEnd;row.style.display=ok?'flex':'none';});};
   ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
@@ -4088,7 +4088,7 @@ function renderMyLedgerPage(){
   const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<button class="ledger-two-col-row" data-cat="${esc(c)}"><span><b>${esc(c)}</b><small>Expense category</small></span><span><b>${money(v,true)}</b><small>${expenses?Math.round(v/expenses*100):0}% of expenses</small></span></button>`).join("")||`<p class="help">No expense categories for ${esc(ledgerPeriodLabel())}.</p>`;
   const incomeRows=tx.filter(t=>t.type==="credit"&&t.category!=="Refunds").map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||t.note||"Income")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Income")}</small></span><span><b>${money(inAmt(t),true)}</b><small>Income</small></span></button>`).join("")||`<p class="help">No income for ${esc(ledgerPeriodLabel())}.</p>`;
   const expenseRows=expenseTx.map(t=>`<button class="ledger-two-col-row" data-tx-open="${esc(t.id)}"><span><b>${esc(t.merchant||"Expense")}</b><small>${esc(niceDate(t.date))} · ${esc(t.category||"Other")}</small></span><span><b>${money(spendAmt(t),true)}</b><small>${t.subscriptionKey?"Recurring":"Expense"}</small></span></button>`).join("")||`<p class="help">No expenses for ${esc(ledgerPeriodLabel())}.</p>`;
-  let subs=""; try{ subs=renderSubscriptionCard(ovMode==="all"?"all":ovMode,cursor||currentPK(),ovYear); }catch(e){ console.error("Subscription section failed",e); subs=ledgerPane("Subscriptions & Recurring","Unable to load recurring entries",'<p class="help">Recurring data could not be displayed. Your Ledger transactions are safe.</p>'); }
+  let subs=""; try{ subs=renderSubscriptionCard(ovMode==="all"?"all":ovMode,cursor||currentPK(),ovMode==="year"?ovYear:Number(String(cursor||currentPK()).slice(0,4))); }catch(e){ console.error("Subscription section failed",e); subs=ledgerPane("Subscriptions & Recurring","Unable to load recurring entries",'<p class="help">Recurring data could not be displayed. Your Ledger transactions are safe.</p>'); }
   const net=income-expenses;
   let html=`<div class="card home-balance-card"><div class="card-h"><div><h2>Total Balance</h2><span class="chart-note">Actual value held · ${esc(ledgerPeriodLabel())}</span></div><button type="button" class="mini" id="ledgerShareTop">Share</button></div><div class="num" style="font-size:1.9rem;font-weight:700">${money(totalHeldBalance())}</div><p class="hint">Income ${money(income)} · Expenses ${money(expenses)} · Net ${net<0?"−":"+"}${money(Math.abs(net))}. Internal transfers are excluded from income and expenses.</p></div>`;
   html+=expenseDonut(cats,expenses);
@@ -6076,7 +6076,47 @@ connectDb();
 .ledger-section-jumpbar{position:sticky;top:0;z-index:8;display:flex;gap:6px;overflow-x:auto;padding:8px 2px;margin:0 0 8px;background:var(--bg);scrollbar-width:thin}
 .ledger-section-jumpbar button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:var(--card);color:var(--text);font-size:12px;font-weight:600}
 .ledger-pane{scroll-margin-top:64px}
-.subscription-linked-preview{max-height:240px;overflow:auto}
+.subscription-linked-preview{max-height:42vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
+/* v1.141 responsive tap targets and section-local scrolling */
+.home-family-hub .card-h{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"title title" "scope manage" "share share";
+  align-items:center;
+  column-gap:12px;
+  row-gap:10px;
+}
+.home-family-hub .card-h h2{grid-area:title;min-width:0}
+.home-family-hub .card-h .chart-note{display:none}
+.home-family-hub .card-h .finance-manage-family{grid-area:manage;justify-self:end;max-width:100%}
+.home-family-hub .card-h .finance-share-btn{grid-area:share;justify-self:start;min-width:88px;min-height:44px}
+.home-family-hub .members{margin-top:12px}
+.home-family-hub .member-chip{min-height:42px}
+.ledger-pane summary,.collapsible-pane>summary,.protection-section>summary{
+  min-height:60px;
+  padding-right:14px;
+}
+.ledger-pane-actions{gap:12px}
+.ledger-section-share{min-height:40px;min-width:64px}
+.ledger-pane-chevron,.pane-icon,.prot-item-chevron{flex:0 0 20px;min-width:20px;text-align:center}
+.ledger-pane-body,.subscription-groups,.protection-section-content{overscroll-behavior:contain}
+.ledger-pane-body>.link-txn-scroll,.subscription-linked-preview,.rc-linked-list,.subscription-category-items{
+  max-height:42vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+@media(max-width:480px){
+ .home-family-hub .card-h{grid-template-columns:minmax(0,1fr);grid-template-areas:"title" "manage" "share";align-items:start}
+ .home-family-hub .card-h .finance-manage-family,.home-family-hub .card-h .finance-share-btn{justify-self:start}
+ .ledger-pane summary,.collapsible-pane>summary{gap:12px;padding-left:14px;padding-right:14px}
+ .ledger-pane-actions{gap:14px}
+ .ledger-section-share{min-width:68px}
+}
+
+
+/* v1.141: My Ledger uses period controls only; hide legacy transaction-type filter chips here. */
+#v-overview .ledger-type-filter,#v-overview [data-ledger-type-filter],
+#v-overview .transaction-type-filters,#v-overview .type-filter-row{display:none!important}
+
 </style>
 
 </body>
