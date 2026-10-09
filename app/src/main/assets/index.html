@@ -3148,19 +3148,21 @@ function subscriptionFreqLabel(f){ return f === "quarter" ? "Quarterly" : f === 
 function subscriptionRowsFor(key){
   const wanted=String(key||"").trim(), wantedNorm=mkey(wanted);
   const txns=Array.isArray(state.txns)?state.txns:[];
+  const sub=(typeof allSubs==="function"?allSubs():[]).find(x=>String(x.key||"")===wanted || String(x.id||"")===wanted);
+  const nameNorm=mkey(sub?.name||"");
+  const tokens=s=>String(s||"").split(/\s+/).filter(Boolean);
+  const matches=(a,b)=>{
+    if(!a||!b)return false;
+    if(a===b)return true;
+    if(a.length>=5&&b.length>=5&&(a.startsWith(b)||b.startsWith(a)))return true;
+    const aa=tokens(a),bb=tokens(b); return aa.length&&bb.length&&aa.some(x=>x.length>=4&&bb.includes(x));
+  };
   return txns.filter(t=>{
-    if(!t||t.type!=="debit") return false;
-    const sk=String(t.subscriptionKey||"").trim(), rk=String(t.recurringKey||"").trim();
-    const merchantNorm=mkey(t.merchant||"");
-    // Match the saved recurring key first, then normalized merchant text.
-    // Prefix containment also handles bank SMS merchant suffixes/prefixes.
-    return (sk && (sk===wanted || mkey(sk)===wantedNorm)) ||
-      (rk && (rk===wanted || mkey(rk)===wantedNorm)) ||
-      (!!merchantNorm && !!wantedNorm && (
-        merchantNorm===wantedNorm ||
-        (merchantNorm.length>=6 && wantedNorm.length>=6 &&
-          (merchantNorm===wantedNorm || (merchantNorm.startsWith(wantedNorm+' ') || wantedNorm.startsWith(merchantNorm+' '))))
-      ));
+    if(!t || (t.type!=="debit" && t.type!=="expense")) return false;
+    const keys=[t.subscriptionKey,t.recurringKey].map(v=>String(v||"").trim()).filter(Boolean);
+    if(keys.some(k=>k===wanted||mkey(k)===wantedNorm)) return true;
+    const merchantNorm=mkey(t.merchant||t.note||"");
+    return matches(merchantNorm,wantedNorm)||matches(merchantNorm,nameNorm);
   }).sort((a,b)=>ledgerDateKey(b.date).localeCompare(ledgerDateKey(a.date)));
 }
 function subscriptionSpendFor(key, periodStart, periodEnd){
@@ -4017,7 +4019,7 @@ function openMaintenanceSheet(existingId){
 function renderInsurance(){
  const el=document.getElementById('insuranceBody');if(!el)return;const remote=selectedRemoteCompleteState();const ins=remote?(remote.insurance||[]):(state.insurance||[]),war=remote?(remote.warranties||[]):(state.warranties||[]),mp=remote?(remote.maintenancePlans||[]):(state.maintenancePlans||[]);const group=(arr,fn)=>{const o={};arr.forEach(x=>{const k=fn(x);(o[k]||(o[k]=[])).push(x);});return o;};
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
- const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=x.coveredItem||x.assetName||(linkedAsset&&linkedAsset.name)||x.product||x.name||(kind==='Insurance'?'Insured person / group':kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const expiryLabel=x.expiryDate?(()=>{const d=ledgerDateKey(x.expiryDate);if(!d)return x.expiryDate;const [yy,mm]=d.split('-').map(Number);return new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});})():'Not set';const meta=`${provider} · Expires ${expiryLabel}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
+ const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const linkedAsset=(state.assets||[]).find(a=>a.id===(x.assetId||x.linkedAssetId));const subject=x.coveredItem||x.assetName||(linkedAsset&&linkedAsset.name)||x.product||x.name||(kind==='Insurance'?'Insured person / group':kind==='Warranty'?'Warranty item':'Maintenance item');const name=subject;const provider=kind==='Insurance'?(x.insurer||'Insurance provider'):(x.provider||'Provider');const expiryLabel=x.expiryDate?(()=>{const d=ledgerDateKey(x.expiryDate);if(!d)return x.expiryDate;const [yy,mm]=d.split('-').map(Number);return new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});})():'Not set';const meta=`${provider}${x.coveredMembers?' · Covered: '+x.coveredMembers:''}${x.linkedLoanId?' · Loan-linked':''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b style="font-size:12px;white-space:normal;max-width:92px;line-height:1.25">${esc(expiryLabel)}</b><small>Expiry</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
  const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), insurancePremium=ins.reduce((a,x)=>a+(Number(x.premium)||0),0), warrantyCost=war.reduce((a,x)=>a+(Number(x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
  let html=`${renderFinanceHubTop()}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShareTop">Share</button></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Total insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Total insurance premium</small><b>${money(insurancePremium,true)}</b></div><div><small>Total warranty cost</small><b>${money(warrantyCost,true)}</b></div><div><small>Total maintenance cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
  html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);el.querySelector("#protectionShareTop")?.addEventListener("click",()=>openSectionSharePicker("protection","Protection"));
@@ -4312,7 +4314,7 @@ function ledgerPeriodBounds(){
     const q=Math.floor((cm-1)/3)+1, sm=(q-1)*3+1;
     return [`${cy}-${String(sm).padStart(2,"0")}-01`,iso(new Date(cy,sm+2,0))];
   }
-  if(mode==="year") { const y=Number(ovYear)||cy; return [`${y}-01-01`,`${y}-12-31`]; }
+  if(mode==="year") { const y=Number(ovYear)||Number(String(cursor||currentPK()).slice(0,4))||cy; return [`${y}-01-01`,`${y}-12-31`]; }
   // All Years must derive its range from the saved transaction store, not a
   // display helper that may already apply a view/filter.
   const dates=(Array.isArray(state.txns)?state.txns:[])
@@ -5105,7 +5107,7 @@ function openYearPicker(){
   const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="yearPickerSheet";
   scrim.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Choose year"><h2>Choose year</h2><div class="mgrid">${years.map(y=>`<button type="button" data-year-pick="${y}" class="${y===ovYear?"cur":""}">${y}</button>`).join("")}</div></div>`;
   document.body.appendChild(scrim);
-  scrim.addEventListener("click",e=>{const b=e.target.closest("[data-year-pick]");if(b){ovYear=Number(b.dataset.yearPick);ovMode="year";cursor=`${ovYear}-01`;saveLocal();scrim.remove();render();return;}if(e.target===scrim)scrim.remove();});
+  scrim.addEventListener("click",e=>{const b=e.target.closest("[data-year-pick]");if(b){const picked=Number(b.dataset.yearPick);if(!Number.isInteger(picked)||picked<1900||picked>9999)return;ovYear=picked;ovMode="year";cursor=`${picked}-01`;saveLocal();scrim.remove();renderOverview();return;}if(e.target===scrim)scrim.remove();});
   const cur=scrim.querySelector(".cur"); if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:"center"});
 }
 document.getElementById("monthName2").onclick = openMonthPicker;
@@ -5115,7 +5117,7 @@ document.getElementById("ovMode").addEventListener("click", e=>{
   const nextMode=String(b.dataset.m||"");
   if(!["month","quarter","year","all"].includes(nextMode)) return;
   ovMode=nextMode;
-  if(ovMode==="year"){ ovYear=Number((cursor||currentPK()).slice(0,4)); cursor=`${ovYear}-01`; }
+  if(ovMode==="year"){ ovYear=Number(ovYear)||Number((cursor||currentPK()).slice(0,4)); cursor=`${ovYear}-01`; }
   if(ovMode==="month") cursor=String(cursor||currentPK()).slice(0,7);
   if(ovMode==="quarter"){
     const [qy,qq]=quarterParts(cursor||currentPK());
@@ -6471,3 +6473,21 @@ connectDb();
 
 </body>
 </html>
+
+<style id="family-hub-consistency-v151">
+/* Manage Family belongs on Home only; other tabs retain the same Family Hub card and member chips. */
+#v-overview .finance-manage-family,#v-accounts .finance-manage-family,#v-insurance .finance-manage-family,#v-family .finance-manage-family{display:none!important}
+.finance-hub.home-family-hub{border-radius:18px!important;overflow:hidden}
+.finance-hub.home-family-hub .member-chip{box-sizing:border-box;min-height:42px;border-radius:12px;padding:8px 12px;font-size:14px}
+.finance-hub.home-family-hub .card-h{gap:10px;align-items:center}
+/* Subscription header actions share one aligned baseline and consistent hit targets. */
+#ledgerSubsPane>summary{display:flex!important;align-items:center!important;gap:12px!important}
+#ledgerSubsPane .ledger-pane-heading{flex:1 1 auto;min-width:0}
+#ledgerSubsPane .ledger-pane-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;flex:0 0 auto!important;margin-left:auto!important}
+#ledgerSubsPane .ledger-pane-actions [data-share-section-key]{min-height:36px!important;min-width:64px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:0!important;white-space:nowrap}
+#ledgerSubsPane .pane-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:36px;line-height:1}
+/* Protection expiry must wrap and remain readable at narrow widths. */
+.protection-section .prot-item .insurance-main small{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;line-height:1.35!important}
+.protection-section .prot-item{align-items:start!important}
+@media(max-width:390px){#ledgerSubsPane .ledger-pane-actions{gap:7px!important}#ledgerSubsPane .ledger-pane-actions [data-share-section-key]{min-width:58px!important;padding:6px 8px!important}}
+</style>
