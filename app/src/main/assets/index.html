@@ -590,14 +590,14 @@ body{font-size:var(--fs-body);line-height:1.45}
 .protection-summary-inline>div{min-width:0;display:flex;flex-direction:column;gap:3px;padding:10px 8px 6px 0;box-sizing:border-box}
 .protection-summary-inline>div:nth-child(even){border-left:1px solid var(--rule);padding-left:12px;padding-right:0}
 .protection-summary-inline small{font-size:var(--fs-small);color:var(--muted);line-height:1.3;margin:0}
-.protection-summary-inline b{font-size:.92rem;font-weight:650;overflow-wrap:anywhere;line-height:1.3}
+.protection-summary-inline b{font-size:1.12rem;font-weight:700;overflow-wrap:anywhere;line-height:1.3;color:var(--text)}
 .protection-top .protection-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .protection-top .protection-actions .mini{font-size:.9rem;padding:8px 10px;min-height:36px}
 .link-txn-scroll{max-height:48vh;overflow-y:auto;overscroll-behavior:contain}
 .link-txn-row{display:grid!important;grid-template-columns:minmax(0,1fr) 24px;gap:10px;align-items:center;width:100%;box-sizing:border-box}
 .link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere}
 .link-txn-row input[type=checkbox]{justify-self:center;margin:0}
-@media(max-width:380px){.protection-summary-inline{gap:6px}.protection-summary-inline small{font-size:.76rem}.protection-summary-inline b{font-size:.9rem}.protection-top .protection-actions .mini{font-size:.82rem;padding:7px 8px}}
+@media(max-width:380px){.protection-summary-inline{gap:6px}.protection-summary-inline small{font-size:.76rem}.protection-summary-inline b{font-size:1rem}.protection-top .protection-actions .mini{font-size:.82rem;padding:7px 8px}}
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -2898,11 +2898,14 @@ function subscriptionCategories(){
 }
 function subscriptionFreqLabel(f){ return f === "quarter" ? "Quarterly" : f === "year" ? "Yearly" : "Monthly"; }
 function subscriptionRowsFor(key){
-  const wanted=String(key||"").trim();
-  return displayTxns().filter(t=>t&&t.type==="debit"&&(
-    String(t.subscriptionKey||"")===wanted || mkey(t.merchant)===wanted ||
-    (t.recurringKey&&String(t.recurringKey)===wanted)
-  )).sort((a,b)=>String(b.date||"").slice(0,10).localeCompare(String(a.date||"").slice(0,10)));
+  const wanted=String(key||"").trim(), wantedNorm=mkey(wanted);
+  return displayTxns().filter(t=>{
+    if(!t||t.type!=="debit") return false;
+    const sk=String(t.subscriptionKey||"").trim(), rk=String(t.recurringKey||"").trim();
+    return (sk && (sk===wanted || mkey(sk)===wantedNorm)) ||
+      (rk && (rk===wanted || mkey(rk)===wantedNorm)) ||
+      (!!t.merchant && mkey(t.merchant)===wantedNorm);
+  }).sort((a,b)=>ledgerDateKey(b.date).localeCompare(ledgerDateKey(a.date)));
 }
 function subscriptionSpendFor(key, periodStart, periodEnd){
   const rows=subscriptionRowsFor(key).filter(t=>{const d=String(t.date||"").slice(0,10);return (!periodStart||d>=periodStart)&&(!periodEnd||d<=periodEnd);});
@@ -2974,7 +2977,7 @@ function renderSubscriptionCard(periodMode, cursorMonth, year){
     let catSpend=0; items.forEach(x=>{const all=subscriptionSpendFor(x.key,null,null);const sp=subscriptionSpendFor(x.key,start,end);catSpend+=all.count?sp.amount:(Number(x.perMonth)||0);});
     const itemRows=items.slice().sort((a,b)=>(a.next||"9999").localeCompare(b.next||"9999")).map(x=>{
       const allSpend=subscriptionSpendFor(x.key,null,null), sp=subscriptionSpendFor(x.key,start,end), variable=x.amountMode==="variable", amount=allSpend.count?sp.amount:(Number(x.perMonth)||0);
-      const linked=(sp.rows||[]).slice(0,10).map(t=>`<button type="button" class="subscription-linked-mini" data-tx-open="${esc(t.id)}"><span>${esc(niceDate(t.date))} · ${esc(t.merchant||x.name)}</span><b>${money(spendAmt(t),true)}</b></button>`).join("") || `<p class="help subscription-no-payments">No linked payments in ${esc(label)}. Link existing Ledger transactions or change the period.</p>`;
+      const linkedRows=(sp.rows&&sp.rows.length?sp.rows:subscriptionRowsFor(x.key)).slice(0,10); const linked=linkedRows.map(t=>`<button type="button" class="subscription-linked-mini" data-tx-open="${esc(t.id)}"><span>${esc(niceDate(t.date))} · ${esc(t.merchant||x.name)}</span><b>${money(spendAmt(t),true)}</b></button>`).join("") || `<p class="help subscription-no-payments">No linked payments in ${esc(label)}. Showing no transactions for this period; edit this recurring item to link existing Ledger transactions.</p>`;
       return `<div class="subscription-item-wrap"><button class="subscription-item-row" data-sub-open="${esc(x.key)}"><span class="subscription-item-name"><b>${esc(x.name)}</b><small>${x.next?`Next ${esc(niceDate(x.next))}`:""} · ${(sp.count||0)} linked payment${sp.count===1?'':'s'}</small></span><span class="subscription-item-value"><b>${money(amount,true)}${variable?" · Variable":""}</b><small>${esc(subscriptionFreqLabel(x.freq))}</small></span></button>${`<div class="subscription-linked-preview">${linked}</div>`}</div>`;
     }).join("");
     return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>/ month</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
@@ -3733,8 +3736,8 @@ function renderInsurance(){
  const ig=group(ins,x=>x.type==='Term/Life'?'Life Insurance':x.type==='Health'?'Health Insurance':x.type==='Vehicle'?'Vehicle Insurance':x.type==='Property'?'Property Insurance':x.type==='Travel & One-Time'?'Travel Insurance':'Other Insurance');const wg=group(war,x=>x.category||'Other Warranty');const mg=group(mp,x=>x.category||'Other Maintenance');
  const section=(title,kind,groups,items)=>{const rows=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,list])=>{const itemRows=list.map(x=>{const name=kind==='Insurance'?(x.insurer||'Insurance policy'):kind==='Warranty'?(x.name||x.product||'Warranty'):(x.name||'Maintenance plan');const meta=kind==='Insurance'?`${x.insurer||''}${x.policyNumber?' · '+x.policyNumber:''}`:kind==='Warranty'?`${x.provider||''}${x.warrantyNumber?' · '+x.warrantyNumber:''}`:`${x.provider||''}${x.contractNumber?' · '+x.contractNumber:''}`;const val=kind==='Insurance'?x.coverage:kind==='Warranty'?(x.coverage||x.value||0):(x.cost||x.amount||0);const covered=kind==='Insurance'?coveredMemberDisplay(x):'';return `<button class="prot-item" data-prot-kind="${kind}" data-prot-id="${esc(x.id)}"><span class="insurance-main"><b>${esc(name)}</b><small>${esc(meta)}</small>${covered?`<small class="prot-covered">Covered: ${esc(covered)}</small>`:''}</span><span class="num"><b>${money(val,true)}</b><small>${kind==='Insurance'?'Sum assured':kind==='Warranty'?'Coverage':'Plan cost'}</small></span><span class="chev">›</span></button>`;}).join('');return `<div class="prot-category-block"><button type="button" class="prot-category-head" data-prot-category="${esc(kind+'|'+cat)}"><span class="insurance-main"><b>${esc(cat)}</b><small>${list.length} item${list.length===1?'':'s'}</small></span><span class="chev">⌄</span></button><div class="prot-category-items hidden">${itemRows}</div></div>`;}).join('');const total=items.reduce((sum,x)=>sum+(Number(kind==='Insurance'?x.premium:(kind==='Warranty'?x.cost:(x.cost||x.amount)))||0),0);return `<details class="card protection-section"><summary class="protection-section-summary"><div><h2>${title}</h2><small>${items.length} items · ${money(total,true)} ${kind==='Insurance'?'premium total':kind==='Warranty'?'warranty cost':'package cost'}</small></div><span class="chev">⌄</span></summary><div class="protection-section-content">${rows||'<p class="help">Nothing added yet.</p>'}${sectionShareControl(kind==='Insurance'?'protection-insurances':kind==='Warranty'?'protection-warranties':'protection-maintenance',title)}</div></details>`;};
  const insuranceCover=ins.reduce((a,x)=>a+(Number(x.coverage)||0),0), insurancePremium=ins.reduce((a,x)=>a+(Number(x.premium)||0),0), warrantyCost=war.reduce((a,x)=>a+(Number(x.cost)||0),0), maintenanceCost=mp.reduce((a,x)=>a+(Number(x.cost||x.amount)||0),0);
- let html=`${renderFinanceHubTop()}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Total insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Total insurance premium</small><b>${money(insurancePremium,true)}</b></div><div><small>Total warranty cost</small><b>${money(warrantyCost,true)}</b></div><div><small>Total maintenance cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
- html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);
+ let html=`${renderFinanceHubTop()}<div class="card protection-top protection-summary-card"><div class="card-h"><div><h2>Protection</h2><span class="chart-note">${ins.length} insurance · ${war.length} warranty · ${mp.length} maintenance</span></div><button type="button" class="mini" id="protectionShareTop">Share</button></div>${!remote?`<div class="row protection-actions protection-actions-compact"><button class="mini primary" id="addInsurance">+ Add insurance</button><button class="mini" id="addWarranty">+ Add warranty</button><button class="mini" id="uploadInsurancePolicy">Import</button><button class="mini" id="addMaintenance">+ Add maintenance</button></div>`:''}<div class="protection-summary-inline"><div><small>Total insurance cover</small><b>${money(insuranceCover,true)}</b></div><div><small>Total insurance premium</small><b>${money(insurancePremium,true)}</b></div><div><small>Total warranty cost</small><b>${money(warrantyCost,true)}</b></div><div><small>Total maintenance cost</small><b>${money(maintenanceCost,true)}</b></div></div></div>`;
+ html+=section('Insurances','Insurance',ig,ins);html+=section('Warranties','Warranty',wg,war);html+=section('Maintenance','Maintenance',mg,mp);el.innerHTML=html;bindFinanceHub();bindSectionShareControls(el);el.querySelector("#protectionShareTop")?.addEventListener("click",()=>openSectionSharePicker("protection","Protection"));
  el.querySelector('#addMaintenance')?.addEventListener('click',()=>openMaintenanceSheet());el.querySelectorAll('[data-prot-category]').forEach(r=>r.addEventListener('click',()=>{const body=r.parentElement.querySelector('.prot-category-items');if(body){body.classList.toggle('hidden');const c=r.querySelector('.chev');if(c)c.textContent=body.classList.contains('hidden')?'⌄':'⌃';}}));el.querySelectorAll('[data-prot-kind]').forEach(r=>r.addEventListener('click',()=>{const kind=r.dataset.protKind,id=r.dataset.protId;if(kind==='Insurance')openInsuranceSheet(id);else if(kind==='Warranty')openWarrantySheet(id);else openMaintenanceSheet(id);}));
 }
 function protectionLinkedTransactions(kind,id){
@@ -4006,10 +4009,13 @@ function quarterLabelForMonth(m){ const [y,q]=quarterParts(m); return `Q${q} ${y
 function quarterMonths(m){ const [y,q]=quarterParts(m); return Array.from({length:3},(_,i)=>`${y}-${String((q-1)*3+i+1).padStart(2,"0")}`); }
 function currentQuarterMonth(){ const [y,q]=quarterParts(currentPK()); return `${y}-${String((q-1)*3+1).padStart(2,"0")}`; }
 
+function ledgerDateKey(value){
+  const raw=String(value??"").trim();
+  const m=raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m) return `${m[1]}-${String(Number(m[2])).padStart(2,"0")}-${String(Number(m[3])).padStart(2,"0")}`;
+  const d=new Date(raw); return Number.isNaN(d.getTime())?"":`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function ledgerPeriodBounds(){
-  // Use strict local-calendar ISO date keys for every mode. Do not derive All-years
-  // bounds from raw state alone: SMS/visibility filters may exclude some records.
-  const norm=d=>{const v=String(d||"").trim();const m=v.match(/^(\d{4}-\d{2}-\d{2})/);if(m)return m[1];const dt=new Date(v);return Number.isNaN(dt.getTime())?"":iso(dt);};
   const anchor=String(cursor||currentPK()).slice(0,7);
   const [cy,cm]=anchor.split("-").map(Number);
   const mode=ovMode||"month";
@@ -4019,7 +4025,7 @@ function ledgerPeriodBounds(){
     return [`${cy}-${String(sm).padStart(2,"0")}-01`,iso(new Date(cy,sm+2,0))];
   }
   if(mode==="year") { const y=Number(ovYear)||cy; return [`${y}-01-01`,`${y}-12-31`]; }
-  const dates=displayTxns().filter(t=>t&&counts(t)).map(t=>norm(t.date)).filter(Boolean).sort();
+  const dates=displayTxns().filter(t=>t&&counts(t)).map(t=>ledgerDateKey(t.date)).filter(Boolean).sort();
   return [dates[0]||"1900-01-01",dates[dates.length-1]||todayISO()];
 }
 function ledgerPeriodLabel(){
@@ -4028,7 +4034,7 @@ function ledgerPeriodLabel(){
   if(ovMode==="year") return String(ovYear);
   return "All years";
 }
-function ledgerPeriodTxns(){ const [a,b]=ledgerPeriodBounds(); return displayTxns().filter(t=>{const d=String(t.date||"").slice(0,10);return d>=a&&d<=b&&counts(t);}); }
+function ledgerPeriodTxns(){ const [a,b]=ledgerPeriodBounds(); return displayTxns().filter(t=>{const d=ledgerDateKey(t.date);return !!d&&d>=a&&d<=b&&counts(t);}); }
 function ledgerShareKey(title){return ({"Income":"ledger-income","Expenses":"ledger-expenses","Transfers":"ledger-transfers","Expense Categories":"ledger-expenses","Events":"ledger-events","Subscriptions & Recurring":"ledger-subscriptions","Recent Transactions":"ledger-transactions"})[title]||"ledger";}
 function ledgerPane(title,subtitle,body,open=false){ const key=ledgerShareKey(title); return `<details class="card ledger-pane" ${open?"open":""}><summary><div><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:""}</div><span class="ledger-pane-chevron">⌄</span></summary><div class="ledger-pane-body">${body}${sectionShareControl(key,title)}</div></details>`; }
 function ledgerEventRows(){
