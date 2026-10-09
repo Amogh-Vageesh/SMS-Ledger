@@ -2973,7 +2973,7 @@ function openSubscriptionLinkSheet(key){
   ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
-  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="pane-icon">⌄</span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
   let start=null,end=null,label="";
   if(periodMode==="month"){const [y,m]=String(cursorMonth||currentPK()).split("-").map(Number);start=`${y}-${String(m).padStart(2,"0")}-01`;end=iso(new Date(y,m,0));label=monthLabel(cursorMonth);}
   else if(periodMode==="quarter"){const ms=quarterMonths(cursorMonth);start=ms[0]+"-01";const [ey,em]=ms[2].split("-").map(Number);end=iso(new Date(ey,em,0));label=quarterLabelForMonth(cursorMonth);}
@@ -2990,7 +2990,7 @@ function renderSubscriptionCard(periodMode, cursorMonth, year){
     }).join("");
     return `<div class="subscription-category-block"><button type="button" class="subscription-category-row" data-sub-category="${esc(cat)}"><span><b>${esc(cat)}</b><small>${items.length} item${items.length===1?"":"s"}</small></span><span class="subscription-category-right"><b>${money(catSpend,true)}</b><small>/ month</small><i>⌄</i></span></button><div class="subscription-category-items hidden">${itemRows}</div></div>`;
   }).join("");
-  return `<details class="card collapsible-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="pane-icon">⌄</span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
+  return `<details class="card collapsible-pane" id="ledgerSubsPane" ${state.ledgerSubsOpen?"open":""}><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>${subs.length} active · ${money(total)} in ${esc(label)}</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups">${categoryRows||'<p class="help">No recurring payments recorded.</p>'}<div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
 }
 
 /* ---------- Subscriptions ---------- */
@@ -4056,7 +4056,13 @@ function ledgerPeriodTxns(){
   }).sort((x,y)=>ledgerDateKey(y.date).localeCompare(ledgerDateKey(x.date)));
 }
 function ledgerShareKey(title){return ({"Income":"ledger-income","Expenses":"ledger-expenses","Transfers":"ledger-transfers","Expense Categories":"ledger-expenses","Events":"ledger-events","Subscriptions & Recurring":"ledger-subscriptions","Recent Transactions":"ledger-transactions"})[title]||"ledger";}
-function ledgerPane(title,subtitle,body,open=false){ const key=ledgerShareKey(title); return `<details class="card ledger-pane" ${open?"open":""}><summary><div><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:""}</div><span class="ledger-pane-chevron">⌄</span></summary><div class="ledger-pane-body">${body}${sectionShareControl(key,title)}</div></details>`; }
+function ledgerPane(title,subtitle,body,open=false){
+  const key=ledgerShareKey(title);
+  return `<details class="card ledger-pane" data-ledger-section="${esc(title)}" ${open?"open":""}>
+    <summary><div class="ledger-pane-heading"><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:""}</div>
+    <span class="ledger-pane-actions"><button type="button" class="mini ledger-section-share" data-share-section-key="${esc(key)}" data-share-section-label="${esc(title)}" aria-label="Share ${esc(title)}">Share</button><span class="ledger-pane-chevron">⌄</span></span></summary>
+    <div class="ledger-pane-body">${body}${sectionShareControl(key,title)}</div></details>`;
+}
 function ledgerEventRows(){
   const [a,b]=ledgerPeriodBounds(), vals=[];
   eventList().forEach(e=>{ const linked=eventTransactions(e.id).filter(t=>t.date>=a&&t.date<=b); if(linked.length) vals.push({e,count:linked.length,total:linked.filter(t=>t.type==="debit"&&counts(t)).reduce((s,t)=>s+spendAmt(t),0)}); });
@@ -4094,7 +4100,21 @@ function renderMyLedgerPage(){
   html+=subs;
   html+=ledgerPane("Recent Transactions",`${tx.length} transactions in ${ledgerPeriodLabel()}`,ledgerTxnRows(tx));
   body.innerHTML=html;
+  const nav=document.createElement('nav');
+  nav.className='ledger-section-jumpbar';
+  nav.setAttribute('aria-label','Jump to Ledger section');
+  nav.innerHTML=[['Income','Income'],['Expenses','Expenses'],['Transfers','Transfers'],['Expense Categories','Categories'],['Events','Events'],['Subscriptions & Recurring','Recurring'],['Recent Transactions','Recent']].map(([label,title])=>`<button type="button" data-jump-ledger="${esc(title)}">${esc(label)}</button>`).join('');
+  body.insertBefore(nav,body.firstChild);
+  nav.querySelectorAll('[data-jump-ledger]').forEach(btn=>btn.addEventListener('click',()=>{
+    const title=btn.dataset.jumpLedger;
+    const target=[...body.querySelectorAll('[data-ledger-section]')].find(el=>el.dataset.ledgerSection===title);
+    if(target){target.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});}
+  }));
   body.querySelector('#ledgerShareTop')?.addEventListener('click',()=>openSectionSharePicker('ledger','My Ledger'));
+  body.querySelectorAll('[data-share-section-key]').forEach(btn=>btn.addEventListener('click',e=>{
+    e.preventDefault(); e.stopPropagation();
+    openSectionSharePicker(btn.dataset.shareSectionKey,btn.dataset.shareSectionLabel);
+  }));
   bindSectionShareControls(body);
   }catch(err){
     console.error("My Ledger render failed",err);
@@ -4787,22 +4807,16 @@ document.getElementById("monthName2").onclick = openMonthPicker;
 document.getElementById("ovMode").addEventListener("click", e=>{
   const b=e.target.closest("button[data-m]");
   if(!b || !e.currentTarget.contains(b)) return;
-  const nextMode=b.dataset.m;
+  const nextMode=String(b.dataset.m||"");
   if(!["month","quarter","year","all"].includes(nextMode)) return;
   ovMode=nextMode;
-  if(ovMode==="year") ovYear=+(cursor||currentPK()).slice(0,4);
+  if(ovMode==="year") ovYear=Number((cursor||currentPK()).slice(0,4));
   if(ovMode==="quarter"){
     const [qy,qq]=quarterParts(cursor||currentPK());
     cursor=`${qy}-${String((qq-1)*3+1).padStart(2,"0")}`;
   }
-  // Update active state synchronously, then rerender the Ledger body directly.
-  e.currentTarget.querySelectorAll("button[data-m]").forEach(x=>{
-    x.classList.toggle("active",x===b);
-    x.setAttribute("aria-pressed",x===b?"true":"false");
-  });
   saveLocal();
-  renderMyLedgerPage();
-  if(typeof renderOverview==="function") renderOverview();
+  render();
 });
 
 /* ---------- Events ---------- */
@@ -6051,6 +6065,17 @@ connectDb();
 .link-txn-row input{justify-self:end;align-self:center}
 #overviewBody .expense-donut-card{margin:12px 0}
 @media(max-width:390px){.home-family-hub .card-h{grid-template-columns:minmax(0,1fr) auto}.home-family-hub .card-h .finance-share-btn{grid-column:2;grid-row:1}.protection-totals{gap:5px}.protection-totals b{font-size:.8rem}}
+
+
+/* v1.139 Ledger usability */
+.ledger-pane summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ledger-pane-heading{min-width:0;flex:1}
+.ledger-pane-actions{display:inline-flex;align-items:center;gap:8px;flex-shrink:0}
+.ledger-section-share{min-width:54px}
+.ledger-section-jumpbar{position:sticky;top:0;z-index:8;display:flex;gap:6px;overflow-x:auto;padding:8px 2px;margin:0 0 8px;background:var(--bg);scrollbar-width:thin}
+.ledger-section-jumpbar button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:var(--card);color:var(--text);font-size:12px;font-weight:600}
+.ledger-pane{scroll-margin-top:64px}
+.subscription-linked-preview{max-height:240px;overflow:auto}
 </style>
 
 </body>
