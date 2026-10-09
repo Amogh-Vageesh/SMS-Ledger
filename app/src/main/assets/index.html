@@ -598,6 +598,42 @@ body{font-size:var(--fs-body);line-height:1.45}
 .link-txn-row>span:first-child{min-width:0;overflow-wrap:anywhere}
 .link-txn-row input[type=checkbox]{justify-self:center;margin:0}
 @media(max-width:380px){.protection-summary-inline{gap:6px}.protection-summary-inline small{font-size:.76rem}.protection-summary-inline b{font-size:1rem}.protection-top .protection-actions .mini{font-size:.82rem;padding:7px 8px}}
+
+/* v1.142: compact Family Hub header, with controls grouped and safely separated */
+.finance-hub.home-family-hub .card-h{
+ display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px;
+}
+.finance-hub.home-family-hub .card-h h2{flex:1 1 130px;min-width:0;margin:0}
+.finance-hub.home-family-hub .card-h .chart-note{display:none}
+.finance-hub.home-family-hub .card-h .finance-manage-family,
+.finance-hub.home-family-hub .card-h .finance-share-btn{
+ flex:0 0 auto; min-height:44px; min-width:84px; margin:0; white-space:nowrap;
+}
+.finance-hub.home-family-hub .card-h .finance-manage-family{order:2}
+.finance-hub.home-family-hub .card-h .finance-share-btn{order:3}
+.finance-hub.home-family-hub .finance-family-members{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding:10px 0 2px}
+.finance-hub.home-family-hub .member-chip{flex:0 0 auto;max-width:80%;min-height:42px}
+@media(max-width:390px){
+ .finance-hub.home-family-hub .card-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+ .finance-hub.home-family-hub .card-h h2{grid-column:1/-1}
+ .finance-hub.home-family-hub .card-h .finance-manage-family,
+ .finance-hub.home-family-hub .card-h .finance-share-btn{width:100%;min-width:0;padding-left:8px;padding-right:8px;justify-self:stretch}
+}
+
+
+/* Expanded My Ledger content has its own scroll region on mobile. */
+#overviewBody details.ledger-pane[open]>.ledger-pane-body,
+#overviewBody details.collapsible-pane[open]>.subscription-groups{
+ max-height:48vh; overflow-y:auto; overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch; padding-bottom:10px;
+}
+#overviewBody details.ledger-pane>summary,
+#overviewBody details.collapsible-pane>summary{position:relative;z-index:1}
+#overviewBody .ledger-pane-actions{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+#overviewBody .ledger-pane-actions button{min-height:42px;min-width:64px}
+#overviewBody .ledger-pane-chevron,#overviewBody .pane-icon{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:42px;pointer-events:none}
+#overviewBody .ledger-section-jumpbar{display:none!important}
+
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -2963,14 +2999,33 @@ function openSubscriptionLinkSheet(key){
   const x=allSubs().find(s=>s.key===key); if(!x)return;
   const linked=new Set(subscriptionRowsFor(key).map(t=>t.id));
   const rows=(state.txns||[]).filter(t=>t&&t.type==="debit"&&!linked.has(t.id)&&counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,120);
-  sheet("Link Ledger transactions", `<label class="field"><span>Search transactions</span><input id="sub-link-search" type="search" placeholder="Merchant, note or amount"></label><div class="two"><label class="field"><span>Category</span><select id="sub-link-category"><option value="">All categories</option>${[...new Set(rows.map(t=>t.category||'Other'))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Period</span><select id="sub-link-period"><option value="all">All dates</option><option value="month">This month</option><option value="quarter">This quarter</option><option value="year">This year</option></select></label></div><label class="field"><span>Apply asset to selected transactions (optional)</span><select id="sub-link-asset"><option value="">Keep existing / none</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===(x.assetId||"")?" selected":""}>${esc(a.name)}</option>`).join("")}</select></label><p class="help">Select payments belonging to <b>${esc(x.name)}</b>. Linked payments remain single Ledger entries.</p><div id="sub-link-list" class="link-txn-scroll">${rows.length?rows.map(t=>`<label class="switchrow link-txn-row" data-category="${esc(t.category||'Other')}" data-date="${esc(ledgerDateKey(t.date))}" data-search="${esc((t.merchant||'')+' '+(t.note||'')+' '+(t.category||'')+' '+t.amount).toLowerCase() }" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${esc(t.category||'Other')} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="sub-link-check" data-txid="${esc(t.id)}"><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`, sc=>{
+  sheet("Link Ledger transactions", `<label class="field"><span>Search transactions</span><input id="sub-link-search" type="search" placeholder="Merchant, note or amount"></label><div class="two"><label class="field"><span>Category</span><select id="sub-link-category"><option value="">All categories</option>${[...new Set(rows.map(t=>t.category||'Other'))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Period</span><select id="sub-link-period"><option value="all">All dates</option><option value="month">Selected month</option><option value="quarter">Selected quarter</option><option value="year">Selected year</option></select></label></div><label class="field"><span>Apply asset to selected transactions (optional)</span><select id="sub-link-asset"><option value="">Keep existing / none</option>${(state.assets||[]).map(a=>`<option value="${esc(a.id)}"${a.id===(x.assetId||"")?" selected":""}>${esc(a.name)}</option>`).join("")}</select></label><p class="help">Select payments belonging to <b>${esc(x.name)}</b>. Linked payments remain single Ledger entries.</p><div id="sub-link-list" class="link-txn-scroll">${rows.length?rows.map(t=>`<label class="switchrow link-txn-row" data-category="${esc(t.category||'Other')}" data-date="${esc(ledgerDateKey(t.date))}" data-search="${esc((t.merchant||'')+' '+(t.note||'')+' '+(t.category||'')+' '+t.amount).toLowerCase() }" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${esc(t.category||'Other')} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="sub-link-check" data-txid="${esc(t.id)}" ${String(t.subscriptionKey||t.recurringKey||"")===String(key)?"checked":""}><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`, sc=>{
     const ids=[...sc.querySelectorAll(".sub-link-check:checked")].map(c=>c.dataset.txid), months=new Set(), assetId=sc.querySelector("#sub-link-asset")?.value||"";
     ids.forEach(id=>{const t=state.txns.find(z=>z.id===id);if(t){t.subscriptionKey=key;if(assetId)t.assetId=assetId;months.add(t.date.slice(0,7));}});
     if(ids.length){persist([...months],true);toast(`${ids.length} transaction${ids.length===1?"":"s"} linked.`);} else toast("No transactions selected.");
   });
   const scr=document.querySelector('.scrim:last-of-type');
-  const applyFilters=()=>{if(!scr)return;const q=(scr.querySelector('#sub-link-search')?.value||'').toLowerCase();const cat=scr.querySelector('#sub-link-category')?.value||'';const per=scr.querySelector('#sub-link-period')?.value||'all';const selectedMonth=String(cursor||currentPK()).slice(0,7);const anchor=ledgerDateKey(selectedMonth+'-01')||todayISO();const month=anchor.slice(0,7);const [yy,mm]=month.split('-').map(Number);const qStart=`${yy}-${String(Math.floor((mm-1)/3)*3+1).padStart(2,'0')}-01`;const qEnd=iso(new Date(yy,Math.floor((mm-1)/3)*3+3,0));const selectedYear=Number(ovMode==='year'?ovYear:month.slice(0,4));const yStart=`${selectedYear}-01-01`,yEnd=`${selectedYear}-12-31`;scr.querySelectorAll('.link-txn-row').forEach(row=>{const d=ledgerDateKey(row.dataset.date);let ok=!!d&&(!q||row.dataset.search.includes(q))&&(!cat||row.dataset.category===cat);if(per==='month')ok=ok&&d>=`${month}-01`&&d<=iso(new Date(yy,mm,0));if(per==='quarter')ok=ok&&d>=qStart&&d<=qEnd;if(per==='year')ok=ok&&d>=yStart&&d<=yEnd;row.style.display=ok?'flex':'none';});};
-  ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
+  const applyFilters=()=>{if(!scr)return;
+     const q=(scr.querySelector('#sub-link-search')?.value||'').toLowerCase();
+     const cat=scr.querySelector('#sub-link-category')?.value||'';
+     const per=scr.querySelector('#sub-link-period')?.value||'all';
+     const selectedMonth=String(cursor||currentPK()).slice(0,7);
+     const [cy,cm]=selectedMonth.split('-').map(Number);
+     const qsm=Math.floor((cm-1)/3)*3+1;
+     const monthStart=`${selectedMonth}-01`,monthEnd=iso(new Date(cy,cm,0));
+     const quarterStart=`${cy}-${String(qsm).padStart(2,'0')}-01`,quarterEnd=iso(new Date(cy,qsm+2,0));
+     const selectedYear=Number(ovMode==='year'?ovYear:cy);
+     const yearStart=`${selectedYear}-01-01`,yearEnd=`${selectedYear}-12-31`;
+     scr.querySelectorAll('.link-txn-row').forEach(row=>{
+       const d=ledgerDateKey(row.dataset.date), search=String(row.dataset.search||'');
+       let ok=!!d&&(!q||search.includes(q))&&(!cat||row.dataset.category===cat);
+       if(per==='month')ok=ok&&d>=monthStart&&d<=monthEnd;
+       else if(per==='quarter')ok=ok&&d>=quarterStart&&d<=quarterEnd;
+       else if(per==='year')ok=ok&&d>=yearStart&&d<=yearEnd;
+       row.style.display=ok?'flex':'none';
+     });
+    };
+    ['#sub-link-search','#sub-link-category','#sub-link-period'].forEach(sel=>{const el=scr?.querySelector(sel);el?.addEventListener(el.tagName==='INPUT'?'input':'change',applyFilters);});
 }
 function renderSubscriptionCard(periodMode, cursorMonth, year){
   const subs=allSubs(); if(!subs.length) return `<details class="card collapsible-pane" id="ledgerSubsPane"><summary data-ledger-sub-toggle><div><h2>Subscriptions & recurring</h2><p>0 active · Track subscriptions and variable bills</p></div><span class="ledger-pane-actions"><button type="button" class="mini" data-share-section-key="ledger-subscriptions" data-share-section-label="Subscriptions & Recurring">Share</button><span class="pane-icon">⌄</span></span></summary><div class="subscription-groups"><p class="help">No recurring entries detected or added yet. Add one manually, or link existing Ledger transactions when editing a recurring entry.</p><div class="row" style="margin-top:8px"><button class="btn" id="addSubLedger">+ Add subscription</button></div>${sectionShareControl('ledger-subscriptions','Subscriptions & Recurring')}</div></details>`;
@@ -3756,7 +3811,7 @@ function openProtectionTxnLinkSheet(kind,id){
   const p=pList.find(x=>x.id===id); if(!p)return;
   const linked=new Set(protectionLinkedTransactions(kind,id).map(t=>t.id));
   const rows=(state.txns||[]).filter(t=>t&&t.type==="debit"&&!linked.has(t.id)&&counts(t)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,200);
-  sheet(`Link ${kind.toLowerCase()} transactions`, `<p class="help">Select existing Ledger transactions for <b>${esc(p.name||p.insurer||p.provider||"Protection item")}</b>. They remain single Ledger entries.</p><label class="field"><span>Search</span><input id="prot-link-search" type="search" placeholder="Merchant, note or amount"></label><div class="two"><label class="field"><span>Category</span><select id="prot-link-category"><option value="">All categories</option>${[...new Set(rows.map(t=>t.category||'Other'))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Period</span><select id="prot-link-period"><option value="all">All dates</option><option value="month">This month</option><option value="quarter">This quarter</option><option value="year">This year</option></select></label></div><div id="prot-link-list" class="link-txn-scroll">${rows.length?rows.map(t=>`<label class="switchrow link-txn-row" data-category="${esc(t.category||'Other')}" data-date="${esc(ledgerDateKey(t.date))}" data-search="${esc((t.merchant||'')+' '+(t.note||'')+' '+(t.category||'')+' '+t.amount).toLowerCase()}" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${esc(t.category||'Other')} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="prot-link-check" data-txid="${esc(t.id)}"><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`,sc=>{
+  sheet(`Link ${kind.toLowerCase()} transactions`, `<p class="help">Select existing Ledger transactions for <b>${esc(p.name||p.insurer||p.provider||"Protection item")}</b>. They remain single Ledger entries.</p><label class="field"><span>Search</span><input id="prot-link-search" type="search" placeholder="Merchant, note or amount"></label><div class="two"><label class="field"><span>Category</span><select id="prot-link-category"><option value="">All categories</option>${[...new Set(rows.map(t=>t.category||'Other'))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Period</span><select id="prot-link-period"><option value="all">All dates</option><option value="month">Selected month</option><option value="quarter">Selected quarter</option><option value="year">Selected year</option></select></label></div><div id="prot-link-list" class="link-txn-scroll">${rows.length?rows.map(t=>`<label class="switchrow link-txn-row" data-category="${esc(t.category||'Other')}" data-date="${esc(ledgerDateKey(t.date))}" data-search="${esc((t.merchant||'')+' '+(t.note||'')+' '+(t.category||'')+' '+t.amount).toLowerCase()}" style="align-items:center"><span><b>${esc(t.merchant||"Payment")}</b><small style="display:block;color:var(--muted)">${esc(niceDate(t.date))} · ${esc(t.category||'Other')} · ${money(spendAmt(t),true)}</small></span><input type="checkbox" class="prot-link-check" data-txid="${esc(t.id)}"><span class="track"></span></label>`).join(""):"<p class='help'>No unlinked debit transactions available.</p>"}</div>`,sc=>{
     const ids=[...sc.querySelectorAll(".prot-link-check:checked")].map(c=>c.dataset.txid),months=new Set();
     ids.forEach(tid=>{const t=state.txns.find(z=>z.id===tid);if(t){t.category="Protection";t.userCat=true;t.protectionType=kind;t.protectionId=id;months.add(t.date.slice(0,7));}});
     if(ids.length){persist([...months],true);toast(`${ids.length} transaction${ids.length===1?"":"s"} linked.`);} else toast("No transactions selected.");
@@ -4048,9 +4103,14 @@ function ledgerPeriodLabel(){
 }
 function ledgerPeriodTxns(){
   const [a,b]=ledgerPeriodBounds();
-  // Filter the full saved transaction set so switching period modes cannot
-  // accidentally filter an already-filtered display list.
-  return (Array.isArray(state.txns)?state.txns:[]).filter(t=>{
+  // Preserve the app's established transaction display pipeline (family scope,
+  // hidden/ignored records and other display rules), then apply only the
+  // selected inclusive date window. This restores the behavior used before
+  // the v1.137 regression.
+  const base = typeof displayTxns === "function"
+    ? displayTxns()
+    : (Array.isArray(state.txns) ? state.txns : []);
+  return base.filter(t=>{
     const d=ledgerDateKey(t&&t.date);
     return !!t&&!!d&&d>=a&&d<=b&&counts(t);
   }).sort((x,y)=>ledgerDateKey(y.date).localeCompare(ledgerDateKey(x.date)));
@@ -4100,16 +4160,10 @@ function renderMyLedgerPage(){
   html+=ledgerPane("Expense Categories",`${Object.keys(cats).length} categories · ${money(expenses)}`,catRows);
   html+=ledgerPane("Events",`${eventList().filter(e=>{const [a,b]=ledgerPeriodBounds();return e.date>=a&&e.date<=b;}).length} events`,ledgerEventRows());
   body.innerHTML=html;
-  const nav=document.createElement('nav');
-  nav.className='ledger-section-jumpbar';
-  nav.setAttribute('aria-label','Jump to Ledger section');
-  nav.innerHTML=[['Recent Transactions','Recent'],['Subscriptions & Recurring','Recurring'],['Income','Income'],['Expenses','Expenses'],['Transfers','Transfers'],['Expense Categories','Categories'],['Events','Events']].map(([label,title])=>`<button type="button" data-jump-ledger="${esc(title)}">${esc(label)}</button>`).join('');
-  body.insertBefore(nav,body.firstChild);
-  nav.querySelectorAll('[data-jump-ledger]').forEach(btn=>btn.addEventListener('click',()=>{
-    const title=btn.dataset.jumpLedger;
-    const target=[...body.querySelectorAll('[data-ledger-section]')].find(el=>el.dataset.ledgerSection===title);
-    if(target){target.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});}
-  }));
+  body.querySelector('.ledger-section-jumpbar')?.remove();
+  // Remove obsolete transaction-type filter controls from the My Ledger view.
+  // The period selector in #ovMode is deliberately retained.
+  body.querySelectorAll('.ledger-type-filter,[data-ledger-type-filter],.transaction-type-filters,.type-filter-row,[data-filter-type]').forEach(el=>el.remove());
   body.querySelector('#ledgerShareTop')?.addEventListener('click',()=>openSectionSharePicker('ledger','My Ledger'));
   body.querySelectorAll('[data-share-section-key]').forEach(btn=>btn.addEventListener('click',e=>{
     e.preventDefault(); e.stopPropagation();
