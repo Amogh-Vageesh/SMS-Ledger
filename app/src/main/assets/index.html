@@ -1450,6 +1450,8 @@ let view = "home";
 let homeRange = 6, homeSel = null, homeFamily = false, homePersonFilter = "all", homePeriodMode = "month", homePeriodDay = "", homePeriodMonth = "", homePeriodYear = new Date().getFullYear();
 let financeFamilyScope = "all";
 let cursor = "";
+// Keep period state explicit; do not rely on the browser named property created by id="ovMode".
+let ovMode = "month", ovYear = new Date().getFullYear();
 let pending = [];
 let db = null, uid = null;
 const dirtyMonths = new Set();
@@ -3927,12 +3929,16 @@ function renderHome(){
         <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
       </div>
       <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
-      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}${sectionShareControl('budgets','Home Events')}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}${sectionShareControl('budgets','Calendar')}</div>` : ''}
-      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}${sectionShareControl('budgets','Shopping List')}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}${sectionShareControl('ledger-transactions','Shared Activity')}</div>` : ''}
-      <div class="card"><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p>${sectionShareControl('ledger','Home Financial Summary')}</div>`;
+      <div class="card"><div class="card-h"><h2>Events</h2><span style="display:flex;gap:8px;align-items:center"><button class="mini" id="homeSeeEvents">See all</button><button type="button" class="mini" data-home-share-key="budgets" data-home-share-label="Home Events">Share</button></span></div>${eventHtml}${sectionShareControl('budgets','Home Events')}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2><button type="button" class="mini" data-home-share-key="budgets" data-home-share-label="Calendar">Share</button></div>${calHtml}${sectionShareControl('budgets','Calendar')}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Shopping list</h2><button type="button" class="mini" data-home-share-key="budgets" data-home-share-label="Shopping List">Share</button></div>${shopHtml}${sectionShareControl('budgets','Shopping List')}</div>
+      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2><button type="button" class="mini" data-home-share-key="ledger-transactions" data-home-share-label="Shared Activity">Share</button></div>${txHtml}${sectionShareControl('ledger-transactions','Shared Activity')}</div>` : ''}
+      <div class="card"><div class="card-h"><h2>Financial summary</h2><button type="button" class="mini" data-home-share-key="ledger" data-home-share-label="Home Financial Summary">Share</button></div><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p>${sectionShareControl('ledger','Home Financial Summary')}</div>`;
     bindSectionShareControls(body);
+    body.querySelectorAll('[data-home-share-key]').forEach(btn=>btn.addEventListener('click',e=>{
+      e.preventDefault(); e.stopPropagation();
+      openSectionSharePicker(btn.dataset.homeShareKey,btn.dataset.homeShareLabel||'Home section');
+    }));
   }catch(err){
     console.error('Family Hub render failed', err);
     body.innerHTML=`<div class="card"><div class="card-h"><h2>Family Hub</h2></div><p class="help">Family Hub is loading. Your family data is safe on this phone.</p><div class="row"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button></div></div>`;
