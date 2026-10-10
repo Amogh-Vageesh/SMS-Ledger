@@ -695,6 +695,77 @@ body{font-size:var(--fs-body);line-height:1.45}
 .finance-hub .card-h .finance-manage-family,.finance-hub .card-h .finance-share-btn{min-height:40px;align-items:center;justify-content:center;}
 #homeBody #homeManageFamily,#homeBody #homeShareFamily{min-height:40px;white-space:nowrap;}
 
+
+/* v1.156 native reference redesign: shared visual system across every existing view */
+:root:not([data-theme="dark"]){
+  --bg:#f8f4ed; --panel:#ffffff; --raise:#f3eee6; --rule:#e9e1d6;
+  --text:#29251f; --muted:#81796f; --brass:#e99a35; --brass-ink:#fffaf2;
+  --credit:#168b68; --over:#dc5c52; --focus:#e99a35;
+  --inc:#2383b9; --good:#168b68; --good-bg:#e0f5eb; --good-ink:#176449; --spouse:#8663cb;
+}
+body{font-size:15px;line-height:1.42;background:var(--bg);font-family:var(--sans);}
+.wrap{max-width:560px;padding:15px 16px calc(104px + env(safe-area-inset-bottom,0px));padding-top:max(15px,env(safe-area-inset-top,0px));}
+.home-top{margin:3px 0 14px;align-items:flex-start;}
+.home-top .hi{font-size:.78rem;font-weight:600;letter-spacing:.01em;color:#887d70;}
+.home-top h1{font-family:var(--sans);font-size:1.42rem;font-weight:800;letter-spacing:-.035em;color:#2c2925;}
+.home-top #homeFamBtn{width:42px!important;height:42px!important;border:1px solid #eee3d5;background:#fff;box-shadow:0 3px 12px rgba(61,42,20,.05);}
+.iconbtn{border-color:var(--rule);background:#fff;}
+.card,.strip{background:#fff;border:1px solid #eee7dd;border-radius:19px;padding:15px;margin-bottom:12px;box-shadow:0 4px 14px rgba(72,48,22,.035);}
+.card h2{font-family:var(--sans);font-size:1rem;font-weight:750;letter-spacing:-.015em;}
+.card-h{margin-bottom:10px;}
+.section-h{font-family:var(--sans);font-weight:750;font-size:1rem;}
+.btn{border-radius:12px;background:#fff;border-color:#e7dfd4;font-size:.88rem;padding:10px 13px;}
+.btn.primary{background:linear-gradient(135deg,#f6b74d,#eb8c2e);border-color:#ec9b38;color:#fff;box-shadow:0 4px 10px rgba(228,143,45,.18);}
+.mini{border-color:#f0dfc9;background:#fff8ee;color:#a65c13;}
+.seg{background:#f1ece4;border:0;border-radius:12px;padding:4px;}
+.seg button{font-size:.82rem;min-height:34px;border-radius:9px;}
+.seg button[aria-pressed="true"]{background:linear-gradient(135deg,#f6b74d,#eb8c2e);color:white;box-shadow:0 2px 5px rgba(205,128,33,.16);}
+.tabs{background:rgba(255,255,255,.97);border-top:1px solid #e9e1d6;box-shadow:0 -5px 18px rgba(54,39,22,.045);backdrop-filter:blur(12px);}
+.tabs nav{max-width:560px;grid-template-columns:repeat(5,1fr)!important;align-items:end;padding:3px 8px 0;}
+.tabs button{font-family:var(--sans);font-size:.67rem!important;font-weight:650;padding:8px 2px 10px;gap:3px;color:#8b8176;min-width:0;}
+.tabs button svg{width:21px;height:21px;stroke-width:1.9;}
+.tabs button[aria-current="page"]{color:#dc8526;}
+.tabs button[data-v="add"]{color:white;background:linear-gradient(135deg,#f6b74d,#e9852c);border-radius:16px;width:49px;height:49px;justify-self:center;align-self:start;margin-top:-14px;padding:8px 3px 4px;box-shadow:0 5px 14px rgba(217,130,35,.32);}
+.tabs button[data-v="add"] svg{width:23px;height:23px;}
+.tabs button[data-v="add"]::after{content:"";}
+#helpBtn{background:#fff;border-color:#efb35d;color:#d98424;box-shadow:0 3px 12px rgba(70,46,22,.10);}
+.tx,.trow,.ledger-two-col-row,.asset-compact{font-size:.88rem;}
+.tx{padding:12px 0;}
+.filters input,.filters select,.field input,.field select,textarea{background:#fff;border-color:#e8dfd3;border-radius:12px;}
+.set-block{background:#fff;border-color:#eee6dc;border-radius:15px;}
+/* Reference-style Home components */
+.home-hero{position:relative;overflow:hidden;border-radius:24px;padding:19px 18px 17px;margin:0 0 13px;color:#fff;background:linear-gradient(118deg,#f5a93c 0%,#f08b37 48%,#e96c59 100%);box-shadow:0 9px 22px rgba(223,125,44,.20);}
+.home-hero:before{content:"";position:absolute;width:180px;height:180px;right:-45px;top:-80px;border-radius:50%;background:rgba(255,255,255,.12);}
+.home-hero:after{content:"";position:absolute;width:110px;height:110px;right:35px;bottom:-75px;border-radius:50%;background:rgba(255,255,255,.09);}
+.home-hero .hero-label{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.88);position:relative;z-index:1;}
+.home-hero .hero-value{font-size:clamp(2rem,8vw,2.65rem);font-weight:800;letter-spacing:-.045em;line-height:1.15;margin:6px 0 15px;position:relative;z-index:1;}
+.home-hero .hero-bottom{display:flex;justify-content:space-between;gap:12px;align-items:end;position:relative;z-index:1;font-size:.78rem;color:rgba(255,255,255,.9);}
+.home-hero .hero-bottom strong{display:block;font-size:.95rem;color:white;margin-top:2px;}
+.home-hero .hero-art{position:absolute;right:13px;top:18px;font-size:3.5rem;opacity:.24;transform:rotate(-10deg);}
+.home-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px;}
+.home-stat{background:#fff;border:1px solid #eee6dc;border-radius:16px;padding:12px 10px;min-width:0;box-shadow:0 3px 10px rgba(72,48,22,.025);}
+.home-stat .stat-icon{width:32px;height:32px;border-radius:11px;display:grid;place-items:center;font-size:1.08rem;margin-bottom:8px;}
+.home-stat small{display:block;color:#887f74;font-size:.71rem;font-weight:650;}
+.home-stat strong{display:block;font-size:clamp(.83rem,3.6vw,1rem);font-weight:800;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
+.home-stat.assets .stat-icon{background:#e3f5eb;color:#15916a}.home-stat.liabilities .stat-icon{background:#ffebe7;color:#d75b4d}.home-stat.savings .stat-icon{background:#e9e5ff;color:#7658c7}
+.home-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px;font-size:1rem;font-weight:800;letter-spacing:-.02em;}
+.home-section-title .muted-link{font-size:.76rem;color:#d27a22;font-weight:700;}
+.home-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:14px;}
+.home-action{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;background:transparent;border:0;padding:5px 1px;color:var(--text);font-size:.7rem;font-weight:650;}
+.home-action .action-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:1.45rem;box-shadow:inset 0 0 0 1px rgba(40,30,20,.025);}
+.home-action:nth-child(1) .action-icon{background:#fff0d8}.home-action:nth-child(2) .action-icon{background:#e1f5e9}.home-action:nth-child(3) .action-icon{background:#e8e6ff}.home-action:nth-child(4) .action-icon{background:#ffe5e8}.home-action:nth-child(5) .action-icon{background:#e0f3fb}.home-action:nth-child(6) .action-icon{background:#fbe9d8}.home-action:nth-child(7) .action-icon{background:#e6f4de}.home-action:nth-child(8) .action-icon{background:#f0e5fa}
+.home-family-card .members{gap:7px;}
+.home-family-card .member{background:#fff;border:1px solid #eee3d6;padding:5px 10px 5px 5px;font-size:.77rem;}
+.home-family-card .member[aria-pressed="true"]{border-color:#e9a04a;background:#fff6e8;}
+.home-family-card .av{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font-size:.72rem;font-weight:800;color:white;}
+.home-upcoming .due,.home-family-card .due{border-bottom:1px solid #f0e9df;padding:11px 0;}
+.home-upcoming .due:last-child,.home-family-card .due:last-child{border-bottom:0;}
+.home-upcoming .n,.home-family-card .n{font-weight:700;font-size:.87rem;}
+@media(max-width:370px){.home-stat{padding:10px 7px}.home-actions{gap:4px}.home-action .action-icon{width:43px;height:43px}.home-stat strong{font-size:.78rem}}
+
+
+.more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.more-tile{display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:auto auto;column-gap:11px;align-items:center;text-align:left;background:#fff;border:1px solid #eee6dc;border-radius:16px;padding:13px 11px;box-shadow:0 3px 10px rgba(72,48,22,.025)}.more-ico{grid-row:1/3;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:1.35rem}.more-tile b{font-size:.87rem;align-self:end}.more-tile small{font-size:.7rem;color:#887f74;align-self:start;margin-top:2px}.more-heading .hi{font-size:.8rem;color:#887f74;font-weight:650;margin:3px 0 4px}
+
 </style>
 
 <style id="v1-130-home-style-hub">
@@ -1089,56 +1160,6 @@ button.insurance-row{
 @media(max-width:390px){#overviewBody .donut-layout{grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:5px}#overviewBody .donut-wrap{transform:translateX(-8px)}#overviewBody #ledgerSubsPane>summary .ledger-pane-actions{gap:8px}}
 
 </style>
-
-<style id="sms-ledger-reference-design-v155">
-/* v1.155 first native-app visual pass based on the approved reference. Layout and JS behavior are retained. */
-:root:not([data-theme="dark"]){
-  --bg:#f8f4eb; --panel:#ffffff; --raise:#f4efe5; --rule:#e8e0d2;
-  --text:#202633; --muted:#737987; --brass:#c68116; --brass-ink:#ffffff;
-  --credit:#14845b; --over:#d94a45; --focus:#d58b1f;
-  --inc:#168b62; --good:#17835d; --good-bg:#e0f5e9; --good-ink:#135b41; --spouse:#8b5bd6;
-}
-:root[data-theme="light"]{
-  --bg:#f8f4eb; --panel:#ffffff; --raise:#f4efe5; --rule:#e8e0d2;
-  --text:#202633; --muted:#737987; --brass:#c68116; --brass-ink:#ffffff;
-  --credit:#14845b; --over:#d94a45; --focus:#d58b1f;
-  --inc:#168b62; --good:#17835d; --good-bg:#e0f5e9; --good-ink:#135b41; --spouse:#8b5bd6;
-}
-body{font-family:"Figtree","Noto Sans Kannada",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.4;background:var(--bg);}
-.wrap{max-width:560px;padding:12px 14px calc(104px + env(safe-area-inset-bottom,0px));padding-top:max(10px,env(safe-area-inset-top,0px));}
-.card,.set-block,.strip,.finance-hub,.family-row{background:var(--panel);border-color:var(--rule);box-shadow:0 2px 8px rgba(54,42,20,.045);border-radius:17px;}
-.card{padding:14px 13px;margin-bottom:10px;}
-.card h2,.section-h,.home-top h1,.month h1,.yr-h b,.sheet h2{font-family:"Figtree","Noto Sans Kannada",system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;}
-.card h2{font-size:1rem;line-height:1.25;}
-.card-h{margin-bottom:9px;gap:8px;}
-.home-top{margin:2px 0 12px;}
-.home-top h1{font-size:1.35rem;}
-.section-h{font-size:1rem;margin:20px 0 8px;}
-.btn,.mini,.iconbtn,.summary-cats button,.seg button{border-radius:12px;}
-.btn{font-size:.9rem;padding:9px 12px;background:#fff;border-color:var(--rule);}
-.btn.primary,.summary-cats button.active,.seg button[aria-pressed="true"]{background:linear-gradient(135deg,#f3b64e 0%,#bd7410 100%);color:#fff;border-color:#c68116;box-shadow:0 2px 5px rgba(163,99,9,.18);}
-.tabs{background:rgba(255,255,255,.97);border-top:1px solid #e7dfd2;box-shadow:0 -3px 14px rgba(35,28,16,.05);backdrop-filter:blur(12px);}
-.tabs nav{max-width:560px;grid-template-columns:repeat(6,minmax(0,1fr))!important;}
-.tabs button{font-family:"Figtree","Noto Sans Kannada",system-ui,sans-serif;font-size:11px!important;line-height:1.1;padding:8px 2px 9px!important;gap:4px;color:#737987;}
-.tabs button[aria-current="page"]{color:#b8730d;font-weight:700;}
-.tabs svg{width:21px;height:21px;}
-.filters input,.filters select,.field input,.field select,.budget input,textarea{background:#fff;border-color:var(--rule);border-radius:10px;}
-.seg{background:#f2ede3;border-color:#e8e0d2;border-radius:999px;}
-.seg button{font-size:.82rem;min-height:32px;}
-.summary-cats button{font-size:.82rem;padding:7px 11px;}
-.tx,.pv{padding:10px 0;}
-.tx .m,.tx .a{font-size:.9rem;}
-.tx .d,.pv .d,.help,.hint{font-size:.78rem;line-height:1.4;}
-.mini{font-size:.78rem;padding:6px 9px;background:#fff;border:1px solid var(--rule);}
-.pane-icon,.asset-icon,.category-icon,.quick-icon{border-radius:12px;}
-.home-balance-card{background:linear-gradient(135deg,#e0f8f0 0%,#ffffff 52%,#f2fbff 100%);border-color:#d4eee5;}
-.home-balance-card .num{letter-spacing:-.035em;}
-.member-chip,.member,.av{border-radius:999px;}
-@media(max-width:390px){.wrap{padding-left:11px;padding-right:11px}.card{padding:12px 11px}.tabs button{font-size:10px!important}.home-top h1{font-size:1.22rem}}
-:root[data-theme="dark"] .tabs{background:rgba(32,28,22,.97);border-color:#3a342a;}
-:root[data-theme="dark"] .btn.primary,:root[data-theme="dark"] .summary-cats button.active,:root[data-theme="dark"] .seg button[aria-pressed="true"]{background:linear-gradient(135deg,#efb84e 0%,#bd7410 100%);color:#20170b;}
-</style>
-
 </head>
 <body>
 <main class="wrap">
@@ -1203,6 +1224,19 @@ body{font-family:"Figtree","Noto Sans Kannada",system-ui,-apple-system,"Segoe UI
 </section>
 
 <section id="v-insurance" class="hidden"><div id="insuranceBody"></div></section>
+
+<section id="v-more" class="hidden">
+  <div class="more-heading"><div class="hi">Your tools</div><h1 style="font-family:var(--sans);font-size:1.45rem;font-weight:800;margin:0 0 14px">More</h1></div>
+  <div class="more-grid">
+    <button class="more-tile" data-go="insurance"><span class="more-ico" style="background:#ffe8e4;color:#c95448">♡</span><b>Protection</b><small>Insurance & warranties</small></button>
+    <button class="more-tile" data-go="overview"><span class="more-ico" style="background:#e6e2ff;color:#7056c9">◷</span><b>Subscriptions</b><small>Recurring payments</small></button>
+    <button class="more-tile" data-go="accounts"><span class="more-ico" style="background:#def4e7;color:#20845d">▣</span><b>Loans & assets</b><small>Accounts and liabilities</small></button>
+    <button class="more-tile" data-go="overview"><span class="more-ico" style="background:#fff0d8;color:#b66b17">▦</span><b>Events</b><small>Events and shared spending</small></button>
+    <button class="more-tile" data-go="family"><span class="more-ico" style="background:#e1f1fb;color:#267eac">♧</span><b>Family Hub</b><small>Members and shared data</small></button>
+    <button class="more-tile" data-go="settings"><span class="more-ico" style="background:#f1e5fa;color:#8d55b6">⚙</span><b>Settings</b><small>Language, security & backup</small></button>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="card-h"><h2>SMS Ledger</h2><span class="pill">Private by design</span></div><p class="help" style="margin-bottom:0">Manage your money, protection and family records from one place.</p></div>
+</section>
 
 <section id="v-add" class="hidden">
   <h1 class="section-h" style="margin-top:4px">Paste bank SMS</h1>
@@ -1358,12 +1392,11 @@ body{font-family:"Figtree","Noto Sans Kannada",system-ui,-apple-system,"Segoe UI
 
 <div class="tabs">
   <nav aria-label="Sections">
-    <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Ledger</button>
-    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/></svg>My Ledger</button>
-    <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2M7 3h10"/></svg>Assets</button>
-    <button data-v="insurance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.1-7 10-4-1.9-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Protection</button>
-    <button data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Add</button>
-    <button data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
+    <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Home</button>
+    <button data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6M7 17h8"/></svg>Ledger</button>
+    <button data-v="add" aria-label="Add entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+    <button data-v="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M7 15h3"/></svg>Assets</button>
+    <button data-v="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.2 1-1.5 2.6-1.5-.6a8 8 0 0 1-1.7 1l-.3 1.6h-3l-.3-1.6a8 8 0 0 1-1.7-1l-1.5.6-1.5-2.6 1.2-1a7 7 0 0 1 0-2l-1.2-1 1.5-2.6 1.5.6a8 8 0 0 1 1.7-1l.3-1.6h3l.3 1.6a8 8 0 0 1 1.7 1l1.5-.6 1.5 2.6-1.2 1a7 7 0 0 1 0 2Z"/></svg>More</button>
   </nav>
 </div>
 <button id="helpBtn" aria-label="Help for this screen">?</button>
@@ -4225,17 +4258,24 @@ function renderHome(){
     const shopHtml=items.shopping.length ? items.shopping.slice(0,20).map(x=>`<label class="due" style="cursor:pointer;${x.done?'opacity:.55;text-decoration:line-through':''}"><span class="n"><input type="checkbox" data-shopdone="${esc(x.id)}" ${x.done?'checked':''} style="margin-right:8px">${esc(x.item||'Shopping item')}</span><span>Shared</span></label>`).join('') : '<p class="help">No shared shopping items yet.</p>';
     const calHtml=items.calendar.length ? items.calendar.slice(0,12).map(x=>`<div class="due"><span class="n">📅 ${esc(x.title||'Calendar item')}</span><span>${esc(x.date||'')}</span><span class="w" style="grid-column:1/3">${esc(x.note||'')}</span></div>`).join('') : '<p class="help">No shared calendar items yet.</p>';
     const txHtml=items.txns.length ? items.txns.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12).map(t=>`<button class="trow" data-home-entry="${esc(t.id)}"><div class="l1 num"><span>${esc(t.merchant||'Payment')}</span><b>${t.type==='credit'?'+':'−'}${money(Number(t.amount)||0,true,t.currency)}</b></div><div class="l2"><span class="chip">${esc(t.category||'Other')}</span><span>${esc(t.date?niceDate(t.date):'')}</span></div></button>`).join('') : '<p class="help">No shared transactions yet.</p>';
+    const financial=totalHeldBalance(), physical=physicalAssetTotal(), liabilities=totalLiabilities(), worth=netWorth();
+    const savings=worth;
+    const upcomingBills=typeof billsDueThisMonthHtml==='function'?billsDueThisMonthHtml():'';
     body.innerHTML=`
-      <div class="card"><div class="card-h"><h2>Family Hub</h2><span class="chart-note">${esc(title)}</span><button type="button" class="mini" id="homeManageFamily">Manage family</button><button type="button" class="mini" id="homeShareFamily">Share</button></div>
+      <section class="home-hero" aria-label="Net worth summary"><div class="hero-art" aria-hidden="true">✦</div><div class="hero-label">Total Net Worth</div><div class="hero-value num">${money(worth)}</div><div class="hero-bottom"><div><span>Assets</span><strong class="num">${money(financial+physical)}</strong></div><div style="text-align:right"><span>Updated for your accounts</span><strong>View details&nbsp; ↗</strong></div></div></section>
+      <div class="home-stat-grid"><button class="home-stat assets" data-go="accounts" style="text-align:left;color:inherit"><span class="stat-icon">▣</span><small>Assets</small><strong class="num">${money(financial+physical)}</strong></button><button class="home-stat liabilities" data-go="accounts" style="text-align:left;color:inherit"><span class="stat-icon">↘</span><small>Liabilities</small><strong class="num">${money(liabilities)}</strong></button><button class="home-stat savings" data-go="overview" style="text-align:left;color:inherit"><span class="stat-icon">✦</span><small>Net worth</small><strong class="num">${money(savings)}</strong></button></div>
+      <div class="home-section-title">Quick Actions <span class="muted-link" data-go="settings" style="cursor:pointer">More&nbsp; ›</span></div>
+      <div class="home-actions"><button class="home-action" data-go="add"><span class="action-icon">＋</span><span>Add entry</span></button><button class="home-action" data-go="overview"><span class="action-icon">▤</span><span>My Ledger</span></button><button class="home-action" data-go="accounts"><span class="action-icon">◫</span><span>Assets</span></button><button class="home-action" data-go="insurance"><span class="action-icon">♡</span><span>Protection</span></button><button class="home-action" data-go="overview"><span class="action-icon">◷</span><span>Subscriptions</span></button><button class="home-action" id="homeCreateEvent"><span class="action-icon">▦</span><span>Events</span></button><button class="home-action" data-go="family"><span class="action-icon">♧</span><span>Family Hub</span></button><button class="home-action" data-go="settings"><span class="action-icon">⚙</span><span>Settings</span></button></div>
+      ${upcomingBills?`<div class="home-section-title">Upcoming Payments</div><div class="home-upcoming">${upcomingBills}</div>`:''}
+      <div class="card home-family-card"><div class="card-h"><div><h2>Family Hub</h2><span class="chart-note" style="justify-content:flex-start">${esc(title)}</span></div><button type="button" class="mini" id="homeManageFamily">Manage</button><button type="button" class="mini" id="homeShareFamily" aria-label="Share family">↗</button></div>
         <div class="members" style="margin-bottom:8px">${allChip}${meChip}${memberChips}</div>
-        <p class="hint" style="margin:0">${items.isAll ? 'All data shared among family members is shown here.' : 'Showing events created by this member, including events tagged by other family members, and their shared shopping list.'}</p>
+        <p class="hint" style="margin:0">${items.isAll ? 'Showing data shared with family members.' : 'Showing this member’s shared family items.'}</p>
       </div>
-      <div class="row" style="margin:12px 0"><button class="btn primary" id="homeCreateEvent">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div>
-      <div class="card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
-      <div class="card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
-      ${items.isAll ? `<div class="card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}
-      <div class="card"><div class="card-h"><h2>Financial summary</h2></div><p class="hint">Income, expenses and total balance are available in <b>My Ledger</b>.</p></div>`;
+      <div class="card home-family-card"><div class="card-h"><h2>Events</h2><button class="mini" id="homeSeeEvents">See all</button></div>${eventHtml}<div class="row" style="margin-top:10px"><button class="btn primary" id="homeCreateEvent2">+ Create event</button><button class="btn" id="homeAddShopping">+ Shopping item</button><button class="btn" id="homeAddCalendar">+ Calendar</button></div></div>
+      ${items.isAll ? `<div class="card home-family-card"><div class="card-h"><h2>Calendar</h2></div>${calHtml}</div>` : ''}
+      <div class="card home-family-card"><div class="card-h"><h2>Shopping list</h2></div>${shopHtml}</div>
+      ${items.isAll ? `<div class="card home-family-card"><div class="card-h"><h2>Shared activity</h2></div>${txHtml}</div>` : ''}`;
+    body.querySelector('#homeCreateEvent2')?.addEventListener('click',()=>document.getElementById('homeCreateEvent')?.click());
     body.querySelector('#homeManageFamily')?.addEventListener('click',()=>{view='family';render();window.scrollTo({top:0,behavior:'auto'});});
     body.querySelector('#homeShareFamily')?.addEventListener('click',()=>openFamilySectionSharing());
     body.querySelectorAll('[data-home-share-key]').forEach(btn=>btn.addEventListener('click',e=>{
@@ -4280,6 +4320,7 @@ function render(){
     if(view === "overview") renderOverview();
     if(view === "list") renderList();
     if(view === "settings") renderSettings();
+    if(view === "more") {}
     if(view === "accounts") renderAccounts();
     if(view === "insurance") renderInsurance();
     if(view === "merchant") renderMerchant();

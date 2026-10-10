@@ -1,16 +1,22 @@
-# SMS Ledger v1.133
+# SMS Ledger v1.156 — Reference Design First Pass
 
-Source release with My Ledger, Protection, transaction-linking and Family Hub fixes.
+This is a separate native Android source package based on the uploaded v1.153 source project.
 
-SMS Ledger v1.108 — consolidated ledger, loan reconciliation, liability UI, recurring collapse, and granular family sharing.
+## First-pass UI changes
+- Shared warm cream background, white cards, soft borders/shadows, compact typography, and amber gradient primary actions.
+- Redesigned Home summary hero, financial metric cards, colorful quick-action tiles, and Family Hub layout.
+- Five-item bottom navigation: Home, Ledger, Add, Assets, More.
+- More screen links to existing Protection, Subscriptions, Loans/Assets, Events, Family Hub, and Settings areas.
 
-SMS Ledger v1.106 — Loan reconciliation, safe SMS deduplication and liabilities UI
+## Build
+The project uses Android Gradle Plugin 8.7.3 and Java 17. This archive does not include a Gradle wrapper. Build in an Android/Gradle environment using Gradle 8.9:
 
-- Scan & reconcile existing Ledger: safe duplicate merge preserving corrected categories, loan links, asset links and notes.
-- Loan-linked credits can establish the verified original loan amount; tagged repayments reduce verified outstanding when no newer statement balance overrides it.
-- Loan account linked transactions include both loan receipts and repayments.
-- Loan statement outstanding date is retained so post-statement verified repayments are reflected without double-counting earlier statement payments.
-- EMI / loan transactions show a loan-account link selector; bank/NBFC statement matching can populate the link.
-- Liabilities modal uses a consistent mobile two-column layout.
-- Credit-card outstanding is included in liabilities; credit-card limits are excluded.
-- v1.113 / versionCode 108.
+```bash
+gradle --no-daemon assembleRelease --stacktrace --console=plain
+```
+
+Expected release APK location:
+`app/build/outputs/apk/release/app-release.apk`
+
+## Validation status
+Inline JavaScript syntax check passed. APK compilation and Android device testing were not possible in the current environment because Gradle and the Android SDK are unavailable and external download access failed. This is a source package, not an APK. See `docs/release-notes/RELEASE_NOTES_V1.156.md`.
