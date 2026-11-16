@@ -1,0 +1,34 @@
+name: Publish Kosha for iPhone (web)
+
+on:
+  push:
+    branches: [ main, master ]
+    paths: [ "app/index.html", "kosha-web-kit.zip", ".github/workflows/deploy-web.yml" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Check the Firebase key is set
+        env: { SA: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" }
+        run: |
+          if [ -z "$SA" ]; then echo "::error::Add the repository secret FIREBASE_SERVICE_ACCOUNT (Settings → Secrets and variables → Actions)"; exit 1; fi
+      - name: Build the iPhone (web) edition from app/index.html
+        run: |
+          unzip -o -q kosha-web-kit.zip -d .
+          VER="$(grep -o 'v1\.[0-9]\{3\}' app/index.html | sort -V | tail -1)"
+          rm -rf web/public && mkdir -p web/public
+          python3 web/mkweb.py app/index.html web/public "${VER:-web}-web"
+          ls -la web/public
+      - name: Publish to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: sms-ledger-family
+          channelId: live
+          entryPoint: web
